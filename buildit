@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -ex
+
+BUILDDIR=`pwd`/build/armv8-m
+./autogen.sh
+./configure \
+  --host=arm-none-eabi \
+  CC=arm-none-eabi-gcc \
+  AR=arm-none-eabi-ar \
+  STRIP=arm-none-eabi-strip \
+  RANLIB=arm-none-eabi-ranlib \
+  --prefix=$BUILDDIR \
+  CFLAGS="-march=armv7-m --specs=nosys.specs \
+      -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DWOLFSSL_DILITHIUM_NO_ASN1 $*" \
+  --disable-filesystem --disable-crypttests \
+  --disable-shared --enable-cryptonly --enable-mldsa \
+  --enable-mlkem=no\
+  --enable-dh=no\
+  --enable-ecc=no\
+  --enable-aes=no --enable-aesgcm=no\
+  --enable-chacha=no\
+  --enable-pkcs8=no\
+  --enable-pkcs12=no\
+  --enable-tls=no\
+  --enable-tlsv12=no\
+  --enable-tls13=no\
+  --enable-asn=no\
+  --enable-rsa=no\
+  --enable-hkdf=no\
+  --enable-pwdbased=no\
+  --enable-hashdrbg=no\
+  --enable-sha=no\
+  --enable-aescbc=no\
+  --enable-harden=yes #keep it enabled as it just mean timing resistance
+
+make
+make install

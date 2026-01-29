@@ -1,3 +1,12 @@
+# WolfSSL fork for benchmarking purposes
+
+We just added the files './buildit*' to ease the task of reproducing our results.
+
+- use `./buildit-mldsa-fast` to reproduce the 'wolfssl-fast' results
+- use `./buildit-mldsa-lowram` to reproduce the 'wolfssl-lowram' results
+
+We use Ubuntu 24.04 as build platform and xpack-arm-none-eabi-gcc-14.2.1-1.1
+
 # wolfSSL Embedded SSL/TLS Library
 
 The [wolfSSL embedded SSL library](https://www.wolfssl.com/products/wolfssl/)

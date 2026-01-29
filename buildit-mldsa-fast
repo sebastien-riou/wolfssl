@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -ex
+
+./buildit \
+  -DWOLFSSL_DILITHIUM_VERIFY_NO_MALLOC=ON 
+
+  
