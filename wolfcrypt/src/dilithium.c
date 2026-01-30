@@ -9226,12 +9226,11 @@ static int dilithium_sign_ctx_hash(dilithium_key* key, WC_RNG* rng,
 
     /* Must have a random number generator. */
     if (rng == NULL) {
-        ret = BAD_FUNC_ARG;
+        return BAD_FUNC_ARG;
     }
-    if (ret == 0) {
-        /* Step 7: Generate random seed. */
-        ret = wc_RNG_GenerateBlock(rng, seed, DILITHIUM_RND_SZ);
-    }
+    
+    /* Step 7: Generate random seed. */
+    ret = wc_RNG_GenerateBlock(rng, seed, DILITHIUM_RND_SZ);
 
     if (ret == 0) {
         ret = dilithium_sign_ctx_hash_with_seed(key, seed, ctx, ctxLen, hashAlg,
