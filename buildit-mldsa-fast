@@ -2,7 +2,9 @@
 
 set -ex
 
-./buildit \
+DEBUG=${1:-no}
+
+./buildit $DEBUG \
   -DWOLFSSL_DILITHIUM_VERIFY_NO_MALLOC=ON 
 
   

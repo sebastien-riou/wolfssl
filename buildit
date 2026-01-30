@@ -2,17 +2,20 @@
 
 set -ex
 
+DEBUG=${1:-no}
+
 BUILDDIR=`pwd`/build/armv8-m
 ./autogen.sh
 ./configure \
+  --enable-debug=$DEBUG \
   --host=arm-none-eabi \
   CC=arm-none-eabi-gcc \
   AR=arm-none-eabi-ar \
   STRIP=arm-none-eabi-strip \
   RANLIB=arm-none-eabi-ranlib \
   --prefix=$BUILDDIR \
-  CFLAGS="-march=armv7-m --specs=nosys.specs \
-      -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DWOLFSSL_DILITHIUM_NO_ASN1 $*" \
+  CFLAGS="-march=armv8-m.main --specs=nosys.specs \
+      -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DNO_WOLFSSL_DIR -DWOLFSSL_DILITHIUM_NO_ASN1 ${*:2}" \
   --disable-filesystem --disable-crypttests \
   --disable-shared --enable-cryptonly --enable-mldsa \
   --enable-mlkem=no\
