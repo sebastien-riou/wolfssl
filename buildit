@@ -2,9 +2,12 @@
 
 set -ex
 
-DEBUG=${1:-no}
+#TARGET=${1:-armv7-m}
+#TARGET: armv7-m armv8-m.base, armv8-m.main
+CPU=${1:-cortex-m33}
+DEBUG=${2:-no}
 
-BUILDDIR=`pwd`/build/armv8-m
+BUILDDIR=`pwd`/build/$CPU
 ./autogen.sh
 ./configure \
   --enable-debug=$DEBUG \
@@ -14,8 +17,8 @@ BUILDDIR=`pwd`/build/armv8-m
   STRIP=arm-none-eabi-strip \
   RANLIB=arm-none-eabi-ranlib \
   --prefix=$BUILDDIR \
-  CFLAGS="-march=armv8-m.main --specs=nosys.specs \
-      -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DNO_WOLFSSL_DIR -DWOLFSSL_DILITHIUM_NO_ASN1 ${*:2}" \
+  CFLAGS="-mcpu=$CPU --specs=nosys.specs \
+      -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DNO_WOLFSSL_DIR -DWOLFSSL_DILITHIUM_NO_ASN1 ${*:3}" \
   --disable-filesystem --disable-crypttests \
   --disable-shared --enable-cryptonly --enable-mldsa \
   --enable-mlkem=no\

@@ -2,9 +2,10 @@
 
 set -ex
 
-DEBUG=${1:-no}
+CPU=${1:-cortex-m33}
+DEBUG=${2:-no}
 
-./buildit $DEBUG \
+./buildit $CPU $DEBUG \
   -DWOLFSSL_DILITHIUM_VERIFY_NO_MALLOC=ON 
 
   
