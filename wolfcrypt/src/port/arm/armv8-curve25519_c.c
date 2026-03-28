@@ -1,6 +1,6 @@
 /* armv8-curve25519
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -471,7 +471,7 @@ void fe_cmov_table(fe* r, fe* base, signed char b)
     );
 }
 
-void fe_invert_nct(word64* r, const word64* a)
+void fe_invert_nct(fe r, const fe a)
 {
     __asm__ __volatile__ (
         "mov	x19, #-19\n\t"

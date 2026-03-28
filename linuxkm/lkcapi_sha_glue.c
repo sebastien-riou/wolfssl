@@ -1,6 +1,6 @@
 /* lkcapi_sha_glue.c -- glue logic for SHA*
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -28,6 +28,22 @@
 
 #if defined(WC_LINUXKM_C_FALLBACK_IN_SHIMS) && defined(USE_INTEL_SPEEDUP)
     #error SHA* WC_LINUXKM_C_FALLBACK_IN_SHIMS is not currently supported.
+#endif
+
+#ifdef NO_LINUXKM_DRBG_GET_RANDOM_BYTES
+    #undef LINUXKM_DRBG_GET_RANDOM_BYTES
+/* setup for LINUXKM_LKCAPI_REGISTER_HASH_DRBG_DEFAULT is in linuxkm_wc_port.h */
+#elif defined(LINUXKM_LKCAPI_REGISTER_HASH_DRBG_DEFAULT) && \
+    (defined(WOLFSSL_LINUXKM_HAVE_GET_RANDOM_CALLBACKS) || \
+     defined(WOLFSSL_LINUXKM_USE_GET_RANDOM_KPROBES))
+    #ifndef LINUXKM_DRBG_GET_RANDOM_BYTES
+        #define LINUXKM_DRBG_GET_RANDOM_BYTES
+    #endif
+#else
+    #ifdef LINUXKM_DRBG_GET_RANDOM_BYTES
+        #error LINUXKM_DRBG_GET_RANDOM_BYTES configured with no callback model configured.
+        #undef LINUXKM_DRBG_GET_RANDOM_BYTES
+    #endif
 #endif
 
 #include <wolfssl/wolfcrypt/sha.h>
@@ -94,7 +110,31 @@
  * exhaustion.  A caller that really needs PR can pass in seed data in its call
  * to our rng_alg.generate() implementation.
  */
-#define WOLFKM_STDRNG_DRIVER ("sha2-256-drbg-nopr" WOLFKM_SHA_DRIVER_SUFFIX)
+
+#ifdef HAVE_ENTROPY_MEMUSE
+    #define WOLFKM_STDRNG_WOLFENTROPY "-wolfentropy"
+#else
+    #define WOLFKM_STDRNG_WOLFENTROPY ""
+#endif
+
+#if defined(HAVE_INTEL_RDSEED) || defined(HAVE_AMD_RDSEED)
+    #define WOLFKM_STDRNG_RDSEED "-rdseed"
+#else
+    #define WOLFKM_STDRNG_RDSEED ""
+#endif
+
+#ifdef LINUXKM_DRBG_GET_RANDOM_BYTES
+    #define WOLFKM_STDRNG_DRIVER ("sha2-256-drbg-nopr" \
+                                  WOLFKM_STDRNG_WOLFENTROPY \
+                                  WOLFKM_STDRNG_RDSEED \
+                                  WOLFKM_DRIVER_SUFFIX_BASE \
+                                  "-with-global-replace")
+#else
+    #define WOLFKM_STDRNG_DRIVER ("sha2-256-drbg-nopr" \
+                                  WOLFKM_STDRNG_WOLFENTROPY \
+                                  WOLFKM_STDRNG_RDSEED \
+                                  WOLFKM_DRIVER_SUFFIX_BASE)
+#endif
 
 #ifdef LINUXKM_LKCAPI_REGISTER_SHA_ALL
     #define LINUXKM_LKCAPI_REGISTER_SHA1
@@ -388,7 +428,7 @@
 #else
     #if defined(LINUXKM_LKCAPI_REGISTER_ALL_KCONFIG) && defined(CONFIG_CRYPTO_DRBG) && \
         !defined(LINUXKM_LKCAPI_DONT_REGISTER_HASH_DRBG)
-        #error Config conflict: target kernel has CONFIG_CRYPTO_SHA3, but module is missing WOLFSSL_SHA3
+        #error Config conflict: target kernel has CONFIG_CRYPTO_DRBG, but module is missing HAVE_HASHDRBG
     #endif
     #undef LINUXKM_LKCAPI_REGISTER_HASH_DRBG
 #endif
@@ -525,8 +565,8 @@ static struct shash_alg name ## _alg =                                     \
     .digest         =       km_ ## name ## _digest,                        \
     .descsize       =       sizeof(struct km_sha_state),                   \
     .base           =       {                                              \
-        .cra_name        =      this_cra_name,                             \
-        .cra_driver_name =      this_cra_driver_name,                      \
+        .cra_name        =      (this_cra_name),                           \
+        .cra_driver_name =      (this_cra_driver_name),                    \
         .cra_priority    =      WOLFSSL_LINUXKM_LKCAPI_PRIORITY,           \
         .cra_blocksize   =      (block_size),                              \
         .cra_module      =      THIS_MODULE                                \
@@ -631,8 +671,8 @@ static struct shash_alg name ## _alg =                                     \
     .digest         =       km_ ## name ## _digest,                        \
     .descsize       =       sizeof(struct km_sha_state),                   \
     .base           =       {                                              \
-        .cra_name        =      this_cra_name,                             \
-        .cra_driver_name =      this_cra_driver_name,                      \
+        .cra_name        =      (this_cra_name),                           \
+        .cra_driver_name =      (this_cra_driver_name),                    \
         .cra_priority    =      WOLFSSL_LINUXKM_LKCAPI_PRIORITY,           \
         .cra_blocksize   =      (block_size),                              \
         .cra_module      =      THIS_MODULE                                \
@@ -869,8 +909,8 @@ static struct shash_alg name ## _alg =                                    \
     .exit_tfm       =       km_hmac_exit_tfm,                             \
     .descsize       =       sizeof(struct km_sha_hmac_state),             \
     .base           =       {                                             \
-        .cra_name        =      this_cra_name,                            \
-        .cra_driver_name =      this_cra_driver_name,                     \
+        .cra_name        =      (this_cra_name),                          \
+        .cra_driver_name =      (this_cra_driver_name),                   \
         .cra_priority    =      WOLFSSL_LINUXKM_LKCAPI_PRIORITY,          \
         .cra_blocksize   =      (block_size),                             \
         .cra_ctxsize     =      sizeof(struct km_sha_hmac_pstate),        \
@@ -1088,6 +1128,18 @@ static void linuxkm_put_drbg(struct crypto_rng *tfm, struct wc_rng_bank_inst **d
 
 #if defined(LINUXKM_LKCAPI_REGISTER_HASH_DRBG_DEFAULT) && defined(HAVE_HASHDRBG)
 
+int wc_linux_kernel_rng_is_wolfcrypt(struct crypto_rng *rng) {
+    if (rng &&
+        wc_linuxkm_drbg_default_instance_registered &&
+        (rng->base.__crt_alg->cra_init == wc_linuxkm_drbg_init_tfm))
+    {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 static inline struct crypto_rng *get_crypto_default_rng(void) {
     struct crypto_rng *current_crypto_default_rng = crypto_default_rng;
 
@@ -1109,7 +1161,6 @@ static inline struct crypto_rng *get_crypto_default_rng(void) {
 
     if (current_crypto_default_rng->base.__crt_alg->cra_init != wc_linuxkm_drbg_init_tfm) {
         pr_err("BUG: get_default_drbg_ctx() found wrong crypto_default_rng \"%s\"\n", crypto_tfm_alg_driver_name(&current_crypto_default_rng->base));
-        crypto_put_default_rng();
         return NULL;
     }
 
@@ -1256,20 +1307,6 @@ static struct rng_alg wc_linuxkm_drbg = {
     }
 };
 static int wc_linuxkm_drbg_loaded = 0;
-
-#ifdef NO_LINUXKM_DRBG_GET_RANDOM_BYTES
-    #undef LINUXKM_DRBG_GET_RANDOM_BYTES
-#elif defined(LINUXKM_LKCAPI_REGISTER_HASH_DRBG_DEFAULT) && \
-    (defined(WOLFSSL_LINUXKM_HAVE_GET_RANDOM_CALLBACKS) || defined(WOLFSSL_LINUXKM_USE_GET_RANDOM_KPROBES))
-    #ifndef LINUXKM_DRBG_GET_RANDOM_BYTES
-        #define LINUXKM_DRBG_GET_RANDOM_BYTES
-    #endif
-#else
-    #ifdef LINUXKM_DRBG_GET_RANDOM_BYTES
-        #error LINUXKM_DRBG_GET_RANDOM_BYTES configured with no callback model configured.
-        #undef LINUXKM_DRBG_GET_RANDOM_BYTES
-    #endif
-#endif
 
 #ifdef LINUXKM_DRBG_GET_RANDOM_BYTES
 

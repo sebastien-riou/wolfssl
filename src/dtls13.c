@@ -1,6 +1,6 @@
 /* dtls13.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -93,7 +93,7 @@ typedef struct Dtls13RecordPlaintextHeader {
 #define DTLS13_SEQ_8_LEN 1
 
 /* fixed bits mask to detect unified header  */
-#define DTLS13_FIXED_BITS_MASK (0x111 << 5)
+#define DTLS13_FIXED_BITS_MASK (0x7 << 5)
 /* fixed bits value to detect unified header  */
 #define DTLS13_FIXED_BITS (0x1 << 5)
 /* ConnectionID present bit in the unified header flags */
@@ -473,7 +473,7 @@ static int Dtls13SendNow(WOLFSSL* ssl, enum HandShakeType handshakeType)
 
     if (handshakeType == client_hello || handshakeType == hello_retry_request ||
         handshakeType == finished || handshakeType == session_ticket ||
-        handshakeType == session_ticket || handshakeType == key_update ||
+        handshakeType == key_update ||
         (handshakeType == certificate_request &&
             ssl->options.handShakeState == HANDSHAKE_DONE))
         return 1;
@@ -1849,7 +1849,7 @@ static int _Dtls13HandshakeRecv(WOLFSSL* ssl, byte* input, word32 size,
     isComplete = isFirst && fragLength == messageLength;
 
     if (!isComplete && !Dtls13AcceptFragmented(ssl, (enum HandShakeType)handshakeType)) {
-#ifdef WOLFSSL_DTLS_CH_FRAG
+#if defined(WOLFSSL_DTLS_CH_FRAG) && !defined(NO_WOLFSSL_SERVER)
         byte tls13 = 0;
         /* check if the first CH fragment contains a valid cookie */
         if (ssl->options.dtls13ChFrag && !ssl->options.dtlsStateful &&
@@ -2034,8 +2034,21 @@ int Dtls13HandshakeSend(WOLFSSL* ssl, byte* message, word16 outputSize,
     maxFrag = wolfssl_local_GetMaxPlaintextSize(ssl);
     maxLen = length;
 
-    if (handshakeType == key_update)
+    if (handshakeType == key_update) {
         ssl->dtls13WaitKeyUpdateAck = 1;
+#ifdef HAVE_WRITE_DUP
+        /* Notify the read side so it can watch for the ACK on our behalf. */
+        if (ssl->dupWrite != NULL && ssl->dupSide == WRITE_DUP_SIDE) {
+            if (wc_LockMutex(&ssl->dupWrite->dupMutex) != 0)
+                return BAD_MUTEX_E;
+            ssl->dupWrite->keyUpdateEpoch = ssl->dtls13Epoch;
+            ssl->dupWrite->keyUpdateSeq =
+                ssl->dtls13EncryptEpoch->nextSeqNumber;
+            ssl->dupWrite->keyUpdateWaiting = 1;
+            wc_UnLockMutex(&ssl->dupWrite->dupMutex);
+        }
+#endif /* HAVE_WRITE_DUP */
+    }
 
     if (maxLen < maxFrag) {
         ret = Dtls13SendOneFragmentRtx(ssl, handshakeType, outputSize, message,
@@ -2656,7 +2669,7 @@ static void Dtls13PrintRtxRecord(Dtls13RtxRecord* r)
 }
 #endif /* WOLFSSL_DEBUG_TLS */
 
-static void Dtls13RtxRemoveRecord(WOLFSSL* ssl, w64wrapper epoch,
+void Dtls13RtxRemoveRecord(WOLFSSL* ssl, w64wrapper epoch,
     w64wrapper seq)
 {
     Dtls13RtxRecord *r, **prevNext;
@@ -2706,9 +2719,28 @@ int Dtls13DoScheduledWork(WOLFSSL* ssl)
     ret = wc_UnLockMutex(&ssl->dtls13Rtx.mutex);
 #endif
     if (sendAcks) {
-        ret = SendDtls13Ack(ssl);
-        if (ret != 0)
-            return ret;
+#ifdef HAVE_WRITE_DUP
+        /* The read side cannot encrypt.  Transfer the seenRecords list to the
+         * shared WriteDup struct so the write side sends the ACK instead. */
+        if (ssl->dupWrite != NULL && ssl->dupSide == READ_DUP_SIDE) {
+            struct Dtls13RecordNumber** tail = NULL;
+            if (wc_LockMutex(&ssl->dupWrite->dupMutex) != 0)
+                return BAD_MUTEX_E;
+            tail = (struct Dtls13RecordNumber**)&ssl->dupWrite->sendAckList;
+            while (*tail != NULL)
+                tail = &(*tail)->next;
+            *tail = ssl->dtls13Rtx.seenRecords;
+            ssl->dtls13Rtx.seenRecords = NULL;
+            ssl->dupWrite->sendAcks = 1;
+            wc_UnLockMutex(&ssl->dupWrite->dupMutex);
+        }
+        else
+#endif /* HAVE_WRITE_DUP */
+        {
+            ret = SendDtls13Ack(ssl);
+            if (ret != 0)
+                return ret;
+        }
     }
 
     if (ssl->dtls13Rtx.retransmit) {
@@ -2824,6 +2856,22 @@ int DoDtls13Ack(WOLFSSL* ssl, const byte* input, word32 inputSize,
         ato64(ackMessage + i + OPAQUE64_LEN, &seq);
         WOLFSSL_MSG_EX("epoch %d seq %d", epoch, seq);
         Dtls13RtxRemoveRecord(ssl, epoch, seq);
+#ifdef HAVE_WRITE_DUP
+        /* Read side: check if this ACK covers the write side's pending KeyUpdate.
+         * Match on both epoch AND seq to avoid false positives from data records
+         * in the same epoch (sent while dtls13WaitKeyUpdateAck == 1). */
+        if (ssl->dupWrite != NULL && ssl->dupSide == READ_DUP_SIDE) {
+            if (wc_LockMutex(&ssl->dupWrite->dupMutex) != 0)
+                return BAD_MUTEX_E;
+            if (ssl->dupWrite->keyUpdateWaiting &&
+                    w64Equal(epoch, ssl->dupWrite->keyUpdateEpoch) &&
+                    w64Equal(seq,   ssl->dupWrite->keyUpdateSeq)) {
+                ssl->dupWrite->keyUpdateAcked = 1;
+                ssl->dupWrite->keyUpdateWaiting = 0;
+            }
+            wc_UnLockMutex(&ssl->dupWrite->dupMutex);
+        }
+#endif /* HAVE_WRITE_DUP */
     }
 
     /* last client flight was completely acknowledged by the server. Handshake

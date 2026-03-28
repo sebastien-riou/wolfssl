@@ -1,6 +1,6 @@
 /* dtls.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -403,8 +403,9 @@ static int TlsTicketIsValid(const WOLFSSL* ssl, WolfSSL_ConstVector exts,
         if (!IsAtLeastTLSv1_3(it->pv))
             *resume = TRUE;
     }
-    if (it != NULL)
-        ForceZero(it, sizeof(InternalTicket));
+    /* `it` points into tempTicket on successful decryption so clearing it will
+     * also satisfy the WOLFSSL_CHECK_MEM_ZERO check. */
+    ForceZero(tempTicket, SESSION_TICKET_LEN);
     return 0;
 }
 #endif /* HAVE_SESSION_TICKET */

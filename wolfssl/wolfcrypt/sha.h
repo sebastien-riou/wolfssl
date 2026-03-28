@@ -1,6 +1,6 @@
 /* sha.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -174,9 +174,6 @@ struct wc_Sha {
 #ifdef WOLF_CRYPTO_CB
     int    devId;
     void*  devCtx; /* generic crypto callback context */
-#endif
-#if defined(MAX3266X_SHA_CB) || defined(MAX3266X_SHA)
-    wc_MXC_Sha mxcCtx;
 #endif
 #ifdef WOLFSSL_IMXRT1170_CAAM
     caam_hash_ctx_t ctx;

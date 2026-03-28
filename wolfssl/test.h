@@ -1,6 +1,6 @@
 /* test.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -188,7 +188,15 @@
     #include <pthread.h>
     #define SOCKET_T int
 #elif defined(WOLFSSL_ZEPHYR)
-    #include <version.h>
+    #ifdef __has_include
+        #if __has_include(<zephyr/version.h>)
+            #include <zephyr/version.h>
+        #else
+            #include <version.h>
+        #endif
+    #else
+        #include <version.h>
+    #endif
     #include <string.h>
     #include <sys/types.h>
     #if KERNEL_VERSION_NUMBER >= 0x30100
@@ -209,9 +217,10 @@
         #endif
     #endif
     #define SOCKET_T int
-    #define SOL_SOCKET 1
     #define WOLFSSL_USE_GETADDRINFO
 
+    #if !defined(CONFIG_POSIX_API)
+    #define SOL_SOCKET 1
     static unsigned long inet_addr(const char *cp)
     {
         unsigned int a[4]; unsigned long ret;
@@ -227,6 +236,7 @@
         ret = ((a[3]<<24) + (a[2]<<16) + (a[1]<<8) + a[0]) ;
         return(ret) ;
     }
+    #endif
 #elif defined(NETOS)
     #include <string.h>
     #include <sys/types.h>
@@ -2334,7 +2344,7 @@ static WC_INLINE void OCSPRespFreeCb(void* ioCtx, unsigned char* response)
         LIBCALL_CHECK_RET(XFSEEK(lFile, 0, XSEEK_SET));
         if (fileSz  > 0) {
             *bufLen = (size_t)fileSz;
-            *buf = (byte*)malloc(*bufLen);
+            *buf = (byte*)XMALLOC(*bufLen, NULL, DYNAMIC_TYPE_TMP_BUFFER);
             if (*buf == NULL) {
                 ret = MEMORY_E;
                 fprintf(stderr,
@@ -2399,7 +2409,7 @@ static WC_INLINE void OCSPRespFreeCb(void* ioCtx, unsigned char* response)
         }
 
         if (buff)
-            free(buff);
+            XFREE(buff, NULL, DYNAMIC_TYPE_TMP_BUFFER);
     }
 
     static WC_INLINE void load_ssl_buffer(WOLFSSL* ssl, const char* fname, int type)
@@ -2441,7 +2451,7 @@ static WC_INLINE void OCSPRespFreeCb(void* ioCtx, unsigned char* response)
         }
 
         if (buff)
-            free(buff);
+            XFREE(buff, NULL, DYNAMIC_TYPE_TMP_BUFFER);
     }
 
     #ifdef TEST_PK_PRIVKEY
@@ -2457,18 +2467,18 @@ static WC_INLINE void OCSPRespFreeCb(void* ioCtx, unsigned char* response)
 
         *derBuf = (byte*)malloc(bufLen);
         if (*derBuf == NULL) {
-            free(buf);
+            XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
             return MEMORY_E;
         }
 
         ret = wc_KeyPemToDer(buf, (word32)bufLen, *derBuf, (word32)bufLen, NULL);
         if (ret < 0) {
-            free(buf);
+            XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
             free(*derBuf);
             return ret;
         }
         *derLen = ret;
-        free(buf);
+        XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
 
         return 0;
     }

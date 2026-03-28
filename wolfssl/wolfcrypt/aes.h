@@ -1,6 +1,6 @@
 /* aes.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -334,7 +334,7 @@ struct Aes {
 #endif /* __aarch64__ && WOLFSSL_ARMASM && !WOLFSSL_ARMASM_NO_HW_CRYPTO */
 #if defined(WOLF_CRYPTO_CB) || defined(WOLFSSL_STM32U5_DHUK)
     int    devId;
-    void*  devCtx;
+    void*  devCtx;  /* Opaque handle for CryptoCB device */
 #endif
 #ifdef WOLF_PRIVATE_KEY_ID
     byte id[AES_MAX_ID_LEN];
@@ -804,6 +804,13 @@ WOLFSSL_API WARN_UNUSED_RESULT
 int wc_AesSivDecrypt_ex(const byte* key, word32 keySz, const AesSivAssoc* assoc,
                         word32 numAssoc, const byte* nonce, word32 nonceSz,
                         const byte* in, word32 inSz, byte* siv, byte* out);
+#endif
+
+#ifdef WOLFSSL_CMAC
+/* forward declaration, in case aes.h is being included by cmac.h */
+struct Cmac;
+WOLFSSL_LOCAL int wc_local_CmacUpdateAes(struct Cmac *cmac, const byte* in,
+                                   word32 inSz);
 #endif
 
 #ifdef WOLFSSL_AES_EAX

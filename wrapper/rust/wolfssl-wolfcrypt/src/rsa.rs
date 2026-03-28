@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -28,6 +28,7 @@ wolfSSL `RsaKey` object. It ensures proper initialization and deallocation.
 # Examples
 
 ```rust
+# extern crate std;
 #[cfg(random)]
 {
 use std::fs;
@@ -61,7 +62,7 @@ assert_eq!(plain_out[0..dec_len], *plain);
 use crate::sys;
 #[cfg(random)]
 use crate::random::RNG;
-use std::mem::{MaybeUninit};
+use core::mem::{MaybeUninit};
 
 /// The `RSA` struct manages the lifecycle of a wolfSSL `RsaKey` object.
 ///
@@ -100,7 +101,9 @@ impl RSA {
     pub const HASH_TYPE_SHA3_512   : u32 = sys::wc_HashType_WC_HASH_TYPE_SHA3_512;
     pub const HASH_TYPE_BLAKE2B    : u32 = sys::wc_HashType_WC_HASH_TYPE_BLAKE2B;
     pub const HASH_TYPE_BLAKE2S    : u32 = sys::wc_HashType_WC_HASH_TYPE_BLAKE2S;
+    #[cfg(sha512_224)]
     pub const HASH_TYPE_SHA512_224 : u32 = sys::wc_HashType_WC_HASH_TYPE_SHA512_224;
+    #[cfg(sha512_256)]
     pub const HASH_TYPE_SHA512_256 : u32 = sys::wc_HashType_WC_HASH_TYPE_SHA512_256;
     #[cfg(shake128)]
     pub const HASH_TYPE_SHAKE128   : u32 = sys::wc_HashType_WC_HASH_TYPE_SHAKE128;
@@ -114,7 +117,9 @@ impl RSA {
     pub const MGF1SHA256     : i32 = sys::WC_MGF1SHA256 as i32;
     pub const MGF1SHA384     : i32 = sys::WC_MGF1SHA384 as i32;
     pub const MGF1SHA512     : i32 = sys::WC_MGF1SHA512 as i32;
+    #[cfg(rsa_mgf1sha512_224)]
     pub const MGF1SHA512_224 : i32 = sys::WC_MGF1SHA512_224 as i32;
+    #[cfg(rsa_mgf1sha512_256)]
     pub const MGF1SHA512_256 : i32 = sys::WC_MGF1SHA512_256 as i32;
 
     // Type constants used for `rsa_direct()`.
@@ -137,6 +142,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -184,6 +190,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -210,7 +217,7 @@ impl RSA {
     /// assert_eq!(plain_out[0..dec_len], *plain);
     /// }
     /// ```
-    pub fn new_from_der_ex(der: &[u8], heap: Option<*mut std::os::raw::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
+    pub fn new_from_der_ex(der: &[u8], heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
         let mut wc_rsakey: MaybeUninit<sys::RsaKey> = MaybeUninit::uninit();
         let heap = match heap {
             Some(heap) => heap,
@@ -252,6 +259,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -299,6 +307,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -325,7 +334,7 @@ impl RSA {
     /// assert_eq!(plain_out[0..dec_len], *plain);
     /// }
     /// ```
-    pub fn new_public_from_der_ex(der: &[u8], heap: Option<*mut std::os::raw::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
+    pub fn new_public_from_der_ex(der: &[u8], heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
         let mut wc_rsakey: MaybeUninit<sys::RsaKey> = MaybeUninit::uninit();
         let heap = match heap {
             Some(heap) => heap,
@@ -440,7 +449,7 @@ impl RSA {
     /// }
     /// ```
     #[cfg(all(random, rsa_keygen))]
-    pub fn generate_ex(size: i32, e: i32, rng: &mut RNG, heap: Option<*mut std::os::raw::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
+    pub fn generate_ex(size: i32, e: i32, rng: &mut RNG, heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
         let mut wc_rsakey: MaybeUninit<sys::RsaKey> = MaybeUninit::uninit();
         let heap = match heap {
             Some(heap) => heap,
@@ -523,8 +532,12 @@ impl RSA {
         *d_size = d.len() as u32;
         *p_size = p.len() as u32;
         *q_size = q.len() as u32;
+        #[cfg(rsa_const_api)]
+        let key_ptr = &self.wc_rsakey;
+        #[cfg(not(rsa_const_api))]
+        let key_ptr = &mut self.wc_rsakey;
         let rc = unsafe {
-            sys::wc_RsaExportKey(&self.wc_rsakey,
+            sys::wc_RsaExportKey(key_ptr,
                 e.as_mut_ptr(), e_size,
                 n.as_mut_ptr(), n_size,
                 d.as_mut_ptr(), d_size,
@@ -573,8 +586,12 @@ impl RSA {
             n: &mut [u8], n_size: &mut u32) -> Result<(), i32> {
         *e_size = e.len() as u32;
         *n_size = n.len() as u32;
+        #[cfg(rsa_const_api)]
+        let key = &self.wc_rsakey;
+        #[cfg(not(rsa_const_api))]
+        let key = &mut self.wc_rsakey;
         let rc = unsafe {
-            sys::wc_RsaFlattenPublicKey(&self.wc_rsakey,
+            sys::wc_RsaFlattenPublicKey(key,
                 e.as_mut_ptr(), e_size, n.as_mut_ptr(), n_size)
         };
         if rc != 0 {
@@ -659,6 +676,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -717,6 +735,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -841,7 +860,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
-    /// #[cfg(all(random, rsa_pss))]
+    /// #[cfg(all(random, rsa_pss, rsa_const_api))]
     /// {
     /// use std::fs;
     /// use wolfssl_wolfcrypt::random::RNG;
@@ -871,7 +890,7 @@ impl RSA {
     /// rsa.pss_verify_check(signature, &mut verify_out, msg, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify_check()");
     /// }
     /// ```
-    #[cfg(rsa_pss)]
+    #[cfg(all(rsa_pss, rsa_const_api))]
     pub fn pss_check_padding(&mut self, din: &[u8], sig: &[u8], hash_algo: u32) -> Result<(), i32> {
         let din_size = din.len() as u32;
         let sig_size = sig.len() as u32;
@@ -907,7 +926,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
-    /// #[cfg(all(random, rsa_pss))]
+    /// #[cfg(all(random, rsa_pss, rsa_const_api))]
     /// {
     /// use std::fs;
     /// use wolfssl_wolfcrypt::random::RNG;
@@ -937,7 +956,7 @@ impl RSA {
     /// rsa.pss_verify_check(signature, &mut verify_out, msg, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify_check()");
     /// }
     /// ```
-    #[cfg(rsa_pss)]
+    #[cfg(all(rsa_pss, rsa_const_api))]
     pub fn pss_verify(&mut self, din: &[u8], dout: &mut [u8], hash_algo: u32, mgf: i32) -> Result<usize, i32> {
         let din_size = din.len() as u32;
         let dout_size = dout.len() as u32;
@@ -978,7 +997,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
-    /// #[cfg(all(random, rsa_pss))]
+    /// #[cfg(all(random, rsa_pss, rsa_const_api))]
     /// {
     /// use std::fs;
     /// use wolfssl_wolfcrypt::random::RNG;
@@ -1008,7 +1027,7 @@ impl RSA {
     /// rsa.pss_verify_check(signature, &mut verify_out, msg, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify_check()");
     /// }
     /// ```
-    #[cfg(rsa_pss)]
+    #[cfg(all(rsa_pss, rsa_const_api))]
     pub fn pss_verify_check(&mut self, din: &[u8], dout: &mut [u8], digest: &[u8], hash_algo: u32, mgf: i32) -> Result<usize, i32> {
         let din_size = din.len() as u32;
         let dout_size = dout.len() as u32;
@@ -1048,7 +1067,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
-    /// #[cfg(rsa_direct)]
+    /// #[cfg(all(rsa_direct, rsa_const_api))]
     /// {
     /// use std::fs;
     /// use wolfssl_wolfcrypt::random::RNG;
@@ -1071,7 +1090,7 @@ impl RSA {
     /// assert_eq!(plain_out, plain);
     /// }
     /// ```
-    #[cfg(rsa_direct)]
+    #[cfg(all(rsa_direct, rsa_const_api))]
     pub fn rsa_direct(&mut self, din: &[u8], dout: &mut [u8], typ: i32, rng: &mut RNG) -> Result<usize, i32> {
         let din_size = din.len() as u32;
         let mut dout_size = dout.len() as u32;
@@ -1105,6 +1124,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -1160,6 +1180,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;
@@ -1221,6 +1242,7 @@ impl RSA {
     /// # Example
     ///
     /// ```rust
+    /// # extern crate std;
     /// #[cfg(random)]
     /// {
     /// use std::fs;

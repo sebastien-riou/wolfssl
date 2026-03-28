@@ -1,6 +1,6 @@
 /* test_pkcs7.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -388,12 +388,15 @@ int test_wc_PKCS7_EncodeData(void)
 
 #if defined(HAVE_PKCS7) && defined(HAVE_PKCS7_RSA_RAW_SIGN_CALLBACK) && \
     !defined(NO_RSA) && !defined(NO_SHA256)
-/* RSA sign raw digest callback */
+/* RSA sign raw digest callback
+ * This callback demonstrates HSM/secure element use case where the private
+ * key is not passed through PKCS7 structure but obtained independently.
+ */
 static int rsaSignRawDigestCb(PKCS7* pkcs7, byte* digest, word32 digestSz,
                               byte* out, word32 outSz, byte* privateKey,
                               word32 privateKeySz, int devid, int hashOID)
 {
-    /* specific DigestInfo ASN.1 encoding prefix for a SHA2565 digest */
+    /* specific DigestInfo ASN.1 encoding prefix for a SHA256 digest */
     byte digInfoEncoding[] = {
         0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
         0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
@@ -406,6 +409,11 @@ static int rsaSignRawDigestCb(PKCS7* pkcs7, byte* digest, word32 digestSz,
     word32 digestInfoSz = 0;
     word32 idx = 0;
     RsaKey rsa;
+
+    /* privateKey may be NULL in HSM/secure element use case - we load it
+     * independently in this callback to simulate that scenario */
+    (void)privateKey;
+    (void)privateKeySz;
 
     /* SHA-256 required only for this example callback due to above
      * digInfoEncoding[] */
@@ -427,7 +435,33 @@ static int rsaSignRawDigestCb(PKCS7* pkcs7, byte* digest, word32 digestSz,
         return ret;
     }
 
-    ret = wc_RsaPrivateKeyDecode(privateKey, &idx, &rsa, privateKeySz);
+    /* Load key from test buffer - simulates HSM/secure element access */
+#if defined(USE_CERT_BUFFERS_2048)
+    ret = wc_RsaPrivateKeyDecode(client_key_der_2048, &idx, &rsa,
+                                 sizeof_client_key_der_2048);
+#elif defined(USE_CERT_BUFFERS_1024)
+    ret = wc_RsaPrivateKeyDecode(client_key_der_1024, &idx, &rsa,
+                                 sizeof_client_key_der_1024);
+#else
+    {
+        XFILE fp;
+        byte keyBuf[ONEK_BUF];
+        int keySz;
+
+        fp = XFOPEN("./certs/client-key.der", "rb");
+        if (fp == XBADFILE) {
+            wc_FreeRsaKey(&rsa);
+            return -1;
+        }
+        keySz = (int)XFREAD(keyBuf, 1, sizeof(keyBuf), fp);
+        XFCLOSE(fp);
+        if (keySz <= 0) {
+            wc_FreeRsaKey(&rsa);
+            return -1;
+        }
+        ret = wc_RsaPrivateKeyDecode(keyBuf, &idx, &rsa, (word32)keySz);
+    }
+#endif
 
     /* sign DigestInfo */
     if (ret == 0) {
@@ -446,6 +480,102 @@ static int rsaSignRawDigestCb(PKCS7* pkcs7, byte* digest, word32 digestSz,
     }
 
     wc_FreeRsaKey(&rsa);
+
+    return ret;
+}
+#endif
+
+#if defined(HAVE_PKCS7) && defined(HAVE_PKCS7_ECC_RAW_SIGN_CALLBACK) && \
+    defined(HAVE_ECC) && !defined(NO_SHA256)
+/* ECC sign raw digest callback
+ * This callback demonstrates HSM/secure element use case where the private
+ * key is not passed through PKCS7 structure but obtained independently.
+ * Note: This example callback is hash-agnostic and will work with any
+ * hash algorithm. The hashOID parameter can be used to validate or select
+ * different signing behavior if needed.
+ */
+static int eccSignRawDigestCb(PKCS7* pkcs7, byte* digest, word32 digestSz,
+                              byte* out, word32 outSz, byte* privateKey,
+                              word32 privateKeySz, int devid, int hashOID)
+{
+    int ret;
+    word32 idx = 0;
+    word32 sigSz = outSz;
+#ifdef WOLFSSL_SMALL_STACK
+    ecc_key* ecc = NULL;
+#else
+    ecc_key ecc[1];
+#endif
+
+    /* privateKey may be NULL in HSM/secure element use case - we load it
+     * independently in this callback to simulate that scenario */
+    (void)privateKey;
+    (void)privateKeySz;
+    (void)hashOID;
+
+    if (pkcs7 == NULL || digest == NULL || out == NULL) {
+        return -1;
+    }
+
+#ifdef WOLFSSL_SMALL_STACK
+    ecc = (ecc_key*)XMALLOC(sizeof(ecc_key), pkcs7->heap, DYNAMIC_TYPE_ECC);
+    if (ecc == NULL) {
+        return MEMORY_E;
+    }
+#endif
+
+    /* set up ECC key */
+    ret = wc_ecc_init_ex(ecc, pkcs7->heap, devid);
+    if (ret != 0) {
+    #ifdef WOLFSSL_SMALL_STACK
+        XFREE(ecc, pkcs7->heap, DYNAMIC_TYPE_ECC);
+    #endif
+        return ret;
+    }
+
+    /* Load key from test buffer - simulates HSM/secure element access */
+#if defined(USE_CERT_BUFFERS_256)
+    ret = wc_EccPrivateKeyDecode(ecc_clikey_der_256, &idx, ecc,
+                                 sizeof_ecc_clikey_der_256);
+#else
+    {
+        XFILE fp;
+        byte keyBuf[ONEK_BUF];
+        int keySz;
+
+        fp = XFOPEN("./certs/client-ecc-key.der", "rb");
+        if (fp == XBADFILE) {
+            wc_ecc_free(ecc);
+        #ifdef WOLFSSL_SMALL_STACK
+            XFREE(ecc, pkcs7->heap, DYNAMIC_TYPE_ECC);
+        #endif
+            return -1;
+        }
+        keySz = (int)XFREAD(keyBuf, 1, sizeof(keyBuf), fp);
+        XFCLOSE(fp);
+        if (keySz <= 0) {
+            wc_ecc_free(ecc);
+        #ifdef WOLFSSL_SMALL_STACK
+            XFREE(ecc, pkcs7->heap, DYNAMIC_TYPE_ECC);
+        #endif
+            return -1;
+        }
+        ret = wc_EccPrivateKeyDecode(keyBuf, &idx, ecc, (word32)keySz);
+    }
+#endif
+
+    /* sign digest */
+    if (ret == 0) {
+        ret = wc_ecc_sign_hash(digest, digestSz, out, &sigSz, pkcs7->rng, ecc);
+        if (ret == 0) {
+            ret = (int)sigSz;
+        }
+    }
+
+    wc_ecc_free(ecc);
+#ifdef WOLFSSL_SMALL_STACK
+    XFREE(ecc, pkcs7->heap, DYNAMIC_TYPE_ECC);
+#endif
 
     return ret;
 }
@@ -757,8 +887,7 @@ int test_wc_PKCS7_EncodeSignedData(void)
     if (pkcs7 != NULL) {
         pkcs7->content = data;
         pkcs7->contentSz = (word32)sizeof(data);
-        pkcs7->privateKey = key;
-        pkcs7->privateKeySz = (word32)sizeof(key);
+        /* privateKey not set - callback simulates HSM/secure element access */
         pkcs7->encryptOID = RSAk;
         pkcs7->hashOID = SHA256h;
         pkcs7->rng = &rng;
@@ -769,12 +898,224 @@ int test_wc_PKCS7_EncodeSignedData(void)
     ExpectIntGT(wc_PKCS7_EncodeSignedData(pkcs7, output, outputSz), 0);
 #endif
 
+#if defined(HAVE_PKCS7) && defined(HAVE_PKCS7_ECC_RAW_SIGN_CALLBACK) && \
+    defined(HAVE_ECC) && !defined(NO_SHA256)
+    /* test ECC sign raw digest callback, if using ECC and compiled in.
+     * Example callback assumes SHA-256, so only run test if compiled in. */
+    {
+    #if defined(USE_CERT_BUFFERS_256)
+        byte        eccCert[sizeof(cliecc_cert_der_256)];
+        word32      eccCertSz = (word32)sizeof(eccCert);
+        XMEMCPY(eccCert, cliecc_cert_der_256, eccCertSz);
+    #else
+        byte        eccCert[ONEK_BUF];
+        int         eccCertSz;
+        XFILE       eccFp = XBADFILE;
+
+        ExpectTrue((eccFp = XFOPEN("./certs/client-ecc-cert.der", "rb")) !=
+            XBADFILE);
+        ExpectIntGT(eccCertSz = (int)XFREAD(eccCert, 1, ONEK_BUF, eccFp), 0);
+        if (eccFp != XBADFILE)
+            XFCLOSE(eccFp);
+    #endif
+
+        wc_PKCS7_Free(pkcs7);
+        pkcs7 = NULL;
+        ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
+        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, eccCert, (word32)eccCertSz), 0);
+
+        if (pkcs7 != NULL) {
+            pkcs7->content = data;
+            pkcs7->contentSz = (word32)sizeof(data);
+            /* privateKey not set - callback simulates HSM/secure element access */
+            pkcs7->encryptOID = ECDSAk;
+            pkcs7->hashOID = SHA256h;
+            pkcs7->rng = &rng;
+        }
+
+        ExpectIntEQ(wc_PKCS7_SetEccSignRawDigestCb(pkcs7, eccSignRawDigestCb), 0);
+
+        ExpectIntGT(wc_PKCS7_EncodeSignedData(pkcs7, output, outputSz), 0);
+    }
+#endif
+
     wc_PKCS7_Free(pkcs7);
     DoExpectIntEQ(wc_FreeRng(&rng), 0);
 
 #endif
     return EXPECT_RESULT();
 } /* END test_wc_PKCS7_EncodeSignedData */
+
+
+/*
+ * Testing wc_PKCS7_EncodeSignedData() with RSA-PSS signer certificate.
+ * Uses certs/rsapss/client-rsapss.der and client-rsapss-priv.der.
+ * Requires both encode and round-trip verify to succeed.
+ */
+#if defined(HAVE_PKCS7) && defined(WC_RSA_PSS) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM) && !defined(NO_SHA256)
+int test_wc_PKCS7_EncodeSignedData_RSA_PSS(void)
+{
+    EXPECT_DECLS;
+    PKCS7*    pkcs7 = NULL;
+    WC_RNG    rng;
+    byte      output[FOURK_BUF];
+    byte      cert[FOURK_BUF];
+    byte      key[FOURK_BUF];
+    word32    outputSz = (word32)sizeof(output);
+    word32    certSz = 0;
+    word32    keySz = 0;
+    XFILE     fp = XBADFILE;
+    byte      data[] = "Test data for RSA-PSS SignedData.";
+
+    XMEMSET(&rng, 0, sizeof(WC_RNG));
+    XMEMSET(output, 0, outputSz);
+    XMEMSET(cert, 0, sizeof(cert));
+    XMEMSET(key, 0, sizeof(key));
+
+    ExpectIntEQ(wc_InitRng(&rng), 0);
+    ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
+
+    ExpectTrue((fp = XFOPEN("./certs/rsapss/client-rsapss.der", "rb")) != XBADFILE);
+    if (fp != XBADFILE) {
+        ExpectIntGT(certSz = (word32)XFREAD(cert, 1, sizeof(cert), fp), 0);
+        XFCLOSE(fp);
+        fp = XBADFILE;
+    }
+
+    ExpectTrue((fp = XFOPEN("./certs/rsapss/client-rsapss-priv.der", "rb")) != XBADFILE);
+    if (fp != XBADFILE) {
+        ExpectIntGT(keySz = (word32)XFREAD(key, 1, sizeof(key), fp), 0);
+        XFCLOSE(fp);
+        fp = XBADFILE;
+    }
+
+    ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, cert, certSz), 0);
+
+    if (pkcs7 != NULL) {
+        /* Force RSA-PSS so SignerInfo uses id-RSASSA-PSS (cert may use RSA
+         * in subjectPublicKeyInfo).  WC_RSA_PSS is guaranteed by outer guard. */
+        pkcs7->publicKeyOID = RSAPSSk;
+
+        pkcs7->content       = data;
+        pkcs7->contentSz     = (word32)sizeof(data);
+        pkcs7->contentOID    = DATA;
+        pkcs7->hashOID       = SHA256h;
+        pkcs7->encryptOID    = RSAk;
+        pkcs7->privateKey    = key;
+        pkcs7->privateKeySz  = keySz;
+        pkcs7->rng           = &rng;
+        pkcs7->signedAttribs = NULL;
+        pkcs7->signedAttribsSz = 0;
+    }
+
+    /* EncodeSignedData with RSA-PSS cert: require encode and verify success */
+    {
+        int outLen = wc_PKCS7_EncodeSignedData(pkcs7, output, outputSz);
+        ExpectIntGT(outLen, 0);
+        if (outLen > 0) {
+            int verifyRet = wc_PKCS7_VerifySignedData(pkcs7, output,
+                                                       (word32)outLen);
+            ExpectIntEQ(verifyRet, 0);
+
+            if (pkcs7 != NULL) {
+                /* Verify decoded RSASSA-PSS parameters match what we
+                 * encoded:
+                 *   hashAlgorithm    = SHA-256
+                 *   maskGenAlgorithm = MGF1-SHA-256
+                 *   saltLength       = 32 (== SHA-256 digest length) */
+                ExpectIntEQ(pkcs7->pssHashType, (int)WC_HASH_TYPE_SHA256);
+                ExpectIntEQ(pkcs7->pssMgf, WC_MGF1SHA256);
+                ExpectIntEQ(pkcs7->pssSaltLen, 32);
+            }
+        }
+    }
+
+    wc_PKCS7_Free(pkcs7);
+    DoExpectIntEQ(wc_FreeRng(&rng), 0);
+
+    return EXPECT_RESULT();
+} /* END test_wc_PKCS7_EncodeSignedData_RSA_PSS */
+#endif
+
+
+/*
+ * Testing wc_PKCS7_EncodeEnvelopedData() with RSA-PSS signed certificate
+ * for KTRI key transport. Uses certs/rsapss/client-rsapss.der.
+ * Requires encode and round-trip decode to succeed.
+ */
+#if defined(HAVE_PKCS7) && defined(WC_RSA_PSS) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM) && !defined(NO_SHA256) && \
+    !defined(NO_AES) && defined(HAVE_AES_CBC) && defined(WOLFSSL_AES_256)
+int test_wc_PKCS7_EnvelopedData_KTRI_RSA_PSS(void)
+{
+    EXPECT_DECLS;
+    PKCS7*    pkcs7 = NULL;
+    byte      encrypted[FOURK_BUF];
+    byte      decrypted[FOURK_BUF];
+    byte      cert[FOURK_BUF];
+    byte      key[FOURK_BUF];
+    word32    certSz = 0;
+    word32    keySz = 0;
+    XFILE     fp = XBADFILE;
+    byte      data[] = "Test data for RSA-PSS EnvelopedData KTRI.";
+    int       encryptedSz = 0, decryptedSz = 0;
+
+    XMEMSET(cert, 0, sizeof(cert));
+    XMEMSET(key, 0, sizeof(key));
+
+    /* Load RSA-PSS client cert */
+    ExpectTrue((fp = XFOPEN("./certs/rsapss/client-rsapss.der", "rb"))
+               != XBADFILE);
+    if (fp != XBADFILE) {
+        ExpectIntGT(certSz = (word32)XFREAD(cert, 1, sizeof(cert), fp), 0);
+        XFCLOSE(fp);
+        fp = XBADFILE;
+    }
+
+    /* Load RSA-PSS client private key */
+    ExpectTrue((fp = XFOPEN("./certs/rsapss/client-rsapss-priv.der", "rb"))
+               != XBADFILE);
+    if (fp != XBADFILE) {
+        ExpectIntGT(keySz = (word32)XFREAD(key, 1, sizeof(key), fp), 0);
+        XFCLOSE(fp);
+        fp = XBADFILE;
+    }
+
+    /* Encode EnvelopedData with KTRI using RSA-PSS cert */
+    ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
+    ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, cert, certSz), 0);
+    if (pkcs7 != NULL) {
+        pkcs7->content    = data;
+        pkcs7->contentSz  = (word32)sizeof(data);
+        pkcs7->contentOID = DATA;
+        pkcs7->encryptOID = AES256CBCb;
+    }
+
+    ExpectIntGT(encryptedSz = wc_PKCS7_EncodeEnvelopedData(pkcs7,
+                    encrypted, sizeof(encrypted)), 0);
+    wc_PKCS7_Free(pkcs7);
+    pkcs7 = NULL;
+
+    /* Decode EnvelopedData */
+    ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
+    ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, cert, certSz), 0);
+    if (pkcs7 != NULL) {
+        pkcs7->privateKey   = key;
+        pkcs7->privateKeySz = keySz;
+    }
+
+    ExpectIntGT(decryptedSz = wc_PKCS7_DecodeEnvelopedData(pkcs7,
+                    encrypted, (word32)encryptedSz,
+                    decrypted, sizeof(decrypted)), 0);
+    ExpectIntEQ(decryptedSz, (int)sizeof(data));
+    ExpectIntEQ(XMEMCMP(decrypted, data, sizeof(data)), 0);
+
+    wc_PKCS7_Free(pkcs7);
+
+    return EXPECT_RESULT();
+} /* END test_wc_PKCS7_EnvelopedData_KTRI_RSA_PSS */
+#endif
 
 
 /*
@@ -2881,7 +3222,7 @@ int test_wc_PKCS7_GetEnvelopedDataKariRid(void)
     byte rid[256];
     byte cms[1024];
     XFILE cmsFile = XBADFILE;
-    int ret;
+    int ret = -1;
     word32 ridSz = sizeof(rid);
     XFILE skiHexFile = XBADFILE;
     byte skiHex[256];

@@ -1,6 +1,6 @@
 /* integer.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -3278,8 +3278,10 @@ int mp_div_3 (mp_int * a, mp_int *c, mp_digit * d)
   q.sign = a->sign;
   w = 0;
 
-  if (a->used == 0)
+  if (a->used == 0) {
+      mp_clear(&q);
       return MP_VAL;
+  }
 
   for (ix = a->used - 1; ix >= 0; ix--) {
      w = (w << ((mp_word)DIGIT_BIT)) | ((mp_word)a->dp[ix]);

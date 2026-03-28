@@ -1,6 +1,6 @@
 /* user_settings_all.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -210,7 +210,6 @@ extern "C" {
 #define WOLFSSL_SHAKE256
 #define WOLFSSL_SHA3
 #define WOLFSSL_HASH_FLAGS /* enable hash flag API's */
-#define WOLFSSL_SHAKE256
 
 /* Additional Algorithms */
 #define HAVE_HASHDRBG

@@ -1,6 +1,6 @@
 /* chacha.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -119,6 +119,10 @@ int wc_ChaCha20Poly1305_Decrypt(
     if (ret == 0)
         ret = wc_ChaCha20Poly1305_CheckTag(inAuthTag, calculatedAuthTag);
 
+    if (ret != 0) {
+        /* zero plaintext on error */
+        ForceZero(outPlaintext, inCiphertextLen);
+    }
     WC_FREE_VAR_EX(aead, NULL, DYNAMIC_TYPE_TMP_BUFFER);
 
     return ret;
@@ -186,6 +190,8 @@ int wc_ChaCha20Poly1305_Init(ChaChaPoly_Aead* aead,
     if (ret == 0) {
         aead->state = CHACHA20_POLY1305_STATE_READY;
     }
+
+    ForceZero(authKey, sizeof(authKey));
 
     return ret;
 }
@@ -332,25 +338,30 @@ int wc_XChaCha20Poly1305_Init(
     /* Create the Poly1305 key */
     if ((ret = wc_Chacha_Process(&aead->chacha, authKey, authKey,
                                  (word32)sizeof authKey)) < 0)
-        return ret;
+        goto out;
     /* advance to start of the next ChaCha block. */
     wc_Chacha_purge_current_block(&aead->chacha);
 
     /* Initialize Poly1305 context */
     if ((ret = wc_Poly1305SetKey(&aead->poly, authKey,
                                  (word32)sizeof authKey)) < 0)
-        return ret;
+        goto out;
 
     if ((ret = wc_Poly1305Update(&aead->poly, ad, (word32)ad_len)) < 0)
-        return ret;
+        goto out;
 
     if ((ret = wc_Poly1305_Pad(&aead->poly, (word32)ad_len)) < 0)
-        return ret;
+        goto out;
 
     aead->isEncrypt = isEncrypt ? 1 : 0;
     aead->state = CHACHA20_POLY1305_STATE_AAD;
 
-    return 0;
+    ret = 0;
+
+out:
+    ForceZero(authKey, sizeof(authKey));
+
+    return ret;
 }
 
 static WC_INLINE int wc_XChaCha20Poly1305_crypt_oneshot(
@@ -422,7 +433,7 @@ static WC_INLINE int wc_XChaCha20Poly1305_crypt_oneshot(
 
     if (aead->poly.leftover) {
         if ((ret = wc_Poly1305_Pad(&aead->poly, (word32)aead->poly.leftover)) < 0)
-            return ret;
+            goto out;
     }
 
 #ifdef WORD64_AVAILABLE

@@ -12,7 +12,7 @@
 */
 /* blake2s.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -365,7 +365,7 @@ int blake2s_final( blake2s_state *S, byte *out, byte outlen )
   }
 
   for( i = 0; i < 8; ++i ) /* Output full hash to temp buffer */
-    store64( buffer + sizeof( S->h[i] ) * i, S->h[i] );
+    store32( buffer + sizeof( S->h[i] ) * i, S->h[i] );
 
   XMEMCPY( out, buffer, outlen );
 

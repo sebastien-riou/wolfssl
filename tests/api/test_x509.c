@@ -1,6 +1,6 @@
 /* test_x509.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -242,4 +242,195 @@ int test_x509_GetCAByAKID(void)
 
 #endif /* WOLFSSL_AKID_NAME */
     return EXPECT_RESULT();
+}
+
+/* Regression test: wolfSSL_X509_verify_cert() must honour the hostname set via
+ * X509_VERIFY_PARAM_set1_host().  Before the fix the hostname was stored in
+ * ctx->param->hostName but never consulted, so any chain-valid certificate
+ * would pass regardless of hostname mismatch (RFC 6125 sec. 6.4.1 violation).
+ *
+ * Uses existing PEM fixtures:
+ *   svrCertFile  - CN=www.wolfssl.com, SAN DNS=example.com, SAN IP=127.0.0.1
+ *   caCertFile   - CA that signed svrCertFile
+ */
+int test_x509_verify_cert_hostname_check(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && !defined(NO_FILESYSTEM) && !defined(NO_RSA)
+    WOLFSSL_X509_STORE*        store = NULL;
+    WOLFSSL_X509_STORE_CTX*    ctx   = NULL;
+    WOLFSSL_X509*              ca    = NULL;
+    WOLFSSL_X509*              leaf  = NULL;
+    WOLFSSL_X509_VERIFY_PARAM* param = NULL;
+
+    ExpectNotNull(store = wolfSSL_X509_STORE_new());
+    ExpectNotNull(ca    = wolfSSL_X509_load_certificate_file(caCertFile,
+                                                         SSL_FILETYPE_PEM));
+    ExpectIntEQ(wolfSSL_X509_STORE_add_cert(store, ca), WOLFSSL_SUCCESS);
+
+    ExpectNotNull(leaf = wolfSSL_X509_load_certificate_file(svrCertFile,
+                                                        SSL_FILETYPE_PEM));
+
+    /* Case 1: no hostname constraint - must succeed. */
+    ExpectNotNull(ctx = wolfSSL_X509_STORE_CTX_new());
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_init(ctx, store, leaf, NULL),
+                WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_X509_verify_cert(ctx), WOLFSSL_SUCCESS);
+    wolfSSL_X509_STORE_CTX_free(ctx);
+    ctx = NULL;
+
+    /* Case 2: hostname matches a SAN DNS entry - must succeed. */
+    ExpectNotNull(ctx = wolfSSL_X509_STORE_CTX_new());
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_init(ctx, store, leaf, NULL),
+                WOLFSSL_SUCCESS);
+    param = wolfSSL_X509_STORE_CTX_get0_param(ctx);
+    ExpectNotNull(param);
+    ExpectIntEQ(wolfSSL_X509_VERIFY_PARAM_set1_host(param, "example.com",
+                XSTRLEN("example.com")), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_X509_verify_cert(ctx), WOLFSSL_SUCCESS);
+    wolfSSL_X509_STORE_CTX_free(ctx);
+    ctx = NULL;
+
+    /* Case 3: hostname does not match - must FAIL with the right error code. */
+    ExpectNotNull(ctx = wolfSSL_X509_STORE_CTX_new());
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_init(ctx, store, leaf, NULL),
+                WOLFSSL_SUCCESS);
+    param = wolfSSL_X509_STORE_CTX_get0_param(ctx);
+    ExpectNotNull(param);
+    ExpectIntEQ(wolfSSL_X509_VERIFY_PARAM_set1_host(param, "wrong.com",
+                XSTRLEN("wrong.com")), WOLFSSL_SUCCESS);
+    ExpectIntNE(wolfSSL_X509_verify_cert(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_get_error(ctx),
+                X509_V_ERR_HOSTNAME_MISMATCH);
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_get_error_depth(ctx), 0);
+    wolfSSL_X509_STORE_CTX_free(ctx);
+    ctx = NULL;
+
+#ifdef WOLFSSL_IP_ALT_NAME
+    /* Case 4: IP matches a SAN IP entry - must succeed. */
+    ExpectNotNull(ctx = wolfSSL_X509_STORE_CTX_new());
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_init(ctx, store, leaf, NULL),
+                WOLFSSL_SUCCESS);
+    param = wolfSSL_X509_STORE_CTX_get0_param(ctx);
+    ExpectNotNull(param);
+    ExpectIntEQ(wolfSSL_X509_VERIFY_PARAM_set1_ip_asc(param, "127.0.0.1"),
+                WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_X509_verify_cert(ctx), WOLFSSL_SUCCESS);
+    wolfSSL_X509_STORE_CTX_free(ctx);
+    ctx = NULL;
+
+    /* Case 5: IP does not match - must FAIL with the right error code. */
+    ExpectNotNull(ctx = wolfSSL_X509_STORE_CTX_new());
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_init(ctx, store, leaf, NULL),
+                WOLFSSL_SUCCESS);
+    param = wolfSSL_X509_STORE_CTX_get0_param(ctx);
+    ExpectNotNull(param);
+    ExpectIntEQ(wolfSSL_X509_VERIFY_PARAM_set1_ip_asc(param, "192.168.1.1"),
+                WOLFSSL_SUCCESS);
+    ExpectIntNE(wolfSSL_X509_verify_cert(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_get_error(ctx),
+                X509_V_ERR_IP_ADDRESS_MISMATCH);
+    ExpectIntEQ(wolfSSL_X509_STORE_CTX_get_error_depth(ctx), 0);
+    wolfSSL_X509_STORE_CTX_free(ctx);
+    ctx = NULL;
+#endif /* WOLFSSL_IP_ALT_NAME */
+
+    wolfSSL_X509_free(leaf);
+    wolfSSL_X509_free(ca);
+    wolfSSL_X509_STORE_free(store);
+#endif /* OPENSSL_EXTRA && !NO_FILESYSTEM && !NO_RSA */
+    return EXPECT_RESULT();
+}
+
+int test_x509_set_serialNumber(void)
+{
+#if defined(OPENSSL_EXTRA) || defined(OPENSSL_EXTRA_X509_SMALL)
+    EXPECT_DECLS;
+    WOLFSSL_X509*         x509 = NULL;
+    WOLFSSL_ASN1_INTEGER* s    = NULL;
+#if defined(OPENSSL_EXTRA_X509_SMALL)
+    WOLFSSL_ASN1_INTEGER  asnInt;
+#endif
+
+    ExpectNotNull(x509 = wolfSSL_X509_new());
+#if defined(OPENSSL_EXTRA_X509_SMALL)
+    XMEMSET(&asnInt, 0, sizeof(asnInt));
+    asnInt.data = asnInt.intData;
+    asnInt.isDynamic = 0;
+    asnInt.dataMax = (unsigned int)sizeof(asnInt.intData);
+    s = &asnInt;
+#else
+    ExpectNotNull(s = wolfSSL_ASN1_INTEGER_new());
+#endif
+
+    /* --- invalid inputs that must be rejected --- */
+
+    /* NULL x509 */
+    ExpectIntEQ(X509_set_serialNumber(NULL, s), WOLFSSL_FAILURE);
+    /* NULL s */
+    ExpectIntEQ(X509_set_serialNumber(x509, NULL), WOLFSSL_FAILURE);
+
+    if (s != NULL) {
+        /* length == 0: too short */
+        s->length  = 0;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 0;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* length == 1: still too short */
+        s->length  = 1;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 0;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* length == 2: still rejected - the guard requires length >= 3 */
+        s->length  = 2;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 0;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* wrong type byte */
+        s->length  = 4;
+        s->data[0] = 0x00; /* not ASN_INTEGER */
+        s->data[1] = 2;    /* length field */
+        s->data[2] = 0x01;
+        s->data[3] = 0x02;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* mismatched length byte (data[1] != s->length - 2) */
+        s->length  = 4;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 99; /* claims 99 bytes but s->length - 2 == 2 */
+        s->data[2] = 0x01;
+        s->data[3] = 0x02;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* --- valid two-byte serial number --- */
+        s->length  = 4;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 2;
+        s->data[2] = 0x01;
+        s->data[3] = 0x02;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_SUCCESS);
+        ExpectIntEQ(x509->serialSz, 2);
+        /* NUL terminator must be placed right after the copied data */
+        ExpectIntEQ(x509->serial[x509->serialSz], 0);
+        ExpectIntEQ(x509->serial[0], 0x01);
+        ExpectIntEQ(x509->serial[1], 0x02);
+    }
+
+#if !defined(OPENSSL_EXTRA_X509_SMALL)
+    wolfSSL_ASN1_INTEGER_free(s);
+#endif
+    wolfSSL_X509_free(x509);
+    return EXPECT_RESULT();
+#else
+    return TEST_SKIPPED;
+#endif /* OPENSSL_EXTRA || OPENSSL_EXTRA_X509_SMALL */
 }

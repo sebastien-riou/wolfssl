@@ -1,6 +1,6 @@
 /* wc_port.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -104,7 +104,7 @@
     #else
         #define WC_DEPRECATED(msg) /* null expansion */
     #endif
-#endif /* !WC_MAYBE_UNUSED */
+#endif /* !WC_DEPRECATED */
 
 /* use inlining if compiler allows */
 #ifndef WC_INLINE
@@ -141,6 +141,20 @@
 #else
     #define WC_INLINE WC_MAYBE_UNUSED
 #endif
+#endif
+
+#ifndef WC_NO_INLINE
+    #ifdef noinline
+        #define WC_NO_INLINE noinline
+    #elif defined(_MSC_VER)
+        #define WC_NO_INLINE __declspec(noinline)
+    #elif defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
+        #define WC_NO_INLINE _Pragma("inline = never")
+    #elif defined(__GNUC__) || defined(__KEIL__) || defined(__DCC__)
+        #define WC_NO_INLINE __attribute__((noinline))
+    #else
+        #define WC_NO_INLINE
+    #endif
 #endif
 
 #ifndef WC_OMIT_FRAME_POINTER
@@ -287,19 +301,34 @@
         }  /* extern "C" */
     #endif
 
-    #include <version.h>
+    #ifdef __has_include
+        #if __has_include(<zephyr/version.h>)
+            #include <zephyr/version.h>
+        #else
+            #include <version.h>
+        #endif
+    #else
+        #include <version.h>
+    #endif
+    /* Include sys/types.h early so host libc sets __timer_t_defined
+     * before Zephyr's posix_types.h can define a conflicting timer_t */
+    #include <sys/types.h>
     #ifndef SINGLE_THREADED
         #if !defined(CONFIG_PTHREAD_IPC) && !defined(CONFIG_POSIX_THREADS)
             #error "Threading needs CONFIG_PTHREAD_IPC / CONFIG_POSIX_THREADS"
         #endif
         #if KERNEL_VERSION_NUMBER >= 0x30100
             #include <zephyr/kernel.h>
-            #include <zephyr/posix/posix_types.h>
-            #include <zephyr/posix/pthread.h>
+            #ifndef CONFIG_ARCH_POSIX
+                #include <zephyr/posix/posix_types.h>
+                #include <zephyr/posix/pthread.h>
+            #endif
         #else
             #include <kernel.h>
-            #include <posix/posix_types.h>
-            #include <posix/pthread.h>
+            #ifndef CONFIG_ARCH_POSIX
+                #include <posix/posix_types.h>
+                #include <posix/pthread.h>
+            #endif
         #endif
     #endif
 
@@ -510,7 +539,8 @@
      * should not be included. Use FreeBSD <machine/atomic.h> instead.
      * definitions are in bsdkm/bsdkm_wc_port.h */
     #elif defined(HAVE_C___ATOMIC) && defined(WOLFSSL_HAVE_ATOMIC_H) && \
-        !defined(__cplusplus)
+        !defined(__cplusplus) && \
+        !(defined(__clang__) && defined(WOLFSSL_KERNEL_MODE))
         /* Default C Implementation */
         #include <stdatomic.h>
         typedef atomic_int wolfSSL_Atomic_Int;
@@ -584,6 +614,8 @@
     WOLFSSL_API int wolfSSL_Atomic_Int_FetchSub(wolfSSL_Atomic_Int* c, int i);
     WOLFSSL_API int wolfSSL_Atomic_Int_AddFetch(wolfSSL_Atomic_Int* c, int i);
     WOLFSSL_API int wolfSSL_Atomic_Int_SubFetch(wolfSSL_Atomic_Int* c, int i);
+    WOLFSSL_API int wolfSSL_Atomic_Int_Exchange(
+        wolfSSL_Atomic_Int* c, int new_i);
     WOLFSSL_API int wolfSSL_Atomic_Int_CompareExchange(
         wolfSSL_Atomic_Int* c, int *expected_i, int new_i);
     WOLFSSL_API unsigned int wolfSSL_Atomic_Uint_FetchAdd(
@@ -622,6 +654,13 @@
     }
     static WC_INLINE int wolfSSL_Atomic_Int_SubFetch(int *c, int i) {
         return (*c -= i);
+    }
+    static WC_INLINE int wolfSSL_Atomic_Int_Exchange(
+        int *c, int new_i)
+    {
+        int ret = *c;
+        *c = new_i;
+        return ret;
     }
     static WC_INLINE int wolfSSL_Atomic_Int_CompareExchange(
         int *c, int *expected_i, int new_i)
@@ -1491,15 +1530,20 @@ WOLFSSL_ABI WOLFSSL_API int wolfCrypt_Cleanup(void);
         }  /* extern "C" */
     #endif
 
-    #include <version.h>
-    #ifndef _POSIX_C_SOURCE
-        #if KERNEL_VERSION_NUMBER >= 0x30100
-            #include <zephyr/posix/time.h>
-        #else
-            #include <posix/time.h>
-        #endif
-    #else
+    #if KERNEL_VERSION_NUMBER >= 0x40300
         #include <time.h>
+    #elif KERNEL_VERSION_NUMBER >= 0x30100
+        #include <zephyr/posix/time.h>
+    #else
+        #include <posix/time.h>
+    #endif
+
+    #ifndef CLOCK_REALTIME
+        #ifdef SYS_CLOCK_REALTIME
+            #define CLOCK_REALTIME  SYS_CLOCK_REALTIME
+            #define clock_gettime   sys_clock_gettime
+            #define clock_settime   sys_clock_settime
+        #endif
     #endif
 
     #if defined(CONFIG_RTC)

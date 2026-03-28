@@ -1,6 +1,6 @@
 /* test_pkcs7.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -29,6 +29,15 @@ int test_wc_PKCS7_Init(void);
 int test_wc_PKCS7_InitWithCert(void);
 int test_wc_PKCS7_EncodeData(void);
 int test_wc_PKCS7_EncodeSignedData(void);
+#if defined(HAVE_PKCS7) && defined(WC_RSA_PSS) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM) && !defined(NO_SHA256)
+int test_wc_PKCS7_EncodeSignedData_RSA_PSS(void);
+#endif
+#if defined(HAVE_PKCS7) && defined(WC_RSA_PSS) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM) && !defined(NO_SHA256) && \
+    !defined(NO_AES) && defined(HAVE_AES_CBC) && defined(WOLFSSL_AES_256)
+int test_wc_PKCS7_EnvelopedData_KTRI_RSA_PSS(void);
+#endif
 int test_wc_PKCS7_EncodeSignedData_ex(void);
 int test_wc_PKCS7_VerifySignedData_RSA(void);
 int test_wc_PKCS7_VerifySignedData_ECC(void);
@@ -55,10 +64,28 @@ int test_wc_PKCS7_VerifySignedData_PKCS7ContentSeq(void);
     TEST_DECL_GROUP("pkcs7", test_wc_PKCS7_New),                \
     TEST_DECL_GROUP("pkcs7", test_wc_PKCS7_Init)
 
+#if defined(HAVE_PKCS7) && defined(WC_RSA_PSS) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM) && !defined(NO_SHA256)
+#define TEST_PKCS7_RSA_PSS_SD_DECL \
+    TEST_DECL_GROUP("pkcs7_sd", test_wc_PKCS7_EncodeSignedData_RSA_PSS),
+#else
+#define TEST_PKCS7_RSA_PSS_SD_DECL
+#endif
+
+#if defined(HAVE_PKCS7) && defined(WC_RSA_PSS) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM) && !defined(NO_SHA256) && \
+    !defined(NO_AES) && defined(HAVE_AES_CBC) && defined(WOLFSSL_AES_256)
+#define TEST_PKCS7_RSA_PSS_ED_DECL \
+    TEST_DECL_GROUP("pkcs7_ed", test_wc_PKCS7_EnvelopedData_KTRI_RSA_PSS),
+#else
+#define TEST_PKCS7_RSA_PSS_ED_DECL
+#endif
+
 #define TEST_PKCS7_SIGNED_DATA_DECLS                                    \
     TEST_DECL_GROUP("pkcs7_sd", test_wc_PKCS7_InitWithCert),            \
     TEST_DECL_GROUP("pkcs7_sd", test_wc_PKCS7_EncodeData),              \
     TEST_DECL_GROUP("pkcs7_sd", test_wc_PKCS7_EncodeSignedData),        \
+    TEST_PKCS7_RSA_PSS_SD_DECL                                           \
     TEST_DECL_GROUP("pkcs7_sd", test_wc_PKCS7_EncodeSignedData_ex),     \
     TEST_DECL_GROUP("pkcs7_sd", test_wc_PKCS7_VerifySignedData_RSA),    \
     TEST_DECL_GROUP("pkcs7_sd", test_wc_PKCS7_VerifySignedData_ECC),    \
@@ -70,6 +97,7 @@ int test_wc_PKCS7_VerifySignedData_PKCS7ContentSeq(void);
 #define TEST_PKCS7_ENCRYPTED_DATA_DECLS                                     \
     TEST_DECL_GROUP("pkcs7_ed", test_wc_PKCS7_DecodeEnvelopedData_stream),  \
     TEST_DECL_GROUP("pkcs7_ed", test_wc_PKCS7_EncodeDecodeEnvelopedData),   \
+    TEST_PKCS7_RSA_PSS_ED_DECL                                              \
     TEST_DECL_GROUP("pkcs7_ed", test_wc_PKCS7_SetAESKeyWrapUnwrapCb),       \
     TEST_DECL_GROUP("pkcs7_ed", test_wc_PKCS7_GetEnvelopedDataKariRid),     \
     TEST_DECL_GROUP("pkcs7_ed", test_wc_PKCS7_EncodeEncryptedData),         \
