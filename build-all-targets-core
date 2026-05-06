@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -ex
+
+BUILDIT=${1-./buildit-mldsa-lowram}
+DEBUG=${2-no}
+
+$BUILDIT cortex-m3  $DEBUG 
+$BUILDIT cortex-m4  $DEBUG 
+$BUILDIT cortex-m7  $DEBUG
+$BUILDIT cortex-m33 $DEBUG 
+$BUILDIT cortex-m55 $DEBUG 
+#$BUILDIT rv32imc    $DEBUG  
+#$BUILDIT rv32imcb   $DEBUG
+#$BUILDIT rv64imc    $DEBUG 

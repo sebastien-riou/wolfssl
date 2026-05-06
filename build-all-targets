@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -ex
+
+DEBUG=${1:-no}
+
+./clean
+./build-all-targets-core ./buildit-mldsa-small $DEBUG
+./build-all-targets-core ./buildit-mldsa-balanced $DEBUG
+./build-all-targets-core ./buildit-mldsa-fast $DEBUG

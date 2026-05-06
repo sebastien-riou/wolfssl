@@ -5,7 +5,7 @@ set -ex
 CPU=${1:-cortex-m33}
 DEBUG=${2:-no}
 
-./buildit $CPU $DEBUG \
+./buildit $CPU fast $DEBUG \
   -DWOLFSSL_DILITHIUM_VERIFY_NO_MALLOC=ON 
 
   

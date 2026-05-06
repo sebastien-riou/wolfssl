@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -ex
+
+CPU=${1:-cortex-m33}
+DEBUG=${2:-no}
+
+./buildit $CPU balanced $DEBUG \
+  -DWOLFSSL_DILITHIUM_SMALL=ON \
+  -DWOLFSSL_DILITHIUM_VERIFY_NO_MALLOC=ON
+
+
+  #-DWOLFSSL_DILITHIUM_ASSIGN_KEY=OFF \
+  
