@@ -5,7 +5,7 @@ set -ex
 #TARGET=${1:-armv7-m}
 #TARGET: armv7-m armv8-m.base, armv8-m.main
 CPU=${1:-cortex-m33}
-GOAL=${2:-small}
+GOAL=${2:-fast}
 DEBUG=${3:-no}
 
 BUILDDIR=`pwd`/build/$CPU-$GOAL
