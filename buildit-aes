@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -ex
+
+#TARGET=${1:-armv7-m}
+#TARGET: armv7-m armv8-m.base, armv8-m.main
+CPU=${1:-cortex-m33}
+GOAL=${2:-fast}
+DEBUG=${3:-no}
+
+BUILDDIR=`pwd`/build/$CPU-$GOAL
+./autogen.sh
+./configure \
+  --enable-debug=$DEBUG \
+  --host=arm-none-eabi \
+  CC=arm-none-eabi-gcc \
+  AR=arm-none-eabi-ar \
+  STRIP=arm-none-eabi-strip \
+  RANLIB=arm-none-eabi-ranlib \
+  --prefix=$BUILDDIR \
+  CFLAGS="-mcpu=$CPU --specs=nosys.specs \
+      -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DNO_WOLFSSL_DIR ${*:4}" \
+  --disable-filesystem --disable-crypttests \
+  --disable-shared --enable-cryptonly \
+  --enable-mldsa=no\
+  --enable-mlkem=no\
+  --enable-dh=no\
+  --enable-ecc=no\
+  --enable-aes=yes --enable-aesgcm=no\
+  --enable-cmac\
+  --enable-chacha=no\
+  --enable-pkcs8=no\
+  --enable-pkcs12=no\
+  --enable-tls=no\
+  --enable-tlsv12=no\
+  --enable-tls13=no\
+  --enable-asn=no\
+  --enable-rsa=no\
+  --enable-hkdf=no\
+  --enable-pwdbased=no\
+  --enable-hashdrbg=no\
+  --enable-sha=no\
+  --enable-aescbc=no\
+  --enable-harden=yes #keep it enabled as it just mean timing resistance
+
+make
+make install

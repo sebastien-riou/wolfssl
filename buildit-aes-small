@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -ex
+
+CPU=${1:-cortex-m33}
+DEBUG=${2:-no}
+
+./buildit-aes $CPU small $DEBUG \
+  -DWOLFSSL_AES_SMALL_TABLES \
+  -DWOLFSSL_AES_NO_UNROLL
