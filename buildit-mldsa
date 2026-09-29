@@ -2,23 +2,23 @@
 
 set -ex
 
-#TARGET=${1:-armv7-m}
-#TARGET: armv7-m armv8-m.base, armv8-m.main
 CPU=${1:-cortex-m33}
 GOAL=${2:-fast}
 DEBUG=${3:-no}
+
+source ./buildit-toolchain
 
 BUILDDIR=`pwd`/build/$CPU-$GOAL
 ./autogen.sh
 ./configure \
   --enable-debug=$DEBUG \
-  --host=arm-none-eabi \
-  CC=arm-none-eabi-gcc \
-  AR=arm-none-eabi-ar \
-  STRIP=arm-none-eabi-strip \
-  RANLIB=arm-none-eabi-ranlib \
+  --host=$TOOLCHAIN \
+  CC=$TOOLCHAIN-gcc \
+  AR=$TOOLCHAIN-gcc-ar \
+  STRIP=$TOOLCHAIN-strip \
+  RANLIB=$TOOLCHAIN-gcc-ranlib \
   --prefix=$BUILDDIR \
-  CFLAGS="-mcpu=$CPU --specs=nosys.specs \
+  CFLAGS="$CPU_FLAGS --specs=nosys.specs -flto -ffat-lto-objects \
       -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DNO_WOLFSSL_DIR -DWOLFSSL_DILITHIUM_NO_ASN1 ${*:4}" \
   --disable-filesystem --disable-crypttests \
   --disable-shared --enable-cryptonly --enable-mldsa \

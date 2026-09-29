@@ -1,0 +1,34 @@
+#!/bin/bash
+#sourced by the buildit scripts: sets TOOLCHAIN and CPU_FLAGS from CPU
+
+#CPU: cortex-m* or one of the crypto-benchmark RISC-V targets (rv32i, rv32imc, rv32imcb, rv64imc)
+case $CPU in
+  cortex-m*)
+    TOOLCHAIN=arm-none-eabi
+    CPU_FLAGS="-mcpu=$CPU"
+    ;;
+  #RISC-V: -march/-mabi must match crypto-benchmark's target/$CPU.cmake
+  #the host is riscv-none-elf rather than riscv32/riscv64 on purpose: configure would then enable
+  #RISC-V inline assembly in sp_int.c, which uses mul (not available on rv32i)
+  rv32i)
+    TOOLCHAIN=riscv-none-elf
+    CPU_FLAGS="-march=rv32i_zicsr -mabi=ilp32"
+    ;;
+  rv32imc)
+    TOOLCHAIN=riscv-none-elf
+    CPU_FLAGS="-march=rv32imc_zicsr -mabi=ilp32"
+    ;;
+  rv32imcb)
+    TOOLCHAIN=riscv-none-elf
+    CPU_FLAGS="-march=rv32imc_zbb_zbc_zbs_zbkb_zbkc_zbkx_zicsr -mabi=ilp32"
+    ;;
+  rv64imc)
+    TOOLCHAIN=riscv-none-elf
+    CPU_FLAGS="-march=rv64imc_zicsr -mabi=lp64"
+    ;;
+  *)
+    set +x
+    echo "ERROR: unsupported CPU '$CPU', expecting cortex-m*, rv32i, rv32imc, rv32imcb or rv64imc"
+    exit 1
+    ;;
+esac
