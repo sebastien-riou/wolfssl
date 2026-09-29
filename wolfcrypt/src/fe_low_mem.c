@@ -23,7 +23,11 @@
 
 /* Based from Daniel Beer's public domain work. */
 
-#if defined(HAVE_CURVE25519) || defined(HAVE_ED25519)
+/* under WOLF_CRYPTO_CB_ONLY_ED25519 / WOLF_CRYPTO_CB_ONLY_CURVE25519 the
+ * callback device does all the field math, so neither algorithm pulls this
+ * file in on its own */
+#if (defined(HAVE_CURVE25519) && !defined(WOLF_CRYPTO_CB_ONLY_CURVE25519)) || \
+    (defined(HAVE_ED25519) && !defined(WOLF_CRYPTO_CB_ONLY_ED25519))
 #if defined(CURVE25519_SMALL) || defined(ED25519_SMALL) /* use slower code that takes less memory */
 
 #include <wolfssl/wolfcrypt/fe_operations.h>
@@ -546,7 +550,7 @@ void fe_load(byte *x, word32 c)
     word32 i;
 
     for (i = 0; i < sizeof(c); i++) {
-        x[i] = c;
+        x[i] = (byte)c;
         c >>= 8;
     }
 
@@ -636,7 +640,7 @@ void lm_sub(byte* r, const byte* a, const byte* b)
     c = 218;
     for (i = 0; i + 1 < F25519_SIZE; i++) {
         c += 65280 + ((word32)a[i]) - ((word32)b[i]);
-        r[i] = c;
+        r[i] = (byte)c;
         c >>= 8;
     }
 
@@ -646,7 +650,7 @@ void lm_sub(byte* r, const byte* a, const byte* b)
 
     for (i = 0; i < F25519_SIZE; i++) {
         c += r[i];
-        r[i] = c;
+        r[i] = (byte)c;
         c >>= 8;
     }
 }
@@ -661,7 +665,7 @@ void lm_neg(byte* r, const byte* a)
     c = 218;
     for (i = 0; i + 1 < F25519_SIZE; i++) {
         c += 65280 - ((word32)a[i]);
-        r[i] = c;
+        r[i] = (byte)c;
         c >>= 8;
     }
 
@@ -671,7 +675,7 @@ void lm_neg(byte* r, const byte* a)
 
     for (i = 0; i < F25519_SIZE; i++) {
         c += r[i];
-        r[i] = c;
+        r[i] = (byte)c;
         c >>= 8;
     }
 }
@@ -693,7 +697,7 @@ void fe_mul__distinct(byte *r, const byte *a, const byte *b)
             c += ((word32)a[j]) *
                 ((word32)b[i + F25519_SIZE - j]) * 38;
 
-        r[i] = c;
+        r[i] = (byte)c;
     }
 
     r[31] &= 127;
@@ -701,7 +705,7 @@ void fe_mul__distinct(byte *r, const byte *a, const byte *b)
 
     for (i = 0; i < F25519_SIZE; i++) {
         c += r[i];
-        r[i] = c;
+        r[i] = (byte)c;
         c >>= 8;
     }
 }
@@ -724,7 +728,7 @@ void fe_mul_c(byte *r, const byte *a, word32 b)
     for (i = 0; i < F25519_SIZE; i++) {
         c >>= 8;
         c += b * ((word32)a[i]);
-        r[i] = c;
+        r[i] = (byte)c;
     }
 
     r[31] &= 127;
@@ -733,7 +737,7 @@ void fe_mul_c(byte *r, const byte *a, word32 b)
 
     for (i = 0; i < F25519_SIZE; i++) {
         c += r[i];
-        r[i] = c;
+        r[i] = (byte)c;
         c >>= 8;
     }
 }

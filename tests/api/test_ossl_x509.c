@@ -234,8 +234,8 @@ int test_wolfSSL_i2d_X509_NAME_canon(void)
     !defined(NO_FILESYSTEM) && !defined(NO_SHA) && \
      defined(WOLFSSL_CERT_GEN) && \
     (defined(WOLFSSL_CERT_REQ) || defined(WOLFSSL_CERT_EXT)) && !defined(NO_RSA)
-    const long ex_hash1 = 0x0fdb2da4;
-    const long ex_hash2 = 0x9f3e8c9e;
+    const long ex_hash1 = 0xb59c2f94;
+    const long ex_hash2 = 0xd9a48713;
     X509_NAME *name = NULL;
     X509 *x509 = NULL;
     XFILE file = XBADFILE;
@@ -422,6 +422,20 @@ int test_wolfSSL_X509_check_host(void)
     ExpectIntEQ(wolfSSL_X509_check_host(x509, altName, XSTRLEN(altName),
         WOLFSSL_MULTI_LABEL_WILDCARDS, NULL), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
 
+    /* chk of exactly chklen bytes with no terminator - every consumer must
+     * stay within the caller's declared length. */
+    {
+        char* bounded = (char*)XMALLOC(XSTRLEN(altName), NULL,
+                                       DYNAMIC_TYPE_TMP_BUFFER);
+        ExpectNotNull(bounded);
+        if (bounded != NULL) {
+            XMEMCPY(bounded, altName, XSTRLEN(altName));
+            ExpectIntEQ(X509_check_host(x509, bounded, XSTRLEN(altName), 0,
+                    NULL), WOLFSSL_SUCCESS);
+            XFREE(bounded, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+        }
+    }
+
     X509_free(x509);
 
     ExpectIntEQ(X509_check_host(NULL, altName, XSTRLEN(altName), 0, NULL),
@@ -435,14 +449,48 @@ int test_wolfSSL_X509_check_host(void)
     return EXPECT_RESULT();
 }
 
+int test_wolfSSL_X509_check_host_len(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && !defined(NO_CERTS) && !defined(NO_FILESYSTEM) \
+    && !defined(NO_SHA) && !defined(NO_RSA) && defined(WOLFSSL_IP_ALT_NAME)
+    /* chk is length delimited and need not be NUL terminated, so nothing
+     * past chk[chklen - 1] may be read. */
+    X509* x509 = NULL;
+    const char sliced[] = "127.0.0.1extra";
+    const size_t ipLen = 9; /* length of "127.0.0.1" */
+    char* exact = NULL;
+
+    /* cliCertFile has subjectAltName set to 'example.com', '127.0.0.1' */
+    ExpectNotNull(x509 = wolfSSL_X509_load_certificate_file(cliCertFile,
+                SSL_FILETYPE_PEM));
+
+    /* An interior slice of a longer buffer must match the iPAddress SAN. */
+    ExpectIntEQ(X509_check_host(x509, sliced, ipLen, 0, NULL),
+            WOLFSSL_SUCCESS);
+
+    /* Same name in a buffer sized exactly to it, with no terminator. */
+    ExpectNotNull(exact = (char*)XMALLOC(ipLen, NULL, DYNAMIC_TYPE_TMP_BUFFER));
+    if (exact != NULL) {
+        XMEMCPY(exact, "127.0.0.1", ipLen);
+        ExpectIntEQ(X509_check_host(x509, exact, ipLen, 0, NULL),
+                WOLFSSL_SUCCESS);
+    }
+    XFREE(exact, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+
+    X509_free(x509);
+#endif
+    return EXPECT_RESULT();
+}
+
 int test_wolfSSL_X509_check_email(void)
 {
     EXPECT_DECLS;
 #if defined(OPENSSL_EXTRA) && defined(WOLFSSL_CERT_GEN) && !defined(NO_RSA)
     X509* x509 = NULL;
     X509* empty = NULL;
-    const char goodEmail[] = "info@wolfssl.com";
-    const char badEmail[] = "disinfo@wolfssl.com";
+    const char goodEmail[] = "facts@wolfssl.com";
+    const char badEmail[] = "disfacts@wolfssl.com";
 
     ExpectNotNull(x509 = wolfSSL_X509_load_certificate_file(cliCertFile,
                 SSL_FILETYPE_PEM));
@@ -663,67 +711,7 @@ int test_wolfSSL_X509_set_name(void)
     return EXPECT_RESULT();
 }
 
-int test_wolfSSL_X509_set_notAfter(void)
-{
-    EXPECT_DECLS;
-#if (defined(OPENSSL_ALL) || defined(WOLFSSL_APACHE_HTTPD)) \
-    && !defined(NO_ASN_TIME) && !defined(USER_TIME) && \
-    !defined(TIME_OVERRIDES) && !defined(NO_CERTS) && \
-    defined(WOLFSSL_CERT_GEN) && defined(WOLFSSL_CERT_REQ) &&\
-    !defined(TIME_T_NOT_64BIT) && !defined(NO_64BIT) && !defined(NO_BIO)
-    /* Generalized time will overflow time_t if not long */
-    X509* x = NULL;
-    BIO*  bio = NULL;
-    ASN1_TIME *asn_time = NULL;
-    ASN1_TIME *time_check = NULL;
-    const int year = 365*24*60*60;
-    const int day  = 24*60*60;
-    const int hour = 60*60;
-    const int mini = 60;
-    int offset_day;
-    unsigned char buf[25];
-    time_t t;
-
-    /*
-     * Setup asn_time. APACHE HTTPD uses time(NULL)
-     */
-    t = (time_t)107 * year + 31 * day + 34 * hour + 30 * mini + 7 * day;
-    offset_day = 7;
-    /*
-     * Free these.
-     */
-    asn_time = wolfSSL_ASN1_TIME_adj(NULL, t, offset_day, 0);
-    ExpectNotNull(asn_time);
-    ExpectNotNull(x = X509_new());
-    ExpectNotNull(bio = BIO_new(BIO_s_mem()));
-    /*
-     * Tests
-     */
-    ExpectTrue(wolfSSL_X509_set_notAfter(x, asn_time));
-    /* time_check is simply (ANS1_TIME*)x->notAfter */
-    ExpectNotNull(time_check = X509_get_notAfter(x));
-    /* ANS1_TIME_check validates by checking if argument can be parsed */
-    ExpectIntEQ(ASN1_TIME_check(time_check), WOLFSSL_SUCCESS);
-    /* Convert to human readable format and compare to intended date */
-    ExpectIntEQ(ASN1_TIME_print(bio, time_check), 1);
-    ExpectIntEQ(BIO_read(bio, buf, sizeof(buf)), 24);
-    ExpectIntEQ(XMEMCMP(buf, "Jan 20 10:30:00 2077 GMT", sizeof(buf) - 1), 0);
-
-    ExpectFalse(wolfSSL_X509_set_notAfter(NULL, NULL));
-    ExpectFalse(wolfSSL_X509_set_notAfter(x, NULL));
-    ExpectFalse(wolfSSL_X509_set_notAfter(NULL, asn_time));
-
-    /*
-     * Cleanup
-     */
-    XFREE(asn_time, NULL, DYNAMIC_TYPE_OPENSSL);
-    X509_free(x);
-    BIO_free(bio);
-#endif
-    return EXPECT_RESULT();
-}
-
-int test_wolfSSL_X509_set_notBefore(void)
+int test_wolfSSL_X509_set_notAfterBefore(void)
 {
     EXPECT_DECLS;
 #if (defined(OPENSSL_ALL) || defined(WOLFSSL_APACHE_HTTPD)) \
@@ -732,55 +720,151 @@ int test_wolfSSL_X509_set_notBefore(void)
     defined(WOLFSSL_CERT_GEN) && defined(WOLFSSL_CERT_REQ) && !defined(NO_BIO)
     X509* x = NULL;
     BIO*  bio = NULL;
-    ASN1_TIME *asn_time = NULL;
-    ASN1_TIME *time_check = NULL;
-    const int year = 365*24*60*60;
-    const int day  = 24*60*60;
-    const int hour = 60*60;
+    ASN1_TIME* asn_time = NULL;
+    ASN1_TIME* time_check = NULL;
+    WOLFSSL_ASN1_TIME crafted_time;
+    WOLFSSL_ASN1_TIME* retrieved = NULL;
+    const byte* raw = NULL;
+    const int year = 365 * 24 * 60 * 60;
+    const int day  = 24 * 60 * 60;
+    const int hour = 60 * 60;
     const int mini = 60;
-    int offset_day;
     unsigned char buf[25];
-    time_t t;
+    const unsigned char valid_utc[] = "250101120000Z";
+    const int valid_utc_len = 13;
+    int i;
 
-    /*
-     * Setup asn_time. APACHE HTTPD uses time(NULL)
-     */
-    t = (time_t)49 * year + 125 * day + 20 * hour + 30 * mini + 7 * day;
-    offset_day = 7;
-
-    /*
-     * Free these.
-     */
-    asn_time = wolfSSL_ASN1_TIME_adj(NULL, t, offset_day, 0);
-    ExpectNotNull(asn_time);
     ExpectNotNull(x = X509_new());
     ExpectNotNull(bio = BIO_new(BIO_s_mem()));
-    ExpectIntEQ(ASN1_TIME_check(asn_time), WOLFSSL_SUCCESS);
 
-    /*
-     * Main Tests
-     */
+    /* --- notBefore: set, get, validate, print --- */
+    {
+        time_t t = (time_t)49 * year + 125 * day + 20 * hour +
+                   30 * mini + 7 * day;
+        asn_time = wolfSSL_ASN1_TIME_adj(NULL, t, 7, 0);
+    }
+    ExpectNotNull(asn_time);
+    ExpectIntEQ(ASN1_TIME_check(asn_time), WOLFSSL_SUCCESS);
     ExpectTrue(wolfSSL_X509_set_notBefore(x, asn_time));
-    /* time_check == (ANS1_TIME*)x->notBefore */
     ExpectNotNull(time_check = X509_get_notBefore(x));
-    /* ANS1_TIME_check validates by checking if argument can be parsed */
     ExpectIntEQ(ASN1_TIME_check(time_check), WOLFSSL_SUCCESS);
-    /* Convert to human readable format and compare to intended date */
     ExpectIntEQ(ASN1_TIME_print(bio, time_check), 1);
     ExpectIntEQ(BIO_read(bio, buf, sizeof(buf)), 24);
     ExpectIntEQ(XMEMCMP(buf, "May  8 20:30:00 2019 GMT", sizeof(buf) - 1), 0);
 
+    /* wolfSSL_X509_notBefore returns [type][length][data...] */
+    ExpectNotNull(raw = wolfSSL_X509_notBefore(x));
+    ExpectIntEQ(raw[0], time_check->type);
+    ExpectIntEQ(raw[1], time_check->length);
+    ExpectIntEQ(XMEMCMP(&raw[2], time_check->data, time_check->length), 0);
+
+    XFREE(asn_time, NULL, DYNAMIC_TYPE_OPENSSL);
+    asn_time = NULL;
+
+    /* --- notAfter: set, get, validate, print (needs 64-bit time_t) --- */
+#if !defined(TIME_T_NOT_64BIT) && !defined(NO_64BIT)
+    {
+        time_t t = (time_t)107 * year + 31 * day + 34 * hour +
+                   30 * mini + 7 * day;
+        asn_time = wolfSSL_ASN1_TIME_adj(NULL, t, 7, 0);
+    }
+    ExpectNotNull(asn_time);
+    ExpectTrue(wolfSSL_X509_set_notAfter(x, asn_time));
+    ExpectNotNull(time_check = X509_get_notAfter(x));
+    ExpectIntEQ(ASN1_TIME_check(time_check), WOLFSSL_SUCCESS);
+    ExpectIntEQ(ASN1_TIME_print(bio, time_check), 1);
+    ExpectIntEQ(BIO_read(bio, buf, sizeof(buf)), 24);
+    ExpectIntEQ(XMEMCMP(buf, "Jan 20 10:30:00 2077 GMT", sizeof(buf) - 1), 0);
+
+    /* wolfSSL_X509_notAfter returns [type][length][data...] */
+    ExpectNotNull(raw = wolfSSL_X509_notAfter(x));
+    ExpectIntEQ(raw[0], time_check->type);
+    ExpectIntEQ(raw[1], time_check->length);
+    ExpectIntEQ(XMEMCMP(&raw[2], time_check->data, time_check->length), 0);
+
+    XFREE(asn_time, NULL, DYNAMIC_TYPE_OPENSSL);
+    asn_time = NULL;
+#endif
+
+    /* --- NULL parameter tests --- */
+    XMEMSET(&crafted_time, 0, sizeof(crafted_time));
+    crafted_time.type = ASN_UTC_TIME;
+    crafted_time.length = valid_utc_len;
+    XMEMCPY(crafted_time.data, valid_utc, valid_utc_len);
+
+    ExpectFalse(wolfSSL_X509_set_notAfter(NULL, NULL));
+    ExpectFalse(wolfSSL_X509_set_notAfter(x, NULL));
+    ExpectFalse(wolfSSL_X509_set_notAfter(NULL, &crafted_time));
     ExpectFalse(wolfSSL_X509_set_notBefore(NULL, NULL));
     ExpectFalse(wolfSSL_X509_set_notBefore(x, NULL));
-    ExpectFalse(wolfSSL_X509_set_notBefore(NULL, asn_time));
-
+    ExpectFalse(wolfSSL_X509_set_notBefore(NULL, &crafted_time));
     ExpectNull(X509_get_notBefore(NULL));
     ExpectNull(X509_get_notAfter(NULL));
+    ExpectNull(wolfSSL_X509_notBefore(NULL));
+    ExpectNull(wolfSSL_X509_notAfter(NULL));
 
-    /*
-     * Cleanup
-     */
-    XFREE(asn_time, NULL, DYNAMIC_TYPE_OPENSSL);
+    /* --- Malicious length > CTC_DATE_SIZE via set_notAfter ---
+     * The function blindly propagates t->length into the x509 struct.
+     * A fixed implementation would reject this or clamp to CTC_DATE_SIZE. */
+    /* --- Length > CTC_DATE_SIZE is rejected by the bounds check --- */
+    XMEMSET(&crafted_time, 0, sizeof(crafted_time));
+    crafted_time.type = ASN_UTC_TIME;
+    crafted_time.length = 255;
+    XMEMCPY(crafted_time.data, valid_utc, valid_utc_len);
+    ExpectIntEQ(wolfSSL_X509_set_notAfter(x, &crafted_time),
+                WOLFSSL_FAILURE);
+
+    crafted_time.length = 128;
+    ExpectIntEQ(wolfSSL_X509_set_notBefore(x, &crafted_time),
+                WOLFSSL_FAILURE);
+
+    /* --- Negative length is rejected --- */
+    crafted_time.length = -1;
+    ExpectIntEQ(wolfSSL_X509_set_notAfter(x, &crafted_time),
+                WOLFSSL_FAILURE);
+
+    /* --- Fixed-size copy leaks sentinel bytes beyond valid length ---
+     * Even when t->length is correct (13 for UTCTime), XMEMCPY copies
+     * a full CTC_DATE_SIZE (32) bytes from the source. */
+    XMEMSET(&crafted_time, 0, sizeof(crafted_time));
+    crafted_time.type = ASN_UTC_TIME;
+    crafted_time.length = valid_utc_len;
+    XMEMCPY(crafted_time.data, valid_utc, valid_utc_len);
+    for (i = valid_utc_len; i < CTC_DATE_SIZE; i++) {
+        crafted_time.data[i] = 0xDE;
+    }
+
+    ExpectIntEQ(wolfSSL_X509_set_notAfter(x, &crafted_time), WOLFSSL_SUCCESS);
+    ExpectNotNull(retrieved = X509_get_notAfter(x));
+    ExpectBufEQ(retrieved->data, valid_utc, valid_utc_len);
+    for (i = valid_utc_len; i < CTC_DATE_SIZE; i++) {
+        ExpectIntEQ(retrieved->data[i], 0xDE);
+    }
+
+    /* --- Boundary: length CTC_DATE_SIZE - 2 (accepted) --- */
+    XMEMSET(&crafted_time, 0, sizeof(crafted_time));
+    crafted_time.type = ASN_GENERALIZED_TIME;
+    crafted_time.length = CTC_DATE_SIZE - 2;
+    XMEMSET(crafted_time.data, 'A', CTC_DATE_SIZE - 2);
+
+    ExpectIntEQ(wolfSSL_X509_set_notAfter(x, &crafted_time),
+                WOLFSSL_SUCCESS);
+    ExpectNotNull(retrieved = X509_get_notAfter(x));
+    ExpectIntEQ(retrieved->length, CTC_DATE_SIZE - 2);
+
+    /* wolfSSL_X509_notAfter must also succeed at this boundary */
+    ExpectNotNull(raw = wolfSSL_X509_notAfter(x));
+
+    /* --- Boundary: length CTC_DATE_SIZE - 1 (rejected) --- */
+    crafted_time.length = CTC_DATE_SIZE - 1;
+    ExpectIntEQ(wolfSSL_X509_set_notAfter(x, &crafted_time),
+                WOLFSSL_FAILURE);
+
+    /* --- Boundary: length CTC_DATE_SIZE (rejected) --- */
+    crafted_time.length = CTC_DATE_SIZE;
+    ExpectIntEQ(wolfSSL_X509_set_notAfter(x, &crafted_time),
+                WOLFSSL_FAILURE);
+
     X509_free(x);
     BIO_free(bio);
 #endif
@@ -936,7 +1020,7 @@ int test_wolfSSL_get_tbs(void)
     ExpectNull(tbs = wolfSSL_X509_get_tbs(NULL, &tbsSz));
     ExpectNull(tbs = wolfSSL_X509_get_tbs(x509, NULL));
     ExpectNotNull(tbs = wolfSSL_X509_get_tbs(x509, &tbsSz));
-    ExpectIntEQ(tbsSz, 1003);
+    ExpectIntEQ(tbsSz, 1006);
 
     wolfSSL_FreeX509(x509);
 #endif
@@ -1014,15 +1098,49 @@ int test_wolfSSL_X509_check_ip_asc(void)
         WOLFSSL_FILETYPE_PEM));
     ExpectNotNull(empty = wolfSSL_X509_new());
 
-#if 0
-    /* TODO: add cert gen for testing positive case */
-    ExpectIntEQ(wolfSSL_X509_check_ip_asc(x509, "127.0.0.1", 0), 1);
-#endif
     ExpectIntEQ(wolfSSL_X509_check_ip_asc(x509, "0.0.0.0", 0), 0);
     ExpectIntEQ(wolfSSL_X509_check_ip_asc(x509, NULL, 0), 0);
     ExpectIntEQ(wolfSSL_X509_check_ip_asc(NULL, NULL, 0), 0);
     ExpectIntEQ(wolfSSL_X509_check_ip_asc(NULL, "0.0.0.0", 0), 0);
     ExpectIntEQ(wolfSSL_X509_check_ip_asc(empty, "127.128.0.255", 0), 0);
+
+    /* Regression test: a certificate with CN=<ip> and no SAN extension
+     * must NOT be accepted for IP verification. RFC 6125 requires that IP
+     * identities appear in an iPAddress SAN; the Subject CN must never be
+     * matched against an IP address. Likewise a CN of "*.0.0.1" must not
+     * wildcard-match "127.0.0.1" -- RFC 6125 Section 7.2 prohibits wildcard
+     * matching for IP addresses. */
+    {
+        WOLFSSL_X509 *cn_lit = NULL;
+        WOLFSSL_X509 *cn_wild = NULL;
+
+        ExpectNotNull(cn_lit = wolfSSL_X509_load_certificate_buffer(
+            cn_ip_literal_der, (int)sizeof(cn_ip_literal_der),
+            WOLFSSL_FILETYPE_ASN1));
+        ExpectNotNull(cn_wild = wolfSSL_X509_load_certificate_buffer(
+            cn_ip_wildcard_der, (int)sizeof(cn_ip_wildcard_der),
+            WOLFSSL_FILETYPE_ASN1));
+
+        /* CN=127.0.0.1 with no SAN must NOT match the IP "127.0.0.1". */
+        ExpectIntEQ(wolfSSL_X509_check_ip_asc(cn_lit, "127.0.0.1", 0), 0);
+        /* CN=*.0.0.1 with no SAN must NOT wildcard-match "127.0.0.1". */
+        ExpectIntEQ(wolfSSL_X509_check_ip_asc(cn_wild, "127.0.0.1", 0), 0);
+
+        /* CN-based hostname matching must still work for hostname checks
+         * (sanity check that the fix didn't over-correct). */
+        ExpectIntEQ(wolfSSL_X509_check_host(cn_wild, "1.0.0.1",
+            XSTRLEN("1.0.0.1"), 0, NULL), 1);
+
+        /* However, when WOLFSSL_LEFT_MOST_WILDCARD_ONLY, CN-based hostname
+         * matching must not apply wildcards when the supplied hostname isn't a
+         * well-formed FQDN.
+         */
+        ExpectIntEQ(wolfSSL_X509_check_host(cn_wild, "1.0.0.1",
+            XSTRLEN("1.0.0.1"), WOLFSSL_LEFT_MOST_WILDCARD_ONLY, NULL), 0);
+
+        wolfSSL_X509_free(cn_wild);
+        wolfSSL_X509_free(cn_lit);
+    }
 
     wolfSSL_X509_free(empty);
     wolfSSL_X509_free(x509);
@@ -1070,7 +1188,7 @@ int test_wolfSSL_X509_bad_altname(void)
         0xf5, 0xe5, 0x09, 0x02, 0x01, 0x03, 0xa3, 0x61, 0x30, 0x5f, 0x30, 0x0c,
         0x06, 0x03, 0x55, 0x1d, 0x13, 0x01, 0x01, 0xff, 0x04, 0x02, 0x30, 0x00,
         0x30, 0x0f, 0x06, 0x03, 0x55, 0x1d, 0x11, 0x04, 0x08, 0x30, 0x06, 0x82,
-        0x04, 0x61, 0x2a, 0x00, 0x2a, 0x30, 0x1d, 0x06, 0x03, 0x55, 0x1d, 0x0e,
+        0x04, 0x61, 0x2a, 0x62, 0x2a, 0x30, 0x1d, 0x06, 0x03, 0x55, 0x1d, 0x0e,
         0x04, 0x16, 0x04, 0x14, 0x92, 0x6a, 0x1e, 0x52, 0x3a, 0x1a, 0x57, 0x9f,
         0xc9, 0x82, 0x9a, 0xce, 0xc8, 0xc0, 0xa9, 0x51, 0x9d, 0x2f, 0xc7, 0x72,
         0x30, 0x1f, 0x06, 0x03, 0x55, 0x1d, 0x23, 0x04, 0x18, 0x30, 0x16, 0x80,
@@ -1105,12 +1223,12 @@ int test_wolfSSL_X509_bad_altname(void)
     int certSize = (int)sizeof(malformed_alt_name_cert) / sizeof(unsigned char);
     const char *name = "aaaaa";
     int nameLen = (int)XSTRLEN(name);
+    const char badName[] = { 'a', 'a', '\0', 'a', 'a', 'a' };
 
     ExpectNotNull(x509 = wolfSSL_X509_load_certificate_buffer(
         malformed_alt_name_cert, certSize, SSL_FILETYPE_ASN1));
 
-    /* malformed_alt_name_cert has a malformed alternative
-     * name of "a*\0*". Ensure that it does not match "aaaaa" */
+    /* SAN "a*b*" must not match "aaaaa" under any wildcard flag. */
     ExpectIntNE(wolfSSL_X509_check_host(x509, name, nameLen,
         WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), 1);
 
@@ -1118,6 +1236,14 @@ int test_wolfSSL_X509_bad_altname(void)
     ExpectIntNE(wolfSSL_X509_check_host(x509, name, nameLen,
         WOLFSSL_ALWAYS_CHECK_SUBJECT | WOLFSSL_LEFT_MOST_WILDCARD_ONLY,
         NULL), 1);
+    /* Len handling must not rescue a malformed SAN. */
+    ExpectIntNE(wolfSSL_X509_check_host(x509, name, 0,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), 1);
+    ExpectIntNE(wolfSSL_X509_check_host(x509, name, nameLen + 1,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), 1);
+    /* Embedded NUL in the compared host name must also be rejected. */
+    ExpectIntNE(wolfSSL_X509_check_host(x509, badName, 6,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), 1);
 
     X509_free(x509);
 
@@ -1222,6 +1348,9 @@ int test_wolfSSL_X509_name_match1(void)
     int nameLen3 = (int)(XSTRLEN(name3));
     const char *name4 = "bbb";
     int nameLen4 = (int)(XSTRLEN(name4));
+    const char *name5 = "aaaaa";
+    int nameLen5 = 6;
+    const char badName[] = { 'a', 'a', '\0', 'a', 'a', 'a' };
 
     ExpectNotNull(x509 = wolfSSL_X509_load_certificate_buffer(
         cert_der, certSize, WOLFSSL_FILETYPE_ASN1));
@@ -1238,6 +1367,14 @@ int test_wolfSSL_X509_name_match1(void)
     /* Ensure that "a*" does not match "bbb" */
     ExpectIntNE(wolfSSL_X509_check_host(x509, name4, nameLen4,
         WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), 1);
+    /* OpenSSL-compatible len handling should still accept the positive case. */
+    ExpectIntEQ(wolfSSL_X509_check_host(x509, name5, 0,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_X509_check_host(x509, name5, nameLen5,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
+    /* Embedded NUL in the compared host name must be rejected. */
+    ExpectIntNE(wolfSSL_X509_check_host(x509, badName, 6,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
 
     /* WOLFSSL_LEFT_MOST_WILDCARD_ONLY flag should fail on all cases, since
      * 'a*' alt name does not have wildcard left-most */
@@ -1511,6 +1648,10 @@ int test_wolfSSL_X509_name_match3(void)
     int nameLen2 = (int)(XSTRLEN(name2));
     const char *name3 = "example.com";
     int nameLen3 = (int)(XSTRLEN(name3));
+    const char *name4 = "foo.example.com";
+    int nameLen4 = (int)(XSTRLEN(name4)) + 1;
+    const char badName[] = { 'f', 'o', 'o', '.', 'e', 'x', '\0', 'a', 'm',
+        'p', 'l', 'e', '.', 'c', 'o', 'm' };
 
     ExpectNotNull(x509 = wolfSSL_X509_load_certificate_buffer(
         cert_der, certSize, WOLFSSL_FILETYPE_ASN1));
@@ -1518,11 +1659,19 @@ int test_wolfSSL_X509_name_match3(void)
     /* Ensure that "*.example.com" matches "foo.example.com" */
     ExpectIntEQ(wolfSSL_X509_check_host(x509, name1, nameLen1,
         WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
+    /* strlen()-driven and NUL-inclusive lengths should both preserve match. */
+    ExpectIntEQ(wolfSSL_X509_check_host(x509, name1, 0,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_X509_check_host(x509, name4, nameLen4,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
     /* Ensure that "*.example.com" does NOT match "x.y.example.com" */
     ExpectIntNE(wolfSSL_X509_check_host(x509, name2, nameLen2,
         WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
     /* Ensure that "*.example.com" does NOT match "example.com" */
     ExpectIntNE(wolfSSL_X509_check_host(x509, name3, nameLen3,
+        WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
+    /* Embedded NUL must remain rejected. */
+    ExpectIntNE(wolfSSL_X509_check_host(x509, badName, (int)sizeof(badName),
         WOLFSSL_ALWAYS_CHECK_SUBJECT, NULL), WOLFSSL_SUCCESS);
 
     /* WOLFSSL_LEFT_MOST_WILDCARD_ONLY, should match "foo.example.com" */
@@ -1541,6 +1690,327 @@ int test_wolfSSL_X509_name_match3(void)
     wolfSSL_X509_free(x509);
 
 #endif
+    return EXPECT_RESULT();
+}
+
+int test_wolfssl_local_IsValidFQDN(void) {
+    EXPECT_DECLS;
+#if !defined(NO_ASN) && !defined(WOLFCRYPT_ONLY) && !defined(NO_CERTS)
+    static const struct { const char *str; int is_FQDN; } test_cases[] = {
+        {"example.com",                  1},
+        {"example.com.",                 1},   /* trailing dot (absolute form) */
+        {"sub.example.com",              1},
+        {"a.b",                          1},   /* minimal two-label */
+        {"xn--nxasmq5b.com",             1},   /* punycode / IDN (ACE form) */
+        {"test_underscore.example.com",  1},   /* underscore in non-TLD label */
+        {"_leading.example.com",         1}, /* underscore at start of label */
+        {"trailing_.example.com",        1},/* underscore at end of non-TLD label */
+        {"123.numericlabel.example.com", 1},   /* numeric labels are fine */
+        {"example.12a3",                 1},   /* TLD with letters + digits */
+        {"ex--ample.com",                1},   /* double hyphen inside label (allowed) */
+        {"A.B.C",                        1},   /* uppercase OK (case-insensitive rules) */
+
+        {"example",                      0},   /* single label (not fully qualified) */
+        {"example.",                     0},   /* becomes single label after dot strip */
+        {".example.com",                 0},   /* leading dot -- empty first label */
+        {"example..com",                 0},   /* empty label (consecutive dots) */
+        {"-example.com",                 0},   /* label starts with '-' */
+        {"example-.com",                 0},   /* label ends with '-' */
+        {"example.com-",                 0},   /* final label ends with '-' */
+        {"example.com_",                 0},   /* underscore in TLD (forbidden) */
+        {"example._com",                 0},   /* underscore in TLD (forbidden) */
+        {"ex@mple.com",                  0},   /* illegal character '@' */
+        {"example com.com",              0},   /* illegal character ' ' */
+        {"",                             0},   /* empty string */
+        {NULL,                           0},   /* NULL pointer */
+        {"com",                          0},   /* single label */
+        {"123.456",                      0},   /* all-numeric final label (no alpha) */
+        {"example.123",                  0},   /* all-numeric TLD (no alpha) */
+        {"a",                            0},   /* single label, too short */
+        {"example.123a",                 1},   /* TLD with at least one letter -- valid */
+    };
+
+    int i;
+    for (i = 0; i < (int)(sizeof(test_cases) / sizeof(test_cases[0])); i++) {
+        ExpectIntEQ(wolfssl_local_IsValidFQDN(
+                        test_cases[i].str,
+                        test_cases[i].str ? (word32)strlen(test_cases[i].str) : 0),
+                        test_cases[i].is_FQDN);
+        if (! EXPECT_SUCCESS()) {
+            fprintf(stderr, "wolfssl_local_IsValidFQDN() wrong result for "
+                    "case %d \"%s\"\n", i,
+                    test_cases[i].str ? test_cases[i].str : "(null)");
+            break;
+        }
+    }
+
+    /* Additional corner cases (length & label-size boundaries) */
+    {
+        char buf[300];
+
+        /* 253 chars (max allowed), with 63 byte labels (max allowed) - valid */
+        memset(buf, 'a', 251);
+        for (i=63; i < 251; i+=64)
+            buf[i] = '.';
+        buf[251] = '.';
+        buf[252] = 'b';
+        buf[253] = '\0';
+        ExpectIntEQ(wolfssl_local_IsValidFQDN(buf, (word32)strlen(buf)), 1);
+
+        /* 254 chars (one too long) - invalid */
+        memset(buf, 'a', 252);
+        for (i=63; i < 251; i+=64)
+            buf[i] = '.';
+        buf[252] = '.';
+        buf[253] = 'b';
+        buf[254] = '\0';
+        ExpectIntEQ(wolfssl_local_IsValidFQDN(buf, (word32)strlen(buf)), 0);
+
+        /* 64-char label (one too long) */
+        memset(buf, 'a', 64);
+        buf[64] = '.';
+        buf[65] = 'c';
+        buf[66] = 'o';
+        buf[67] = 'm';
+        buf[68] = '\0';
+        ExpectIntEQ(wolfssl_local_IsValidFQDN(buf, (word32)strlen(buf)), 0);
+
+        /* Explicit nameSz == 0 (even with non-NULL pointer) */
+        ExpectIntEQ(wolfssl_local_IsValidFQDN("example.com", 0), 0);
+    }
+
+#endif /* !NO_ASN && !WOLFCRYPT_ONLY && !NO_CERTS */
+    return EXPECT_RESULT();
+}
+
+/* Verify that MatchDomainName() refuses to expand wildcards across IDNA
+ * A-labels (xn-- prefix) per RFC 6125 sec. 6.4.3 / RFC 9525 sec. 6.3.
+ *
+ * MatchDomainName() is exposed for testing via the visibility mechanism
+ * declared in wolfssl/internal.h. */
+int test_wolfSSL_MatchDomainName_idn(void)
+{
+    EXPECT_DECLS;
+#if !defined(NO_ASN) && !defined(WOLFCRYPT_ONLY) && !defined(NO_CERTS)
+    static const struct {
+        const char* pattern;
+        const char* host;
+        unsigned int flags;
+        int expected; /* 1 = match, 0 = no match */
+        const char* note;
+    } cases[] = {
+        /* Partial wildcard whose literal prefix overlaps "xn--" must NOT
+         * match an A-label hostname. */
+        { "x*.example.com",      "xn--rger-koa.example.com", 0, 0,
+          "partial wildcard vs A-label" },
+        /* Wildcard embedded inside an A-label pattern must NOT match. */
+        { "xn--*.example.com",   "xn--rger-koa.example.com", 0, 0,
+          "wildcard inside A-label pattern" },
+        /* Full left-most wildcard MUST NOT match an A-label hostname
+         * (RFC 9525 sec. 6.3 strengthens RFC 6125 SHOULD NOT to MUST NOT). */
+        { "*.example.com",       "xn--rger-koa.example.com", 0, 0,
+          "full wildcard vs A-label hostname" },
+        /* A-label appearing in an inner label still disables wildcard
+         * matching against the entire reference identifier. */
+        { "*.example.com",       "foo.xn--bar.example.com",  0, 0,
+          "wildcard with A-label in inner label" },
+        /* Case-insensitive A-label detection: "XN--" is also an A-label. */
+        { "x*.example.com",      "XN--rger-koa.example.com", 0, 0,
+          "uppercase A-label prefix" },
+        /* Control: full wildcard SHOULD continue to match plain ASCII. */
+        { "*.example.com",       "foo.example.com",          0, 1,
+          "wildcard matches non-IDN" },
+        /* Control: exact A-label match (no wildcard in pattern) must work. */
+        { "xn--rger-koa.example.com", "xn--rger-koa.example.com", 0, 1,
+          "exact A-label match" },
+        /* Control: a label that merely begins with 'x' (not 'xn--') is not
+         * an A-label and must still wildcard-match. */
+        { "*.example.com",       "xyz.example.com",          0, 1,
+          "non-A-label x-prefix" },
+        /* Control: partial wildcard against a non-A-label still works. */
+        { "x*.example.com",      "xyz.example.com",          0, 1,
+          "partial wildcard non-IDN" },
+
+        /* Trailing-dot normalization: absolute-form FQDN ("example.com.")
+         * must match the same FQDN with or without the trailing dot, on
+         * either side of the comparison. RFC 1035 / RFC 6125. */
+        { "example.com",         "example.com.",             0, 1,
+          "trailing dot on host" },
+        { "example.com.",        "example.com",              0, 1,
+          "trailing dot on pattern" },
+        { "example.com.",        "example.com.",             0, 1,
+          "trailing dot on both" },
+        { "*.example.com",       "foo.example.com.",         0, 1,
+          "trailing dot on host with wildcard pattern" },
+        /* Trailing dot must not cause an A-label gate to misfire. */
+        { "*.example.com",       "xn--rger-koa.example.com.", 0, 0,
+          "trailing dot on A-label host" },
+        /* Same trailing-dot normalization under WOLFSSL_LEFT_MOST_WILDCARD_ONLY. */
+        { "*.example.com",       "foo.example.com.",
+          WOLFSSL_LEFT_MOST_WILDCARD_ONLY, 1,
+          "trailing dot, leftWildcardOnly" },
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        int got = MatchDomainName(
+                    cases[i].pattern, (int)XSTRLEN(cases[i].pattern),
+                    cases[i].host,    (word32)XSTRLEN(cases[i].host),
+                    cases[i].flags);
+        ExpectIntEQ(got, cases[i].expected);
+        if (! EXPECT_SUCCESS()) {
+            fprintf(stderr,
+                "MatchDomainName(\"%s\", \"%s\", flags=0x%x) = %d, "
+                "expected %d (%s)\n",
+                cases[i].pattern, cases[i].host, cases[i].flags,
+                got, cases[i].expected, cases[i].note);
+            break;
+        }
+    }
+#endif /* !NO_ASN && !WOLFCRYPT_ONLY && !NO_CERTS */
+    return EXPECT_RESULT();
+}
+
+/* Regression test mirroring curl test 311 ("HTTPS wrong subjectAltName but
+ * right CN"). The leaf Subject CN is the wanted host ("localhost") while its
+ * only dNSName SAN carries an embedded NUL ("localhost\0h"). Such a SAN is an
+ * invalid presented identifier (RFC 6125 Sec. 6.3 / RFC 9525 Sec. 6.3), not a
+ * malformed certificate, so the certificate must parse. Verification must then
+ * report DOMAIN_NAME_MISMATCH: the SAN presence suppresses Subject CN fallback
+ * and the NUL name can never match the NUL-free reference host, so the
+ * otherwise-correct CN must not rescue it. Before the parser stored rather than
+ * rejected the entry, verification aborted earlier with ASN_PARSE_E. */
+int test_wolfSSL_X509_check_host_embedded_nul_san(void)
+{
+    EXPECT_DECLS;
+#if !defined(NO_FILESYSTEM) && !defined(NO_CERTS) && !defined(NO_RSA) && \
+    defined(OPENSSL_EXTRA) && defined(WOLFSSL_CERT_GEN) && \
+    defined(WOLFSSL_CERT_EXT) && defined(WOLFSSL_ALT_NAMES) && \
+    !defined(NO_SHA256) && !defined(NO_ASN)
+    WOLFSSL_EVP_PKEY* priv = NULL;
+    WOLFSSL_X509* leaf = NULL;
+    const char* server_cert = "./certs/test/server-goodcn.pem";
+    const char host[] = "localhost";
+    /* dNSName "localhost" + embedded NUL + 'h', length 11. */
+    static const byte nulSan[] = {
+        'l', 'o', 'c', 'a', 'l', 'h', 'o', 's', 't', '\0', 'h'
+    };
+    byte* keyPt = NULL;
+    const byte* der = NULL;
+    int derSz = 0;
+    DecodedCert dCert;
+    int parseRet = -1;
+
+    keyPt = (byte*)server_key_der_2048;
+    ExpectNotNull(priv = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL,
+        (const unsigned char**)&keyPt, sizeof_server_key_der_2048));
+
+    /* server-goodcn.pem has CN=localhost and no SAN; add one dNSName SAN that
+     * carries an embedded NUL, then re-sign so the SAN is serialized. */
+    ExpectNotNull(leaf = wolfSSL_X509_load_certificate_file(server_cert,
+        WOLFSSL_FILETYPE_PEM));
+    ExpectIntEQ(wolfSSL_X509_add_altname_ex(leaf, (const char*)nulSan,
+        sizeof(nulSan), ASN_DNS_TYPE), WOLFSSL_SUCCESS);
+    ExpectIntGT(wolfSSL_X509_sign(leaf, priv, EVP_sha256()), 0);
+
+    /* Regression pin: the signed certificate must parse despite the embedded
+     * NUL (it aborted with ASN_PARSE_E before the parser stored the entry). */
+    ExpectNotNull(der = wolfSSL_X509_get_der(leaf, &derSz));
+    ExpectIntGT(derSz, 0);
+    if ((der != NULL) && (derSz > 0)) {
+        wc_InitDecodedCert(&dCert, der, (word32)derSz, NULL);
+        parseRet = wc_ParseCert(&dCert, CERT_TYPE, NO_VERIFY, NULL);
+        ExpectIntEQ(parseRet, 0);
+        wc_FreeDecodedCert(&dCert);
+    }
+
+    /* Security pin: the host must still be rejected. With parsing now
+     * succeeding, the only remaining failure path in check_host for a
+     * non-IP host is the hostname comparison, so a failure here means
+     * DOMAIN_NAME_MISMATCH: the SAN presence suppressed CN fallback and the
+     * NUL name did not match. The correct CN must not rescue the wrong SAN. */
+    ExpectIntEQ(wolfSSL_X509_check_host(leaf, host, XSTRLEN(host), 0, NULL),
+        WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+
+    wolfSSL_X509_free(leaf);
+    wolfSSL_EVP_PKEY_free(priv);
+#endif
+    return EXPECT_RESULT();
+}
+
+/* Verify that MatchDomainName() enforces RFC 6125 sec. 6.4.3 / RFC 9525
+ * sec. 6.3 and CA/Browser Forum BR sec. 3.2.2.6 wildcard placement rules:
+ * a wildcard is confined to the left-most label, and a bare wildcard label
+ * ("*") requires at least two further labels.  Regression test for the
+ * x509-limbo findings that "*", "*.com" and "foo.*.example.com" were matched.
+ *
+ * MatchDomainName() is exposed for testing via the visibility mechanism
+ * declared in wolfssl/internal.h. */
+int test_wolfSSL_MatchDomainName_wildcard(void)
+{
+    EXPECT_DECLS;
+#if !defined(NO_ASN) && !defined(WOLFCRYPT_ONLY) && !defined(NO_CERTS)
+    static const struct {
+        const char* pattern;
+        const char* host;
+        unsigned int flags;
+        int expected; /* 1 = match, 0 = no match */
+        const char* note;
+    } cases[] = {
+        /* --- The reported forbidden patterns must NOT match. --- */
+        /* Bare wildcard: matches any single-label name. */
+        { "*",                   "com",                 0, 0, "bare wildcard" },
+        { "*",                   "anything",            0, 0,
+          "bare wildcard 2" },
+        /* Wildcard not in the left-most label. */
+        { "foo.*.example.com",   "foo.bar.example.com", 0, 0,
+          "wildcard in middle label" },
+        { "foo.*.example.com",   "foo.x.example.com",   0, 0,
+          "wildcard in middle label 2" },
+        /* Bare wildcard immediately left of a public/registry suffix. */
+        { "*.com",               "example.com",         0, 0,
+          "public-suffix wildcard" },
+        { "*.com",               "evil.com",            0, 0,
+          "public-suffix wildcard 2" },
+        /* Two label-spanning wildcards: the second is not left-most. */
+        { "*.*.example.com",     "a.b.example.com",     0, 0,
+          "second wildcard not left-most" },
+
+        /* --- Legitimate wildcards must still match. --- */
+        { "*.example.com",       "foo.example.com",     0, 1,
+          "single left-most wildcard" },
+        { "*.example.com",       "bar.example.com",     0, 1,
+          "single left-most wildcard 2" },
+        /* Two labels after the wildcard is sufficient; no public-suffix list
+         * is consulted (matching OpenSSL). */
+        { "*.co.uk",             "foo.co.uk",           0, 1,
+          "two labels after wildcard" },
+        /* Partial left-most wildcards retain their existing behavior and are
+         * not subject to the bare-wildcard two-label requirement. */
+        { "a*.example.com",      "abc.example.com",     0, 1,
+          "partial left-most wildcard" },
+        /* A wildcard never spans a label separator. */
+        { "*.example.com",       "foo.bar.example.com", 0, 0,
+          "wildcard does not cross a dot" },
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        int got = MatchDomainName(
+                    cases[i].pattern, (int)XSTRLEN(cases[i].pattern),
+                    cases[i].host,    (word32)XSTRLEN(cases[i].host),
+                    cases[i].flags);
+        ExpectIntEQ(got, cases[i].expected);
+        if (! EXPECT_SUCCESS()) {
+            fprintf(stderr,
+                "MatchDomainName(\"%s\", \"%s\", flags=0x%x) = %d, "
+                "expected %d (%s)\n",
+                cases[i].pattern, cases[i].host, cases[i].flags,
+                got, cases[i].expected, cases[i].note);
+            break;
+        }
+    }
+#endif /* !NO_ASN && !WOLFCRYPT_ONLY && !NO_CERTS */
     return EXPECT_RESULT();
 }
 
@@ -1687,4 +2157,3 @@ int test_wolfSSL_X509_cmp(void)
 #endif
     return EXPECT_RESULT();
 }
-

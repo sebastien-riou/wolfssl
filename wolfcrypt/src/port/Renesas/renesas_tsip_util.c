@@ -1709,7 +1709,11 @@ int tsip_Tls13SendCertVerify(WOLFSSL* ssl)
     }
 
     if (ret == 0) {
-        recordSz = WC_MAX_CERT_VERIFY_SZ + MAX_MSG_EXTRA * 2;
+        /* TSIP only signs classic RSA/ECC CertificateVerify messages in
+         * hardware, never PQC. Size the record to the classic signature tier
+         * rather than WC_MAX_CERT_VERIFY_SZ, which balloons to ~50KB when
+         * SLH-DSA is enabled elsewhere in the build. */
+        recordSz = MAX_ENCODED_CLASSIC_SIG_SZ + MAX_MSG_EXTRA * 2;
         /* check for available size */
         ret = CheckAvailableSize(ssl, recordSz);
         recordSz = 0;
@@ -2459,7 +2463,8 @@ int tsip_ImportPublicKey(TsipUserCtx* tuc, int keyType)
                         sizeof(tsip_rsa2048_public_key_index_t), NULL,
                         DYNAMIC_TYPE_RSA_BUFFER);
                 if (tuc->rsa2048pub_keyIdx == NULL) {
-                    return MEMORY_E;
+                    ret = MEMORY_E;
+                    break;
                 }
             #endif
                 err = R_TSIP_GenerateRsa2048PublicKeyIndex(
@@ -3220,8 +3225,10 @@ int wc_tsip_generateSessionKey(
                 if (enc->aes == NULL) {
                     enc->aes = (Aes*)XMALLOC(sizeof(Aes), ssl->heap,
                                                     DYNAMIC_TYPE_CIPHER);
-                    if (enc->aes == NULL)
+                    if (enc->aes == NULL) {
+                        tsip_hw_unlock();
                         return MEMORY_E;
+                    }
                 }
 
                 ForceZero(enc->aes, sizeof(Aes));
@@ -3234,6 +3241,7 @@ int wc_tsip_generateSessionKey(
                         if (enc) {
                             XFREE(enc->aes, NULL, DYNAMIC_TYPE_CIPHER);
                         }
+                        tsip_hw_unlock();
                         return MEMORY_E;
                     }
                 }

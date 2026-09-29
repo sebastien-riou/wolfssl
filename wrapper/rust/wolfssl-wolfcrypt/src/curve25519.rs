@@ -26,12 +26,16 @@ functionality.
 #![cfg(curve25519)]
 
 #[cfg(random)]
-use crate::random::RNG;
+use crate::random::{RNG, RngHandle};
 use crate::sys;
 use core::mem::MaybeUninit;
 
 pub struct Curve25519Key {
     wc_key: sys::curve25519_key,
+    /// RNG associated with the Curve25519Key, kept alive while the C struct
+    /// holds its pointer.
+    #[cfg(random)]
+    rng: Option<RngHandle>,
 }
 
 impl Curve25519Key {
@@ -49,8 +53,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    #[cfg(curve25519_import)]
     pub fn check_public(public: &[u8], big_endian: bool) -> Result<(), i32> {
-        let public_size = public.len() as u32;
+        let public_size = crate::buffer_len_to_u32(public.len())?;
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_check_public(public.as_ptr(), public_size,
@@ -66,14 +71,16 @@ impl Curve25519Key {
     ///
     /// # Parameters
     ///
-    /// * `rng`: Random number generator struct to use for blinding operation.
+    /// * `rng`: Random number generator struct to use for key generation and
+    ///   blinding operation. Ownership of the `RNG` instance is transferred to
+    ///   the `Curve25519Key` instance constructed here.
     ///
     /// # Returns
     ///
     /// Returns either Ok(curve25519key) on success or Err(e) containing the
     /// wolfSSL library error code value.
     #[cfg(random)]
-    pub fn generate(rng: &mut RNG) -> Result<Self, i32> {
+    pub fn generate(rng: RNG) -> Result<Self, i32> {
         let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
         let rc = unsafe {
             sys::wc_curve25519_init(wc_key.as_mut_ptr())
@@ -82,9 +89,50 @@ impl Curve25519Key {
             return Err(rc);
         }
         let wc_key = unsafe { wc_key.assume_init() };
-        let mut curve25519key = Curve25519Key { wc_key };
+        let wc_rng = rng.wc_rng;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            rng: Some(RngHandle::Owned(rng)),
+        };
         let rc = unsafe {
-            sys::wc_curve25519_make_key(&mut rng.wc_rng, Self::KEYSIZE as i32,
+            sys::wc_curve25519_make_key(wc_rng, Self::KEYSIZE as i32,
+                &mut curve25519key.wc_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(curve25519key)
+    }
+
+    /// Generate a new private key with a shared RNG.
+    ///
+    /// # Parameters
+    ///
+    /// * `rng`: Random number generator struct to use for key generation and
+    ///   blinding operation. The `Curve25519Key` instance created here shares
+    ///   the same `RNG` instance via `Rc`.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(curve25519key) on success or Err(e) containing the
+    /// wolfSSL library error code value.
+    #[cfg(all(random, feature = "alloc"))]
+    pub fn generate_shared_rng(rng: alloc::rc::Rc<RNG>) -> Result<Self, i32> {
+        let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
+        let rc = unsafe {
+            sys::wc_curve25519_init(wc_key.as_mut_ptr())
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let wc_key = unsafe { wc_key.assume_init() };
+        let wc_rng = rng.wc_rng;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            rng: Some(RngHandle::Shared(rng)),
+        };
+        let rc = unsafe {
+            sys::wc_curve25519_make_key(wc_rng, Self::KEYSIZE as i32,
                 &mut curve25519key.wc_key)
         };
         if rc != 0 {
@@ -104,12 +152,12 @@ impl Curve25519Key {
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
     #[cfg(random)]
-    pub fn generate_priv(rng: &mut RNG, out: &mut [u8]) -> Result<(), i32> {
+    pub fn generate_priv(rng: &RNG, out: &mut [u8]) -> Result<(), i32> {
         if out.len() != Self::KEYSIZE {
             return Err(sys::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
-            sys::wc_curve25519_make_priv(&mut rng.wc_rng, Self::KEYSIZE as i32, out.as_mut_ptr())
+            sys::wc_curve25519_make_priv(rng.wc_rng, Self::KEYSIZE as i32, out.as_mut_ptr())
         };
         if rc != 0 {
             return Err(rc);
@@ -127,7 +175,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(curve25519key) on success or Err(e) containing the
     /// wolfSSL library error code value.
+    #[cfg(curve25519_import)]
     pub fn import_private(private: &[u8]) -> Result<Self, i32> {
+        let private_size = crate::buffer_len_to_u32(private.len())?;
         let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
         let rc = unsafe {
             sys::wc_curve25519_init(wc_key.as_mut_ptr())
@@ -136,8 +186,11 @@ impl Curve25519Key {
             return Err(rc);
         }
         let wc_key = unsafe { wc_key.assume_init() };
-        let mut curve25519key = Curve25519Key { wc_key };
-        let private_size = private.len() as u32;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            #[cfg(random)]
+            rng: None,
+        };
         let rc = unsafe {
             sys::wc_curve25519_import_private(private.as_ptr(), private_size,
                 &mut curve25519key.wc_key)
@@ -159,7 +212,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(curve25519key) on success or Err(e) containing the
     /// wolfSSL library error code value.
+    #[cfg(curve25519_import)]
     pub fn import_private_ex(private: &[u8], big_endian: bool) -> Result<Self, i32> {
+        let private_size = crate::buffer_len_to_u32(private.len())?;
         let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
         let rc = unsafe {
             sys::wc_curve25519_init(wc_key.as_mut_ptr())
@@ -168,8 +223,11 @@ impl Curve25519Key {
             return Err(rc);
         }
         let wc_key = unsafe { wc_key.assume_init() };
-        let mut curve25519key = Curve25519Key { wc_key };
-        let private_size = private.len() as u32;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            #[cfg(random)]
+            rng: None,
+        };
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_import_private_ex(private.as_ptr(),
@@ -192,7 +250,10 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(curve25519key) on success or Err(e) containing the
     /// wolfSSL library error code value.
+    #[cfg(curve25519_import)]
     pub fn import_private_raw(private: &[u8], public: &[u8]) -> Result<Self, i32> {
+        let private_size = crate::buffer_len_to_u32(private.len())?;
+        let public_size = crate::buffer_len_to_u32(public.len())?;
         let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
         let rc = unsafe {
             sys::wc_curve25519_init(wc_key.as_mut_ptr())
@@ -201,9 +262,11 @@ impl Curve25519Key {
             return Err(rc);
         }
         let wc_key = unsafe { wc_key.assume_init() };
-        let mut curve25519key = Curve25519Key { wc_key };
-        let private_size = private.len() as u32;
-        let public_size = public.len() as u32;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            #[cfg(random)]
+            rng: None,
+        };
         let rc = unsafe {
             sys::wc_curve25519_import_private_raw(private.as_ptr(),
                 private_size, public.as_ptr(), public_size,
@@ -227,7 +290,10 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(curve25519key) on success or Err(e) containing the
     /// wolfSSL library error code value.
+    #[cfg(curve25519_import)]
     pub fn import_private_raw_ex(private: &[u8], public: &[u8], big_endian: bool) -> Result<Self, i32> {
+        let private_size = crate::buffer_len_to_u32(private.len())?;
+        let public_size = crate::buffer_len_to_u32(public.len())?;
         let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
         let rc = unsafe {
             sys::wc_curve25519_init(wc_key.as_mut_ptr())
@@ -236,9 +302,11 @@ impl Curve25519Key {
             return Err(rc);
         }
         let wc_key = unsafe { wc_key.assume_init() };
-        let mut curve25519key = Curve25519Key { wc_key };
-        let private_size = private.len() as u32;
-        let public_size = public.len() as u32;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            #[cfg(random)]
+            rng: None,
+        };
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_import_private_raw_ex(private.as_ptr(),
@@ -261,7 +329,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(curve25519key) on success or Err(e) containing the
     /// wolfSSL library error code value.
+    #[cfg(curve25519_import)]
     pub fn import_public(public: &[u8]) -> Result<Self, i32> {
+        let public_size = crate::buffer_len_to_u32(public.len())?;
         let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
         let rc = unsafe {
             sys::wc_curve25519_init(wc_key.as_mut_ptr())
@@ -270,8 +340,11 @@ impl Curve25519Key {
             return Err(rc);
         }
         let wc_key = unsafe { wc_key.assume_init() };
-        let mut curve25519key = Curve25519Key { wc_key };
-        let public_size = public.len() as u32;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            #[cfg(random)]
+            rng: None,
+        };
         let rc = unsafe {
             sys::wc_curve25519_import_public(public.as_ptr(), public_size,
                 &mut curve25519key.wc_key)
@@ -293,7 +366,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(curve25519key) on success or Err(e) containing the
     /// wolfSSL library error code value.
+    #[cfg(curve25519_import)]
     pub fn import_public_ex(public: &[u8], big_endian: bool) -> Result<Self, i32> {
+        let public_size = crate::buffer_len_to_u32(public.len())?;
         let mut wc_key: MaybeUninit<sys::curve25519_key> = MaybeUninit::uninit();
         let rc = unsafe {
             sys::wc_curve25519_init(wc_key.as_mut_ptr())
@@ -302,8 +377,11 @@ impl Curve25519Key {
             return Err(rc);
         }
         let wc_key = unsafe { wc_key.assume_init() };
-        let mut curve25519key = Curve25519Key { wc_key };
-        let public_size = public.len() as u32;
+        let mut curve25519key = Curve25519Key {
+            wc_key,
+            #[cfg(random)]
+            rng: None,
+        };
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_import_public_ex(public.as_ptr(), public_size,
@@ -327,8 +405,8 @@ impl Curve25519Key {
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
     pub fn make_pub(private: &[u8], public: &mut [u8]) -> Result<(), i32> {
-        let private_size = private.len() as i32;
-        let public_size = public.len() as i32;
+        let private_size = crate::buffer_len_to_i32(private.len())?;
+        let public_size = crate::buffer_len_to_i32(public.len())?;
         let rc = unsafe {
             sys::wc_curve25519_make_pub(public_size, public.as_mut_ptr(),
                 private_size, private.as_ptr())
@@ -353,12 +431,12 @@ impl Curve25519Key {
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
     #[cfg(all(curve25519_blinding, random))]
-    pub fn make_pub_blind(private: &[u8], public: &mut [u8], rng: &mut RNG) -> Result<(), i32> {
-        let private_size = private.len() as i32;
-        let public_size = public.len() as i32;
+    pub fn make_pub_blind(private: &[u8], public: &mut [u8], rng: &RNG) -> Result<(), i32> {
+        let private_size = crate::buffer_len_to_i32(private.len())?;
+        let public_size = crate::buffer_len_to_i32(public.len())?;
         let rc = unsafe {
             sys::wc_curve25519_make_pub_blind(public_size, public.as_mut_ptr(),
-                private_size, private.as_ptr(), &mut rng.wc_rng)
+                private_size, private.as_ptr(), rng.wc_rng)
         };
         if rc != 0 {
             return Err(rc);
@@ -380,9 +458,9 @@ impl Curve25519Key {
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
     pub fn make_pub_generic(private: &[u8], public: &mut [u8], basepoint: &[u8]) -> Result<(), i32> {
-        let private_size = private.len() as i32;
-        let public_size = public.len() as i32;
-        let basepoint_size = basepoint.len() as i32;
+        let private_size = crate::buffer_len_to_i32(private.len())?;
+        let public_size = crate::buffer_len_to_i32(public.len())?;
+        let basepoint_size = crate::buffer_len_to_i32(basepoint.len())?;
         let rc = unsafe {
             sys::wc_curve25519_generic(public_size, public.as_mut_ptr(),
                 private_size, private.as_ptr(), basepoint_size, basepoint.as_ptr())
@@ -408,14 +486,14 @@ impl Curve25519Key {
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
     #[cfg(all(curve25519_blinding, random))]
-    pub fn make_pub_generic_blind(private: &[u8], public: &mut [u8], basepoint: &[u8], rng: &mut RNG) -> Result<(), i32> {
-        let private_size = private.len() as i32;
-        let public_size = public.len() as i32;
-        let basepoint_size = basepoint.len() as i32;
+    pub fn make_pub_generic_blind(private: &[u8], public: &mut [u8], basepoint: &[u8], rng: &RNG) -> Result<(), i32> {
+        let private_size = crate::buffer_len_to_i32(private.len())?;
+        let public_size = crate::buffer_len_to_i32(public.len())?;
+        let basepoint_size = crate::buffer_len_to_i32(basepoint.len())?;
         let rc = unsafe {
             sys::wc_curve25519_generic_blind(public_size, public.as_mut_ptr(),
                 private_size, private.as_ptr(), basepoint_size, basepoint.as_ptr(),
-                &mut rng.wc_rng)
+                rng.wc_rng)
         };
         if rc != 0 {
             return Err(rc);
@@ -437,8 +515,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(size) containing the number of bytes written to `out`
     /// on success or Err(e) containing the wolfSSL library error code value.
+    #[cfg(curve25519_shared_secret)]
     pub fn shared_secret(private_key: &mut Curve25519Key, public_key: &mut Curve25519Key, out: &mut [u8]) -> Result<usize, i32> {
-        let mut outlen = out.len() as u32;
+        let mut outlen = crate::buffer_len_to_u32(out.len())?;
         let rc = unsafe {
             sys::wc_curve25519_shared_secret(&mut private_key.wc_key,
                 &mut public_key.wc_key, out.as_mut_ptr(), &mut outlen)
@@ -454,25 +533,78 @@ impl Curve25519Key {
     /// This is necessary when generating a shared secret if wolfSSL is built
     /// with the `WOLFSSL_CURVE25519_BLINDING` build option enabled.
     ///
+    /// Note that if the `Curve25519Key` instance was created with either
+    /// `generate()` or `generate_shared_rng()`, the `RNG` instance was already
+    /// registered, so calling this function is not necessary unless it is
+    /// desired to change the associated `RNG` instance.
+    ///
+    /// The key takes ownership of the RNG, so the underlying `WC_RNG` is
+    /// guaranteed to outlive this key.
+    ///
     /// # Parameters
     ///
     /// * `rng`: The `RNG` struct instance to associate with this
-    ///   `Curve25519Key` instance. The `RNG` struct should not be moved in
-    ///   memory after calling this method.
+    ///   `Curve25519Key` instance.
     ///
     /// # Returns
     ///
     /// Returns Ok(()) on success or Err(e) containing the wolfSSL library
     /// error code value.
     #[cfg(all(curve25519_blinding, random))]
-    pub fn set_rng(&mut self, rng: &mut RNG) -> Result<(), i32> {
+    pub fn set_rng(&mut self, rng: RNG) -> Result<(), i32> {
+        let wc_rng = rng.wc_rng;
         let rc = unsafe {
-            sys::wc_curve25519_set_rng(&mut self.wc_key, &mut rng.wc_rng)
+            sys::wc_curve25519_set_rng(&mut self.wc_key, wc_rng)
         };
         if rc != 0 {
             return Err(rc);
         }
+        self.rng = Some(RngHandle::Owned(rng));
         Ok(())
+    }
+
+    /// Associates a shared `RNG` instance with this `Curve25519Key` instance.
+    ///
+    /// This is necessary when generating a shared secret if wolfSSL is built
+    /// with the `WOLFSSL_CURVE25519_BLINDING` build option enabled.
+    ///
+    /// Note that if the `Curve25519Key` instance was created with either
+    /// `generate()` or `generate_shared_rng()`, the `RNG` instance was already
+    /// registered, so calling this function is not necessary unless it is
+    /// desired to change the associated `RNG` instance.
+    ///
+    /// # Parameters
+    ///
+    /// * `rng`: The `RNG` struct instance to associate with this
+    ///   `Curve25519Key` instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns Ok(()) on success or Err(e) containing the wolfSSL library
+    /// error code value.
+    #[cfg(all(curve25519_blinding, random, feature = "alloc"))]
+    pub fn set_shared_rng(&mut self, rng: alloc::rc::Rc<RNG>) -> Result<(), i32> {
+        let wc_rng = rng.wc_rng;
+        let rc = unsafe {
+            sys::wc_curve25519_set_rng(&mut self.wc_key, wc_rng)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        self.rng = Some(RngHandle::Shared(rng));
+        Ok(())
+    }
+
+    /// Borrow the RNG previously bound via `generate`, `generate_shared_rng`,
+    /// `set_rng` or `set_shared_rng`.
+    #[cfg(random)]
+    pub fn rng(&self) -> Option<&RNG> {
+        match &self.rng {
+            Some(RngHandle::Owned(rng)) => Some(rng),
+            #[cfg(feature = "alloc")]
+            Some(RngHandle::Shared(rng)) => Some(rng),
+            None => None,
+        }
     }
 
     /// Compute a shared secret key given a secret private key and a received
@@ -490,8 +622,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(size) containing the number of bytes written to `out`
     /// on success or Err(e) containing the wolfSSL library error code value.
+    #[cfg(curve25519_shared_secret)]
     pub fn shared_secret_ex(private_key: &mut Curve25519Key, public_key: &mut Curve25519Key, out: &mut [u8], big_endian: bool) -> Result<usize, i32> {
-        let mut outlen = out.len() as u32;
+        let mut outlen = crate::buffer_len_to_u32(out.len())?;
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_shared_secret_ex(&mut private_key.wc_key,
@@ -515,9 +648,10 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    #[cfg(curve25519_export)]
     pub fn export_key_raw(&mut self, private: &mut [u8], public: &mut [u8]) -> Result<(), i32> {
-        let mut private_size = private.len() as u32;
-        let mut public_size = public.len() as u32;
+        let mut private_size = crate::buffer_len_to_u32(private.len())?;
+        let mut public_size = crate::buffer_len_to_u32(public.len())?;
         let rc = unsafe {
             sys::wc_curve25519_export_key_raw(&mut self.wc_key,
                 private.as_mut_ptr(), &mut private_size,
@@ -542,9 +676,10 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    #[cfg(curve25519_export)]
     pub fn export_key_raw_ex(&mut self, private: &mut [u8], public: &mut [u8], big_endian: bool) -> Result<(), i32> {
-        let mut private_size = private.len() as u32;
-        let mut public_size = public.len() as u32;
+        let mut private_size = crate::buffer_len_to_u32(private.len())?;
+        let mut public_size = crate::buffer_len_to_u32(public.len())?;
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_export_key_raw_ex(&mut self.wc_key,
@@ -568,8 +703,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(size) containing the number of bytes written to `out`
     /// on success or Err(e) containing the wolfSSL library error code value.
+    #[cfg(curve25519_export)]
     pub fn export_private_raw(&mut self, out: &mut [u8]) -> Result<usize, i32> {
-        let mut outlen = out.len() as u32;
+        let mut outlen = crate::buffer_len_to_u32(out.len())?;
         let rc = unsafe {
             sys::wc_curve25519_export_private_raw(&mut self.wc_key,
                 out.as_mut_ptr(), &mut outlen)
@@ -592,8 +728,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(size) containing the number of bytes written to `out`
     /// on success or Err(e) containing the wolfSSL library error code value.
+    #[cfg(curve25519_export)]
     pub fn export_private_raw_ex(&mut self, out: &mut [u8], big_endian: bool) -> Result<usize, i32> {
-        let mut outlen = out.len() as u32;
+        let mut outlen = crate::buffer_len_to_u32(out.len())?;
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_export_private_raw_ex(&mut self.wc_key,
@@ -616,8 +753,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(size) containing the number of bytes written to `out`
     /// on success or Err(e) containing the wolfSSL library error code value.
+    #[cfg(curve25519_export)]
     pub fn export_public(&mut self, out: &mut [u8]) -> Result<usize, i32> {
-        let mut outlen = out.len() as u32;
+        let mut outlen = crate::buffer_len_to_u32(out.len())?;
         let rc = unsafe {
             sys::wc_curve25519_export_public(&mut self.wc_key,
                 out.as_mut_ptr(), &mut outlen)
@@ -640,8 +778,9 @@ impl Curve25519Key {
     ///
     /// Returns either Ok(size) containing the number of bytes written to `out`
     /// on success or Err(e) containing the wolfSSL library error code value.
+    #[cfg(curve25519_export)]
     pub fn export_public_ex(&mut self, out: &mut [u8], big_endian: bool) -> Result<usize, i32> {
-        let mut outlen = out.len() as u32;
+        let mut outlen = crate::buffer_len_to_u32(out.len())?;
         let endian = if big_endian {sys::EC25519_BIG_ENDIAN} else {sys::EC25519_LITTLE_ENDIAN};
         let rc = unsafe {
             sys::wc_curve25519_export_public_ex(&mut self.wc_key,
@@ -651,6 +790,12 @@ impl Curve25519Key {
             return Err(rc);
         }
         Ok(outlen as usize)
+    }
+}
+
+impl Curve25519Key {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_key); }
     }
 }
 
@@ -664,5 +809,6 @@ impl Drop for Curve25519Key {
     /// preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_curve25519_free(&mut self.wc_key); }
+        self.zeroize();
     }
 }

@@ -127,10 +127,24 @@ static int hashCopy(wolfssl_TI_Hash *src, wolfssl_TI_Hash *dst)
 {
     if (src == NULL || dst == NULL)
         return BAD_FUNC_ARG;
-    /* only copy hash, zero the rest of the struct to avoid double-free */
+    if (src == dst)
+        return 0;
+    /* release any buffer dst already owns, then copy the accumulated message
+     * into a fresh buffer so each descriptor owns its own allocation and can
+     * be freed independently */
+    XFREE(dst->msg, NULL, DYNAMIC_TYPE_TMP_BUFFER);
     dst->msg = NULL;
-    dst->used = 0;
-    dst->len = 0;
+    if ((src->msg != NULL) && (src->len > 0)) {
+        dst->msg = (byte*)XMALLOC(src->len, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+        if (dst->msg == NULL) {
+            dst->used = 0;
+            dst->len  = 0;
+            return MEMORY_E;
+        }
+        XMEMCPY(dst->msg, src->msg, src->len);
+    }
+    dst->used = src->used;
+    dst->len  = src->len;
     XMEMCPY(dst->hash, src->hash, sizeof(dst->hash));
     return 0;
 }
@@ -229,7 +243,7 @@ WOLFSSL_API void wc_Md5Free(Md5* md5)
 #endif /* !NO_MD5 */
 
 #if !defined(NO_SHA)
-WOLFSSL_API int wc_InitSha_ex(Md5* sha, void* heap, int devId)
+WOLFSSL_API int wc_InitSha_ex(Sha* sha, void* heap, int devId)
 {
     if (sha == NULL)
         return BAD_FUNC_ARG;

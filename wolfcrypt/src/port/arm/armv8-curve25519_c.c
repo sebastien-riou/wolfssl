@@ -19,14 +19,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
-#include <wolfssl/wolfcrypt/error-crypt.h>
-
 /* Generated using (from wolfssl):
  *   cd ../scripts
  *   ruby ./x25519/x25519.rb arm64 \
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-curve25519.c
  */
+
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_ARMV8_CURVE25519_C
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+
 #ifdef WOLFSSL_ARMASM
 #ifdef __aarch64__
 #ifdef WOLFSSL_ARMASM_INLINE
@@ -38,7 +42,7 @@
 #if !defined(CURVE25519_SMALL) || !defined(ED25519_SMALL)
 #include <wolfssl/wolfcrypt/fe_operations.h>
 
-void fe_init()
+void fe_init(void)
 {
     __asm__ __volatile__ (
         "\n\t"
@@ -229,8 +233,8 @@ int fe_isnonzero(const fe a)
         "orr	%x[a], x1, x2\n\t"
         "orr	x3, x3, x4\n\t"
         "orr	%x[a], %x[a], x3\n\t"
+        : [a] "+r" (a)
         :
-        : [a] "r" (a)
         : "memory", "cc", "x1", "x2", "x3", "x4", "x5", "x6"
     );
     return (word32)(size_t)a;
@@ -248,14 +252,14 @@ int fe_isnegative(const fe a)
         "adc	x5, x4, xzr\n\t"
         "and	%x[a], x1, #1\n\t"
         "eor	%x[a], %x[a], x5, lsr 63\n\t"
+        : [a] "+r" (a)
         :
-        : [a] "r" (a)
         : "memory", "cc", "x1", "x2", "x3", "x4", "x5", "x6"
     );
     return (word32)(size_t)a;
 }
 
-void fe_cmov_table(fe* r, fe* base, signed char b)
+void fe_cmov_table(fe* r, const fe* base, signed char b)
 {
     __asm__ __volatile__ (
         "stp	x29, x30, [sp, #-32]!\n\t"
@@ -463,8 +467,8 @@ void fe_cmov_table(fe* r, fe* base, signed char b)
         "stp	x12, x13, [%x[r], #64]\n\t"
         "stp	x14, x15, [%x[r], #80]\n\t"
         "ldp	x29, x30, [sp], #32\n\t"
-        : [r] "+r" (r), [base] "+r" (base), [b] "+r" (b)
-        :
+        : [r] "+r" (r), [b] "+r" (b)
+        : [base] "r" (base)
         : "memory", "cc", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10",
             "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x19", "x20",
             "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28"
@@ -501,7 +505,7 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x23, x24, x23\n\t"
         "b	L_fe_invert_nct_num_bits_init_v_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_num_bits_init_v_0_%=: \n\t"
+    "L_fe_invert_nct_num_bits_init_v_0_%=:\n\t"
         "cmp	x8, #0\n\t"
         "b.eq	L_fe_invert_nct_num_bits_init_v_1_%=\n\t"
         "mov	x24, #0xc0\n\t"
@@ -509,7 +513,7 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x23, x24, x23\n\t"
         "b	L_fe_invert_nct_num_bits_init_v_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_num_bits_init_v_1_%=: \n\t"
+    "L_fe_invert_nct_num_bits_init_v_1_%=:\n\t"
         "cmp	x7, #0\n\t"
         "b.eq	L_fe_invert_nct_num_bits_init_v_2_%=\n\t"
         "mov	x24, #0x80\n\t"
@@ -517,16 +521,16 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x23, x24, x23\n\t"
         "b	L_fe_invert_nct_num_bits_init_v_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_num_bits_init_v_2_%=: \n\t"
+    "L_fe_invert_nct_num_bits_init_v_2_%=:\n\t"
         "mov	x24, #0x40\n\t"
         "clz	x23, x6\n\t"
         "sub	x23, x24, x23\n\t"
         "\n"
-    "L_fe_invert_nct_num_bits_init_v_3_%=: \n\t"
+    "L_fe_invert_nct_num_bits_init_v_3_%=:\n\t"
         "tst	x6, #1\n\t"
         "b.ne	L_fe_invert_nct_loop_%=\n\t"
         "\n"
-    "L_fe_invert_nct_even_init_v_0_%=: \n\t"
+    "L_fe_invert_nct_even_init_v_0_%=:\n\t"
         "extr	x6, x7, x6, #1\n\t"
         "extr	x7, x8, x7, #1\n\t"
         "extr	x8, x9, x8, #1\n\t"
@@ -540,7 +544,7 @@ void fe_invert_nct(fe r, const fe a)
         "adcs	x17, x17, x21\n\t"
         "cset	x24, cs\n\t"
         "\n"
-    "L_fe_invert_nct_even_init_v_1_%=: \n\t"
+    "L_fe_invert_nct_even_init_v_1_%=:\n\t"
         "extr	x14, x15, x14, #1\n\t"
         "extr	x15, x16, x15, #1\n\t"
         "extr	x16, x17, x16, #1\n\t"
@@ -548,7 +552,7 @@ void fe_invert_nct(fe r, const fe a)
         "tst	x6, #1\n\t"
         "b.eq	L_fe_invert_nct_even_init_v_0_%=\n\t"
         "\n"
-    "L_fe_invert_nct_loop_%=: \n\t"
+    "L_fe_invert_nct_loop_%=:\n\t"
         "cmp	x22, #1\n\t"
         "b.eq	L_fe_invert_nct_u_done_%=\n\t"
         "cmp	x23, #1\n\t"
@@ -568,7 +572,7 @@ void fe_invert_nct(fe r, const fe a)
         "cmp	x2, x6\n\t"
         "bcc	L_fe_invert_nct_v_larger_%=\n\t"
         "\n"
-    "L_fe_invert_nct_u_larger_%=: \n\t"
+    "L_fe_invert_nct_u_larger_%=:\n\t"
         "subs	x2, x2, x6\n\t"
         "sbcs	x3, x3, x7\n\t"
         "sbcs	x4, x4, x8\n\t"
@@ -583,7 +587,7 @@ void fe_invert_nct(fe r, const fe a)
         "adcs	x12, x12, x20\n\t"
         "adc	x13, x13, x21\n\t"
         "\n"
-    "L_fe_invert_nct_sub_uv_%=: \n\t"
+    "L_fe_invert_nct_sub_uv_%=:\n\t"
         "cmp	x5, #0\n\t"
         "b.eq	L_fe_invert_nct_nct_num_bits_u_0_%=\n\t"
         "mov	x24, #0x100\n\t"
@@ -591,7 +595,7 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x22, x24, x22\n\t"
         "b	L_fe_invert_nct_nct_num_bits_u_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_u_0_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_u_0_%=:\n\t"
         "cmp	x4, #0\n\t"
         "b.eq	L_fe_invert_nct_nct_num_bits_u_1_%=\n\t"
         "mov	x24, #0xc0\n\t"
@@ -599,7 +603,7 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x22, x24, x22\n\t"
         "b	L_fe_invert_nct_nct_num_bits_u_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_u_1_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_u_1_%=:\n\t"
         "cmp	x3, #0\n\t"
         "b.eq	L_fe_invert_nct_nct_num_bits_u_2_%=\n\t"
         "mov	x24, #0x80\n\t"
@@ -607,14 +611,14 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x22, x24, x22\n\t"
         "b	L_fe_invert_nct_nct_num_bits_u_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_u_2_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_u_2_%=:\n\t"
         "mov	x24, #0x40\n\t"
         "clz	x22, x2\n\t"
         "sub	x22, x24, x22\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_u_3_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_u_3_%=:\n\t"
         "\n"
-    "L_fe_invert_nct_even_u_0_%=: \n\t"
+    "L_fe_invert_nct_even_u_0_%=:\n\t"
         "extr	x2, x3, x2, #1\n\t"
         "extr	x3, x4, x3, #1\n\t"
         "extr	x4, x5, x4, #1\n\t"
@@ -628,7 +632,7 @@ void fe_invert_nct(fe r, const fe a)
         "adcs	x13, x13, x21\n\t"
         "cset	x24, cs\n\t"
         "\n"
-    "L_fe_invert_nct_even_u_1_%=: \n\t"
+    "L_fe_invert_nct_even_u_1_%=:\n\t"
         "extr	x10, x11, x10, #1\n\t"
         "extr	x11, x12, x11, #1\n\t"
         "extr	x12, x13, x12, #1\n\t"
@@ -637,7 +641,7 @@ void fe_invert_nct(fe r, const fe a)
         "b.eq	L_fe_invert_nct_even_u_0_%=\n\t"
         "b	L_fe_invert_nct_loop_%=\n\t"
         "\n"
-    "L_fe_invert_nct_v_larger_%=: \n\t"
+    "L_fe_invert_nct_v_larger_%=:\n\t"
         "subs	x6, x6, x2\n\t"
         "sbcs	x7, x7, x3\n\t"
         "sbcs	x8, x8, x4\n\t"
@@ -652,7 +656,7 @@ void fe_invert_nct(fe r, const fe a)
         "adcs	x16, x16, x20\n\t"
         "adc	x17, x17, x21\n\t"
         "\n"
-    "L_fe_invert_nct_sub_vu_%=: \n\t"
+    "L_fe_invert_nct_sub_vu_%=:\n\t"
         "cmp	x9, #0\n\t"
         "b.eq	L_fe_invert_nct_nct_num_bits_v_0_%=\n\t"
         "mov	x24, #0x100\n\t"
@@ -660,7 +664,7 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x23, x24, x23\n\t"
         "b	L_fe_invert_nct_nct_num_bits_v_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_v_0_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_v_0_%=:\n\t"
         "cmp	x8, #0\n\t"
         "b.eq	L_fe_invert_nct_nct_num_bits_v_1_%=\n\t"
         "mov	x24, #0xc0\n\t"
@@ -668,7 +672,7 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x23, x24, x23\n\t"
         "b	L_fe_invert_nct_nct_num_bits_v_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_v_1_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_v_1_%=:\n\t"
         "cmp	x7, #0\n\t"
         "b.eq	L_fe_invert_nct_nct_num_bits_v_2_%=\n\t"
         "mov	x24, #0x80\n\t"
@@ -676,14 +680,14 @@ void fe_invert_nct(fe r, const fe a)
         "sub	x23, x24, x23\n\t"
         "b	L_fe_invert_nct_nct_num_bits_v_3_%=\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_v_2_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_v_2_%=:\n\t"
         "mov	x24, #0x40\n\t"
         "clz	x23, x6\n\t"
         "sub	x23, x24, x23\n\t"
         "\n"
-    "L_fe_invert_nct_nct_num_bits_v_3_%=: \n\t"
+    "L_fe_invert_nct_nct_num_bits_v_3_%=:\n\t"
         "\n"
-    "L_fe_invert_nct_even_v_0_%=: \n\t"
+    "L_fe_invert_nct_even_v_0_%=:\n\t"
         "extr	x6, x7, x6, #1\n\t"
         "extr	x7, x8, x7, #1\n\t"
         "extr	x8, x9, x8, #1\n\t"
@@ -697,7 +701,7 @@ void fe_invert_nct(fe r, const fe a)
         "adcs	x17, x17, x21\n\t"
         "cset	x24, cs\n\t"
         "\n"
-    "L_fe_invert_nct_even_v_1_%=: \n\t"
+    "L_fe_invert_nct_even_v_1_%=:\n\t"
         "extr	x14, x15, x14, #1\n\t"
         "extr	x15, x16, x15, #1\n\t"
         "extr	x16, x17, x16, #1\n\t"
@@ -706,20 +710,20 @@ void fe_invert_nct(fe r, const fe a)
         "b.eq	L_fe_invert_nct_even_v_0_%=\n\t"
         "b	L_fe_invert_nct_loop_%=\n\t"
         "\n"
-    "L_fe_invert_nct_u_done_%=: \n\t"
+    "L_fe_invert_nct_u_done_%=:\n\t"
         "str	x10, [%x[r]]\n\t"
         "str	x11, [%x[r], #8]\n\t"
         "str	x12, [%x[r], #16]\n\t"
         "str	x13, [%x[r], #24]\n\t"
         "b	L_fe_invert_nct_done_%=\n\t"
         "\n"
-    "L_fe_invert_nct_v_done_%=: \n\t"
+    "L_fe_invert_nct_v_done_%=:\n\t"
         "str	x14, [%x[r]]\n\t"
         "str	x15, [%x[r], #8]\n\t"
         "str	x16, [%x[r], #16]\n\t"
         "str	x17, [%x[r], #24]\n\t"
         "\n"
-    "L_fe_invert_nct_done_%=: \n\t"
+    "L_fe_invert_nct_done_%=:\n\t"
         : [r] "+r" (r)
         : [a] "r" (a)
         : "memory", "cc", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10",
@@ -728,7 +732,7 @@ void fe_invert_nct(fe r, const fe a)
     );
 }
 
-void fe_mul(fe r, const fe a, const fe b)
+WC_KEEP_FOR_ASM void fe_mul(fe r, const fe a, const fe b)
 {
     __asm__ __volatile__ (
         /* Multiply */
@@ -865,7 +869,7 @@ void fe_mul(fe r, const fe a, const fe b)
     );
 }
 
-void fe_sq(fe r, const fe a)
+WC_KEEP_FOR_ASM void fe_sq(fe r, const fe a)
 {
     __asm__ __volatile__ (
         /* Square */
@@ -1041,7 +1045,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_invert1_%=: \n\t"
+    "L_fe_invert1_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1142,7 +1146,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_invert2_%=: \n\t"
+    "L_fe_invert2_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1243,7 +1247,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_fe_invert3_%=: \n\t"
+    "L_fe_invert3_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1344,7 +1348,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_fe_invert4_%=: \n\t"
+    "L_fe_invert4_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1443,7 +1447,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_invert5_%=: \n\t"
+    "L_fe_invert5_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1544,7 +1548,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_fe_invert6_%=: \n\t"
+    "L_fe_invert6_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1645,7 +1649,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_fe_invert7_%=: \n\t"
+    "L_fe_invert7_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1744,7 +1748,7 @@ void fe_invert(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_invert8_%=: \n\t"
+    "L_fe_invert8_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -1847,9 +1851,9 @@ void fe_invert(fe r, const fe a)
 }
 
 #if !defined(HAVE_ED25519) && !defined(WOLFSSL_CURVE25519_USE_ED25519)
-static const word64 L_curve25519_base_x2[] = {
-    0x5cae469cdd684efb, 0x8f3f5ced1e350b5c,
-    0xd9750c687d157114, 0x20d342d51873f1b7,
+XALIGNED(16) static const word64 L_curve25519_base_x2[] = {
+    0x5cae469cdd684efbUL, 0x8f3f5ced1e350b5cUL,
+    0xd9750c687d157114UL, 0x20d342d51873f1b7UL,
 };
 
 int curve25519_base(byte* r, const byte* n)
@@ -1876,7 +1880,7 @@ int curve25519_base(byte* r, const byte* n)
         "mov	x23, %x[r]\n\t"
         "mov	x24, #0xfd\n\t"
         "\n"
-    "L_curve25519_base_bits_%=: \n\t"
+    "L_curve25519_base_bits_%=:\n\t"
         "lsr	x3, x24, #6\n\t"
         "and	x4, x24, #63\n\t"
         "ldr	x5, [%x[n], x3, LSL 3]\n\t"
@@ -2885,7 +2889,7 @@ int curve25519_base(byte* r, const byte* n)
         "csel	x17, x13, x9, ne\n\t"
         "csel	x13, x9, x13, ne\n\t"
         "\n"
-    "L_curve25519_base_3_%=: \n\t"
+    "L_curve25519_base_3_%=:\n\t"
         /* Add */
         "adds	x6, x10, x25\n\t"
         "adcs	x7, x11, x26\n\t"
@@ -3427,7 +3431,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_base_inv_1_%=: \n\t"
+    "L_curve25519_base_inv_1_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -3528,7 +3532,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_base_inv_2_%=: \n\t"
+    "L_curve25519_base_inv_2_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -3629,7 +3633,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_base_inv_3_%=: \n\t"
+    "L_curve25519_base_inv_3_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -3730,7 +3734,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_base_inv_4_%=: \n\t"
+    "L_curve25519_base_inv_4_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -3829,7 +3833,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_base_inv_5_%=: \n\t"
+    "L_curve25519_base_inv_5_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -3930,7 +3934,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_base_inv_6_%=: \n\t"
+    "L_curve25519_base_inv_6_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -4031,7 +4035,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_base_inv_7_%=: \n\t"
+    "L_curve25519_base_inv_7_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -4130,7 +4134,7 @@ int curve25519_base(byte* r, const byte* n)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_base_inv_8_%=: \n\t"
+    "L_curve25519_base_inv_8_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -4362,7 +4366,7 @@ int curve25519_base(byte* r, const byte* n)
         /* Store */
         "stp	x14, x15, [%x[r]]\n\t"
         "stp	x16, x17, [%x[r], #16]\n\t"
-        "mov	x0, xzr\n\t"
+        "mov	%x[r], xzr\n\t"
         "ldp	x29, x30, [sp], #0xb0\n\t"
         : [r] "+r" (r)
         : [n] "r" (n), [x2] "r" (x2)
@@ -4394,7 +4398,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "stp	xzr, xzr, [x29, #32]\n\t"
         "mov	x24, #0xfe\n\t"
         "\n"
-    "L_curve25519_bits_%=: \n\t"
+    "L_curve25519_bits_%=:\n\t"
         "lsr	x3, x24, #6\n\t"
         "and	x4, x24, #63\n\t"
         "ldr	x5, [%x[n], x3, LSL 3]\n\t"
@@ -5271,6 +5275,14 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "adcs	x7, x7, x25\n\t"
         "adcs	x8, x8, x26\n\t"
         "adc	x9, x9, x27\n\t"
+        /* Reduce if top bit set */
+        "mov	x3, #19\n\t"
+        "and	x4, x3, x9, asr 63\n\t"
+        "adds	x6, x6, x4\n\t"
+        "adcs	x7, x7, xzr\n\t"
+        "and	x9, x9, #0x7fffffffffffffff\n\t"
+        "adcs	x8, x8, xzr\n\t"
+        "adc	x9, x9, xzr\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x16, x19, x20\n\t"
@@ -5492,7 +5504,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "csel	x17, x13, x9, ne\n\t"
         "csel	x13, x9, x13, ne\n\t"
         "\n"
-    "L_curve25519_3_%=: \n\t"
+    "L_curve25519_3_%=:\n\t"
         /* Add */
         "adds	x6, x10, x25\n\t"
         "adcs	x7, x11, x26\n\t"
@@ -6034,7 +6046,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_inv_1_%=: \n\t"
+    "L_curve25519_inv_1_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6135,7 +6147,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_inv_2_%=: \n\t"
+    "L_curve25519_inv_2_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6236,7 +6248,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_inv_3_%=: \n\t"
+    "L_curve25519_inv_3_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6337,7 +6349,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_inv_4_%=: \n\t"
+    "L_curve25519_inv_4_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6436,7 +6448,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_inv_5_%=: \n\t"
+    "L_curve25519_inv_5_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6537,7 +6549,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_inv_6_%=: \n\t"
+    "L_curve25519_inv_6_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6638,7 +6650,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #112]\n\t"
         "ldp	x8, x9, [x29, #128]\n\t"
         "\n"
-    "L_curve25519_inv_7_%=: \n\t"
+    "L_curve25519_inv_7_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6737,7 +6749,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         "ldp	x6, x7, [x29, #80]\n\t"
         "ldp	x8, x9, [x29, #96]\n\t"
         "\n"
-    "L_curve25519_inv_8_%=: \n\t"
+    "L_curve25519_inv_8_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -6969,7 +6981,7 @@ int curve25519(byte* r, const byte* n, const byte* a)
         /* Store */
         "stp	x14, x15, [%x[r]]\n\t"
         "stp	x16, x17, [%x[r], #16]\n\t"
-        "mov	x0, xzr\n\t"
+        "mov	%x[r], xzr\n\t"
         "ldp	x29, x30, [sp], #0xc0\n\t"
         : [r] "+r" (r)
         : [n] "r" (n), [a] "r" (a)
@@ -7057,7 +7069,7 @@ void fe_pow22523(fe r, const fe a)
         "ldp	x6, x7, [x29, #16]\n\t"
         "ldp	x8, x9, [x29, #32]\n\t"
         "\n"
-    "L_fe_pow22523_1_%=: \n\t"
+    "L_fe_pow22523_1_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -7160,7 +7172,7 @@ void fe_pow22523(fe r, const fe a)
         "ldp	x6, x7, [x29, #16]\n\t"
         "ldp	x8, x9, [x29, #32]\n\t"
         "\n"
-    "L_fe_pow22523_2_%=: \n\t"
+    "L_fe_pow22523_2_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -7261,7 +7273,7 @@ void fe_pow22523(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_pow22523_3_%=: \n\t"
+    "L_fe_pow22523_3_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -7362,7 +7374,7 @@ void fe_pow22523(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_pow22523_4_%=: \n\t"
+    "L_fe_pow22523_4_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -7461,7 +7473,7 @@ void fe_pow22523(fe r, const fe a)
         "ldp	x6, x7, [x29, #16]\n\t"
         "ldp	x8, x9, [x29, #32]\n\t"
         "\n"
-    "L_fe_pow22523_5_%=: \n\t"
+    "L_fe_pow22523_5_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -7562,7 +7574,7 @@ void fe_pow22523(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_pow22523_6_%=: \n\t"
+    "L_fe_pow22523_6_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"
@@ -7663,7 +7675,7 @@ void fe_pow22523(fe r, const fe a)
         "ldp	x6, x7, [x29, #48]\n\t"
         "ldp	x8, x9, [x29, #64]\n\t"
         "\n"
-    "L_fe_pow22523_7_%=: \n\t"
+    "L_fe_pow22523_7_%=:\n\t"
         /* Square */
         /*  A[0] * A[1] */
         "umulh	x12, x6, x7\n\t"

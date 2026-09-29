@@ -26,6 +26,8 @@
 
 int test_wc_curve448_make_key(void);
 int test_wc_curve448_shared_secret_ex(void);
+int test_wc_curve448_shared_secret_zero_check(void);
+int test_wc_curve448_shared_secret_noncanonical_kat(void);
 int test_wc_curve448_export_public_ex(void);
 int test_wc_curve448_export_private_raw_ex(void);
 int test_wc_curve448_export_key_raw(void);
@@ -34,10 +36,21 @@ int test_wc_curve448_import_private(void);
 int test_wc_curve448_init(void);
 int test_wc_curve448_size(void);
 int test_wc_Curve448PrivateKeyToDer(void);
+int test_wc_Curve448PrivateKeyToDer_oneasymkey_version(void);
+int test_wc_curve448_make_pub_argchecks(void);
+int test_wc_curve448_check_public_le(void);
+int test_wc_curve448_check_public_be(void);
+int test_wc_curve448_shared_secret_keyset_checks(void);
+int test_wc_curve448_import_public_ex_argchecks(void);
+int test_wc_curve448_export_import_endian(void);
+int test_wc_curve448_make_pub_generic(void);
+int test_wc_curve448_cryptocb(void);
 
 #define TEST_CURVE448_DECLS                                                 \
     TEST_DECL_GROUP("curve448", test_wc_curve448_make_key),                 \
     TEST_DECL_GROUP("curve448", test_wc_curve448_shared_secret_ex),         \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_shared_secret_zero_check), \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_shared_secret_noncanonical_kat), \
     TEST_DECL_GROUP("curve448", test_wc_curve448_export_public_ex),         \
     TEST_DECL_GROUP("curve448", test_wc_curve448_export_private_raw_ex),    \
     TEST_DECL_GROUP("curve448", test_wc_curve448_export_key_raw),           \
@@ -45,6 +58,15 @@ int test_wc_Curve448PrivateKeyToDer(void);
     TEST_DECL_GROUP("curve448", test_wc_curve448_import_private),           \
     TEST_DECL_GROUP("curve448", test_wc_curve448_init),                     \
     TEST_DECL_GROUP("curve448", test_wc_curve448_size),                     \
-    TEST_DECL_GROUP("curve448", test_wc_Curve448PrivateKeyToDer)
+    TEST_DECL_GROUP("curve448", test_wc_Curve448PrivateKeyToDer),           \
+    TEST_DECL_GROUP("curve448", test_wc_Curve448PrivateKeyToDer_oneasymkey_version), \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_make_pub_argchecks),       \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_check_public_le),          \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_check_public_be),          \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_shared_secret_keyset_checks), \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_import_public_ex_argchecks), \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_export_import_endian),     \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_make_pub_generic),         \
+    TEST_DECL_GROUP("curve448", test_wc_curve448_cryptocb)
 
 #endif /* WOLFCRYPT_TEST_CURVE448_H */

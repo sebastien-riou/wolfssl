@@ -1680,6 +1680,8 @@ int wc_ERR_remove_state(void)
     return 0;
 }
 
+/* Returns 0 both when the error queue is empty and when
+ * WOLFSSL_HAVE_ERROR_QUEUE is not compiled in. */
 unsigned long wc_PeekErrorNodeLineData(const char **file, int *line,
                                        const char **data, int *flags,
                                        int (*ignore_err)(int err))
@@ -1695,13 +1697,15 @@ unsigned long wc_PeekErrorNodeLineData(const char **file, int *line,
     if (flags != NULL) {
         *flags = 0;
     }
-    return (unsigned long)(0 - NOT_COMPILED_IN);
+    return 0;
 }
 
+/* Returns 0 both when the error queue is empty and when
+ * WOLFSSL_HAVE_ERROR_QUEUE is not compiled in. */
 int wc_GetErrorNodeErr(void)
 {
     WOLFSSL_ENTER("wc_GetErrorNodeErr");
-    return (0 - NOT_COMPILED_IN);
+    return 0;
 }
 
 #if !defined(NO_FILESYSTEM) && !defined(NO_STDIO_FILESYSTEM)
@@ -1822,7 +1826,8 @@ void WOLFSSL_ERROR_MSG(const char* msg)
 
 #endif  /* DEBUG_WOLFSSL || WOLFSSL_NGINX || WOLFSSL_HAPROXY */
 
-#ifdef WOLFSSL_DEBUG_TRACE_ERROR_CODES
+#if defined(WOLFSSL_DEBUG_TRACE_ERROR_CODES) || \
+    defined(WOLFSSL_DEBUG_TRACE_ERROR_CODES_SUPPORT)
 
 #ifndef WOLFSSL_DEBUG_TRACE_ERROR_CODES_INIT_STATE
     #define WOLFSSL_DEBUG_TRACE_ERROR_CODES_INIT_STATE 1
@@ -1845,7 +1850,8 @@ int wc_debug_trace_error_codes_set(int state) {
                                        state);
 }
 
-#endif /* WOLFSSL_DEBUG_TRACE_ERROR_CODES */
+#endif /* WOLFSSL_DEBUG_TRACE_ERROR_CODES ||      */
+       /* WOLFSSL_DEBUG_TRACE_ERROR_CODES_SUPPORT */
 
 #ifdef WOLFSSL_DEBUG_BACKTRACE_ERROR_CODES
 
@@ -1870,6 +1876,33 @@ int wc_backtrace_render(void) {
 
 #include <backtrace.h>
 
+#ifdef XFILE
+
+static XFILE wolfssl_backtrace_file = XBADFILE;
+
+XFILE wc_backtrace_set_fp(XFILE new_fp) {
+    XFILE old_fp = wolfssl_backtrace_file;
+    if (new_fp == NULL)
+        wolfssl_backtrace_file = XBADFILE;
+    else
+        wolfssl_backtrace_file = new_fp;
+    return old_fp;
+}
+
+#define WOLFSSL_BACKTRACE_PRINTF(...) (                             \
+    (wolfssl_backtrace_file == XBADFILE) ?                          \
+     WOLFSSL_DEBUG_PRINTF(__VA_ARGS__) :                            \
+     WOLFSSL_DEBUG_PRINTF_FN(wolfssl_backtrace_file, __VA_ARGS__))
+
+#else /* !XFILE */
+
+/* libbacktrace doesn't support any targets with no XFILE, but keep it buildable
+ * just in case.
+ */
+#define WOLFSSL_BACKTRACE_PRINTF(...) WOLFSSL_DEBUG_PRINTF(__VA_ARGS__)
+
+#endif /* !XFILE */
+
 static int backtrace_callback(void *data, uintptr_t pc, const char *filename,
                               int lineno, const char *function)
 {
@@ -1880,20 +1913,20 @@ static int backtrace_callback(void *data, uintptr_t pc, const char *filename,
         *(int *)data = 1;
         return 0;
     }
-    WOLFSSL_DEBUG_PRINTF("    #%d %p in %s %s:%d\n", (*(int *)data)++,
+    WOLFSSL_BACKTRACE_PRINTF("    #%d %p in %s %s:%d\n", (*(int *)data)++,
                          (void *)pc, function, filename, lineno);
     return 0;
 }
 
 static void backtrace_error(void *data, const char *msg, int errnum) {
     (void)data;
-    WOLFSSL_DEBUG_PRINTF("ERR TRACE: error %d while backtracing: %s",
+    WOLFSSL_BACKTRACE_PRINTF("ERR TRACE: error %d while backtracing: %s",
                          errnum, msg);
 }
 
 static void backtrace_creation_error(void *data, const char *msg, int errnum) {
     (void)data;
-    WOLFSSL_DEBUG_PRINTF("ERR TRACE: internal error %d "
+    WOLFSSL_BACKTRACE_PRINTF("ERR TRACE: internal error %d "
             "while initializing backtrace facility: %s", errnum, msg);
 }
 

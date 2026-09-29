@@ -19,27 +19,34 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
-
 /* Generated using (from wolfssl):
  *   cd ../scripts
  *   ruby ./aes/aes.rb arm64 \
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-aes-asm.S
  */
+
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_ARMV8_AES_ASM_S
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
+
 #ifdef WOLFSSL_ARMASM
 #ifdef __aarch64__
 #ifndef WOLFSSL_ARMASM_INLINE
 #if !defined(NO_AES) && defined(WOLFSSL_ARMASM)
 #ifndef WOLFSSL_ARMASM_NO_HW_CRYPTO
+.arch_extension crypto
 #ifndef __APPLE__
 .text
 .globl	AES_set_key_AARCH64
+WC_ASM_ATT_HIDDEN(AES_set_key_AARCH64)
 .type	AES_set_key_AARCH64,@function
 .align	2
 AES_set_key_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_set_key_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_set_key_AARCH64)
 .p2align	2
 _AES_set_key_AARCH64:
 #endif /* __APPLE__ */
@@ -585,12 +592,14 @@ L_aes_set_key_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_encrypt_AARCH64)
 .type	AES_encrypt_AARCH64,@function
 .align	2
 AES_encrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_encrypt_AARCH64)
 .p2align	2
 _AES_encrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -645,12 +654,14 @@ L_aes_encrypt_arm64_crypto_round_done:
 #ifndef __APPLE__
 .text
 .globl	AES_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_decrypt_AARCH64)
 .type	AES_decrypt_AARCH64,@function
 .align	2
 AES_decrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_decrypt_AARCH64)
 .p2align	2
 _AES_decrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -705,12 +716,14 @@ L_aes_decrypt_arm64_crypto_round_done:
 #ifndef __APPLE__
 .text
 .globl	AES_encrypt_blocks_AARCH64
+WC_ASM_ATT_HIDDEN(AES_encrypt_blocks_AARCH64)
 .type	AES_encrypt_blocks_AARCH64,@function
 .align	2
 AES_encrypt_blocks_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_encrypt_blocks_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_encrypt_blocks_AARCH64)
 .p2align	2
 _AES_encrypt_blocks_AARCH64:
 #endif /* __APPLE__ */
@@ -1915,12 +1928,14 @@ L_aes_encrypt_blocks_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_decrypt_blocks_AARCH64
+WC_ASM_ATT_HIDDEN(AES_decrypt_blocks_AARCH64)
 .type	AES_decrypt_blocks_AARCH64,@function
 .align	2
 AES_decrypt_blocks_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_decrypt_blocks_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_decrypt_blocks_AARCH64)
 .p2align	2
 _AES_decrypt_blocks_AARCH64:
 #endif /* __APPLE__ */
@@ -3127,12 +3142,14 @@ L_aes_decrypt_blocks_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_CBC_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_CBC_encrypt_AARCH64)
 .type	AES_CBC_encrypt_AARCH64,@function
 .align	2
 AES_CBC_encrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_CBC_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_CBC_encrypt_AARCH64)
 .p2align	2
 _AES_CBC_encrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -3263,12 +3280,14 @@ L_aes_cbc_encrypt_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_CBC_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_CBC_decrypt_AARCH64)
 .type	AES_CBC_decrypt_AARCH64,@function
 .align	2
 AES_CBC_decrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_CBC_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_CBC_decrypt_AARCH64)
 .p2align	2
 _AES_CBC_decrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -3515,12 +3534,14 @@ L_aes_cbc_decrypt_blocks_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_CTR_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_CTR_encrypt_AARCH64)
 .type	AES_CTR_encrypt_AARCH64,@function
 .align	2
 AES_CTR_encrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_CTR_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_CTR_encrypt_AARCH64)
 .p2align	2
 _AES_CTR_encrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -5177,12 +5198,14 @@ L_aes_ctr_encrypt_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_set_key_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_set_key_AARCH64)
 .type	AES_GCM_set_key_AARCH64,@function
 .align	2
 AES_GCM_set_key_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_set_key_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_set_key_AARCH64)
 .p2align	2
 _AES_GCM_set_key_AARCH64:
 #endif /* __APPLE__ */
@@ -5235,12 +5258,14 @@ L_aes_gcm_set_key_arm64_crypto_round_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_AARCH64)
 .type	AES_GCM_encrypt_AARCH64,@function
 .align	2
 AES_GCM_encrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_AARCH64)
 .p2align	2
 _AES_GCM_encrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -5265,9 +5290,9 @@ _AES_GCM_encrypt_AARCH64:
 	ushr	v27.2d, v27.2d, #56
 	ld1	{v22.2d}, [x10]
 	cmp	w8, #0x40
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #32
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_encrypt_arm64_crypto_h_done
 	# Square H => H^2
@@ -5280,9 +5305,9 @@ _AES_GCM_encrypt_AARCH64:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w8, #0x100
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x40
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_encrypt_arm64_crypto_h_done
 	# Multiply H and H^2  => H^3
@@ -5311,9 +5336,9 @@ _AES_GCM_encrypt_AARCH64:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w8, #0x400
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x200
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_encrypt_arm64_crypto_h_done
 	# Multiply H and H^4  => H^5
@@ -5736,7 +5761,7 @@ L_aes_gcm_encrypt_arm64_crypto_nonce_end_bytes:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_nonce_partial_done:
 	eor	x14, x14, x14
-	lsl	x24, x4, #3
+	ubfiz	x24, x4, #3, #32
 	mov	v28.d[0], x14
 	mov	v28.d[1], x24
 	rev64	v28.16b, v28.16b
@@ -7099,10 +7124,10 @@ L_aes_gcm_encrypt_arm64_crypto_192_start_zero:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_192_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -8637,10 +8662,10 @@ L_aes_gcm_encrypt_arm64_crypto_256_start_zero:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_256_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	aese	v14.16b, v0.16b
@@ -9944,10 +9969,10 @@ L_aes_gcm_encrypt_arm64_crypto_128_start_zero:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_128_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -10032,16 +10057,18 @@ L_aes_gcm_encrypt_arm64_crypto_done:
 #ifndef __APPLE__
 	.size	AES_GCM_encrypt_AARCH64,.-AES_GCM_encrypt_AARCH64
 #endif /* __APPLE__ */
-#ifdef HAVE_AES_DECRYPT
+#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AESGCM_DECRYPT)
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_decrypt_AARCH64)
 .type	AES_GCM_decrypt_AARCH64,@function
 .align	2
 AES_GCM_decrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_decrypt_AARCH64)
 .p2align	2
 _AES_GCM_decrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -10066,9 +10093,9 @@ _AES_GCM_decrypt_AARCH64:
 	ushr	v27.2d, v27.2d, #56
 	ld1	{v22.2d}, [x10]
 	cmp	w8, #0x40
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #32
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_decrypt_arm64_crypto_h_done
 	# Square H => H^2
@@ -10081,9 +10108,9 @@ _AES_GCM_decrypt_AARCH64:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w8, #0x100
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x40
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_decrypt_arm64_crypto_h_done
 	# Multiply H and H^2  => H^3
@@ -10112,9 +10139,9 @@ _AES_GCM_decrypt_AARCH64:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w8, #0x400
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x200
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_decrypt_arm64_crypto_h_done
 	# Multiply H and H^4  => H^5
@@ -10537,7 +10564,7 @@ L_aes_gcm_decrypt_arm64_crypto_nonce_end_bytes:
 	# Done GHASH
 L_aes_gcm_decrypt_arm64_crypto_nonce_partial_done:
 	eor	x14, x14, x14
-	lsl	x24, x4, #3
+	ubfiz	x24, x4, #3, #32
 	mov	v28.d[0], x14
 	mov	v28.d[1], x24
 	rev64	v28.16b, v28.16b
@@ -11893,10 +11920,10 @@ L_aes_gcm_decrypt_arm64_crypto_192_out_start_byte:
 L_aes_gcm_decrypt_arm64_crypto_192_out_end_bytes:
 L_aes_gcm_decrypt_arm64_crypto_192_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -11945,6 +11972,7 @@ L_aes_gcm_decrypt_arm64_crypto_192_partial_done:
 	ld1	{v28.16b}, [x5]
 	b	L_aes_gcm_decrypt_arm64_crypto_192_tag_loaded
 L_aes_gcm_decrypt_arm64_crypto_192_part_tag:
+	ubfiz	x6, x6, #0, #32
 	eor	v28.16b, v28.16b, v28.16b
 	mov	x17, x6
 	st1	{v28.2d}, [x11]
@@ -13446,10 +13474,10 @@ L_aes_gcm_decrypt_arm64_crypto_256_out_start_byte:
 L_aes_gcm_decrypt_arm64_crypto_256_out_end_bytes:
 L_aes_gcm_decrypt_arm64_crypto_256_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	aese	v14.16b, v0.16b
@@ -13506,6 +13534,7 @@ L_aes_gcm_decrypt_arm64_crypto_256_partial_done:
 	ld1	{v28.16b}, [x5]
 	b	L_aes_gcm_decrypt_arm64_crypto_256_tag_loaded
 L_aes_gcm_decrypt_arm64_crypto_256_part_tag:
+	ubfiz	x6, x6, #0, #32
 	eor	v28.16b, v28.16b, v28.16b
 	mov	x17, x6
 	st1	{v28.2d}, [x11]
@@ -14768,10 +14797,10 @@ L_aes_gcm_decrypt_arm64_crypto_128_out_start_byte:
 L_aes_gcm_decrypt_arm64_crypto_128_out_end_bytes:
 L_aes_gcm_decrypt_arm64_crypto_128_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -14816,6 +14845,7 @@ L_aes_gcm_decrypt_arm64_crypto_128_partial_done:
 	ld1	{v28.16b}, [x5]
 	b	L_aes_gcm_decrypt_arm64_crypto_128_tag_loaded
 L_aes_gcm_decrypt_arm64_crypto_128_part_tag:
+	ubfiz	x6, x6, #0, #32
 	eor	v28.16b, v28.16b, v28.16b
 	mov	x17, x6
 	st1	{v28.2d}, [x11]
@@ -14879,17 +14909,20 @@ L_aes_gcm_decrypt_arm64_crypto_done:
 #ifndef __APPLE__
 	.size	AES_GCM_decrypt_AARCH64,.-AES_GCM_decrypt_AARCH64
 #endif /* __APPLE__ */
-#endif /* HAVE_AES_DECRYPT */
+#endif /* HAVE_AES_DECRYPT || HAVE_AESGCM_DECRYPT */
 #ifdef WOLFSSL_ARMASM_CRYPTO_SHA3
+.arch_extension sha3
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_AARCH64_EOR3)
 .type	AES_GCM_encrypt_AARCH64_EOR3,@function
 .align	2
 AES_GCM_encrypt_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_encrypt_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -14914,9 +14947,9 @@ _AES_GCM_encrypt_AARCH64_EOR3:
 	ushr	v27.2d, v27.2d, #56
 	ld1	{v22.2d}, [x10]
 	cmp	w8, #0x40
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #32
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_encrypt_arm64_crypto_eor3_h_done
 	# Square H => H^2
@@ -14929,9 +14962,9 @@ _AES_GCM_encrypt_AARCH64_EOR3:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w8, #0x100
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x40
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_encrypt_arm64_crypto_eor3_h_done
 	# Multiply H and H^2  => H^3
@@ -14959,9 +14992,9 @@ _AES_GCM_encrypt_AARCH64_EOR3:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w8, #0x400
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x200
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_encrypt_arm64_crypto_eor3_h_done
 	# Multiply H and H^4  => H^5
@@ -15364,7 +15397,7 @@ L_aes_gcm_encrypt_arm64_crypto_eor3_nonce_end_bytes:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_eor3_nonce_partial_done:
 	eor	x14, x14, x14
-	lsl	x24, x4, #3
+	ubfiz	x24, x4, #3, #32
 	mov	v28.d[0], x14
 	mov	v28.d[1], x24
 	rev64	v28.16b, v28.16b
@@ -16698,10 +16731,10 @@ L_aes_gcm_encrypt_arm64_crypto_eor3_192_start_zero:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_eor3_192_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -18207,10 +18240,10 @@ L_aes_gcm_encrypt_arm64_crypto_eor3_256_start_zero:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_eor3_256_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	aese	v14.16b, v0.16b
@@ -19485,10 +19518,10 @@ L_aes_gcm_encrypt_arm64_crypto_eor3_128_start_zero:
 	# Done GHASH
 L_aes_gcm_encrypt_arm64_crypto_eor3_128_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -19572,16 +19605,18 @@ L_aes_gcm_encrypt_arm64_crypto_eor3_done:
 #ifndef __APPLE__
 	.size	AES_GCM_encrypt_AARCH64_EOR3,.-AES_GCM_encrypt_AARCH64_EOR3
 #endif /* __APPLE__ */
-#ifdef HAVE_AES_DECRYPT
+#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AESGCM_DECRYPT)
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_decrypt_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_decrypt_AARCH64_EOR3)
 .type	AES_GCM_decrypt_AARCH64_EOR3,@function
 .align	2
 AES_GCM_decrypt_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_decrypt_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_decrypt_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_decrypt_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -19606,9 +19641,9 @@ _AES_GCM_decrypt_AARCH64_EOR3:
 	ushr	v27.2d, v27.2d, #56
 	ld1	{v22.2d}, [x10]
 	cmp	w8, #0x40
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #32
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_decrypt_arm64_crypto_eor3_h_done
 	# Square H => H^2
@@ -19621,9 +19656,9 @@ _AES_GCM_decrypt_AARCH64_EOR3:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w8, #0x100
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x40
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_decrypt_arm64_crypto_eor3_h_done
 	# Multiply H and H^2  => H^3
@@ -19651,9 +19686,9 @@ _AES_GCM_decrypt_AARCH64_EOR3:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w8, #0x400
-	csetm	x16, lt
+	csetm	x16, cc
 	cmp	w2, #0x200
-	csetm	x17, lt
+	csetm	x17, cc
 	ands	x16, x16, x17
 	bne	L_aes_gcm_decrypt_arm64_crypto_eor3_h_done
 	# Multiply H and H^4  => H^5
@@ -20056,7 +20091,7 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_nonce_end_bytes:
 	# Done GHASH
 L_aes_gcm_decrypt_arm64_crypto_eor3_nonce_partial_done:
 	eor	x14, x14, x14
-	lsl	x24, x4, #3
+	ubfiz	x24, x4, #3, #32
 	mov	v28.d[0], x14
 	mov	v28.d[1], x24
 	rev64	v28.16b, v28.16b
@@ -21383,10 +21418,10 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_192_out_start_byte:
 L_aes_gcm_decrypt_arm64_crypto_eor3_192_out_end_bytes:
 L_aes_gcm_decrypt_arm64_crypto_eor3_192_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -21434,6 +21469,7 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_192_partial_done:
 	ld1	{v28.16b}, [x5]
 	b	L_aes_gcm_decrypt_arm64_crypto_eor3_192_tag_loaded
 L_aes_gcm_decrypt_arm64_crypto_eor3_192_part_tag:
+	ubfiz	x6, x6, #0, #32
 	eor	v28.16b, v28.16b, v28.16b
 	mov	x17, x6
 	st1	{v28.2d}, [x11]
@@ -22907,10 +22943,10 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_256_out_start_byte:
 L_aes_gcm_decrypt_arm64_crypto_eor3_256_out_end_bytes:
 L_aes_gcm_decrypt_arm64_crypto_eor3_256_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	aese	v14.16b, v0.16b
@@ -22966,6 +23002,7 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_256_partial_done:
 	ld1	{v28.16b}, [x5]
 	b	L_aes_gcm_decrypt_arm64_crypto_eor3_256_tag_loaded
 L_aes_gcm_decrypt_arm64_crypto_eor3_256_part_tag:
+	ubfiz	x6, x6, #0, #32
 	eor	v28.16b, v28.16b, v28.16b
 	mov	x17, x6
 	st1	{v28.2d}, [x11]
@@ -24200,10 +24237,10 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_128_out_start_byte:
 L_aes_gcm_decrypt_arm64_crypto_eor3_128_out_end_bytes:
 L_aes_gcm_decrypt_arm64_crypto_eor3_128_partial_done:
 	ld1	{v14.2d}, [x12]
-	lsl	x8, x8, #3
+	ubfiz	x8, x8, #3, #32
 	rbit	x8, x8
 	mov	v28.d[0], x8
-	lsl	x2, x2, #3
+	ubfiz	x2, x2, #3, #32
 	rbit	x2, x2
 	mov	v28.d[1], x2
 	eor	v26.16b, v26.16b, v28.16b
@@ -24247,6 +24284,7 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_128_partial_done:
 	ld1	{v28.16b}, [x5]
 	b	L_aes_gcm_decrypt_arm64_crypto_eor3_128_tag_loaded
 L_aes_gcm_decrypt_arm64_crypto_eor3_128_part_tag:
+	ubfiz	x6, x6, #0, #32
 	eor	v28.16b, v28.16b, v28.16b
 	mov	x17, x6
 	st1	{v28.2d}, [x11]
@@ -24310,18 +24348,20 @@ L_aes_gcm_decrypt_arm64_crypto_eor3_done:
 #ifndef __APPLE__
 	.size	AES_GCM_decrypt_AARCH64_EOR3,.-AES_GCM_decrypt_AARCH64_EOR3
 #endif /* __APPLE__ */
-#endif /* HAVE_AES_DECRYPT */
+#endif /* HAVE_AES_DECRYPT || HAVE_AESGCM_DECRYPT */
 #endif /* !WOLFSSL_ARMASM_CRYPTO_SHA3 */
 #ifdef WOLFSSL_AESGCM_STREAM
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_init_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_init_AARCH64)
 .type	AES_GCM_init_AARCH64,@function
 .align	2
 AES_GCM_init_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_init_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_init_AARCH64)
 .p2align	2
 _AES_GCM_init_AARCH64:
 #endif /* __APPLE__ */
@@ -24420,7 +24460,7 @@ L_aes_gcm_init_arm64_crypto_end_bytes:
 	# Done GHASH
 L_aes_gcm_init_arm64_crypto_partial_done:
 	eor	x7, x7, x7
-	lsl	x13, x3, #3
+	ubfiz	x13, x3, #3, #32
 	mov	v7.d[0], x7
 	mov	v7.d[1], x13
 	rev64	v7.16b, v7.16b
@@ -24494,12 +24534,14 @@ L_aes_gcm_init_arm64_crypto_round_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_ghash_block_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_ghash_block_AARCH64)
 .type	AES_GCM_ghash_block_AARCH64,@function
 .align	2
 AES_GCM_ghash_block_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_ghash_block_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_ghash_block_AARCH64)
 .p2align	2
 _AES_GCM_ghash_block_AARCH64:
 #endif /* __APPLE__ */
@@ -24539,12 +24581,14 @@ _AES_GCM_ghash_block_AARCH64:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_aad_update_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_aad_update_AARCH64)
 .type	AES_GCM_aad_update_AARCH64,@function
 .align	2
 AES_GCM_aad_update_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_aad_update_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_aad_update_AARCH64)
 .p2align	2
 _AES_GCM_aad_update_AARCH64:
 #endif /* __APPLE__ */
@@ -24893,12 +24937,14 @@ L_aes_gcm_aad_update_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_block_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_block_AARCH64)
 .type	AES_GCM_encrypt_block_AARCH64,@function
 .align	2
 AES_GCM_encrypt_block_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_block_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_block_AARCH64)
 .p2align	2
 _AES_GCM_encrypt_block_AARCH64:
 #endif /* __APPLE__ */
@@ -24958,12 +25004,14 @@ L_aes_gcm_encrypt_block_arm64_crypto_round_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_update_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_update_AARCH64)
 .type	AES_GCM_encrypt_update_AARCH64,@function
 .align	2
 AES_GCM_encrypt_update_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_update_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_update_AARCH64)
 .p2align	2
 _AES_GCM_encrypt_update_AARCH64:
 #endif /* __APPLE__ */
@@ -24982,7 +25030,7 @@ _AES_GCM_encrypt_update_AARCH64:
 	mov	w9, v13.s[3]
 	rev	w9, w9
 	cmp	w4, #32
-	blt	L_aes_gcm_encrypt_update_arm64_crypto_h_done
+	bcc	L_aes_gcm_encrypt_update_arm64_crypto_h_done
 	# Square H => H^2
 	pmull2	v31.1q, v22.2d, v22.2d
 	pmull	v30.1q, v22.1d, v22.1d
@@ -24993,7 +25041,7 @@ _AES_GCM_encrypt_update_AARCH64:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w4, #0x40
-	blt	L_aes_gcm_encrypt_update_arm64_crypto_h_done
+	bcc	L_aes_gcm_encrypt_update_arm64_crypto_h_done
 	# Multiply H and H^2  => H^3
 	pmull	v28.1q, v22.1d, v23.1d
 	pmull2	v29.1q, v22.2d, v23.2d
@@ -25020,7 +25068,7 @@ _AES_GCM_encrypt_update_AARCH64:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w4, #0x200
-	blt	L_aes_gcm_encrypt_update_arm64_crypto_h_done
+	bcc	L_aes_gcm_encrypt_update_arm64_crypto_h_done
 	# Multiply H and H^4  => H^5
 	pmull	v28.1q, v22.1d, v25.1d
 	pmull2	v29.1q, v22.2d, v25.2d
@@ -28768,12 +28816,14 @@ L_aes_gcm_encrypt_update_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_final_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_final_AARCH64)
 .type	AES_GCM_encrypt_final_AARCH64,@function
 .align	2
 AES_GCM_encrypt_final_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_final_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_final_AARCH64)
 .p2align	2
 _AES_GCM_encrypt_final_AARCH64:
 #endif /* __APPLE__ */
@@ -28782,10 +28832,10 @@ _AES_GCM_encrypt_final_AARCH64:
 	ld1	{v4.2d}, [x5]
 	ushr	v6.2d, v6.2d, #56
 	ld1	{v7.2d}, [x6]
-	lsl	x4, x4, #3
+	ubfiz	x4, x4, #3, #32
 	rbit	x4, x4
 	mov	v0.d[0], x4
-	lsl	x3, x3, #3
+	ubfiz	x3, x3, #3, #32
 	rbit	x3, x3
 	mov	v0.d[1], x3
 	eor	v5.16b, v5.16b, v0.16b
@@ -28840,15 +28890,18 @@ L_aes_gcm_encrypt_final_arm64_crypto_done:
 #ifndef __APPLE__
 	.size	AES_GCM_encrypt_final_AARCH64,.-AES_GCM_encrypt_final_AARCH64
 #endif /* __APPLE__ */
+#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AESGCM_DECRYPT)
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_decrypt_update_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_decrypt_update_AARCH64)
 .type	AES_GCM_decrypt_update_AARCH64,@function
 .align	2
 AES_GCM_decrypt_update_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_decrypt_update_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_decrypt_update_AARCH64)
 .p2align	2
 _AES_GCM_decrypt_update_AARCH64:
 #endif /* __APPLE__ */
@@ -28867,7 +28920,7 @@ _AES_GCM_decrypt_update_AARCH64:
 	mov	w9, v13.s[3]
 	rev	w9, w9
 	cmp	w4, #32
-	blt	L_aes_gcm_decrypt_update_arm64_crypto_h_done
+	bcc	L_aes_gcm_decrypt_update_arm64_crypto_h_done
 	# Square H => H^2
 	pmull2	v31.1q, v22.2d, v22.2d
 	pmull	v30.1q, v22.1d, v22.1d
@@ -28878,7 +28931,7 @@ _AES_GCM_decrypt_update_AARCH64:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w4, #0x40
-	blt	L_aes_gcm_decrypt_update_arm64_crypto_h_done
+	bcc	L_aes_gcm_decrypt_update_arm64_crypto_h_done
 	# Multiply H and H^2  => H^3
 	pmull	v28.1q, v22.1d, v23.1d
 	pmull2	v29.1q, v22.2d, v23.2d
@@ -28905,7 +28958,7 @@ _AES_GCM_decrypt_update_AARCH64:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w4, #0x200
-	blt	L_aes_gcm_decrypt_update_arm64_crypto_h_done
+	bcc	L_aes_gcm_decrypt_update_arm64_crypto_h_done
 	# Multiply H and H^4  => H^5
 	pmull	v28.1q, v22.1d, v25.1d
 	pmull2	v29.1q, v22.2d, v25.2d
@@ -32654,12 +32707,14 @@ L_aes_gcm_decrypt_update_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_decrypt_final_AARCH64
+WC_ASM_ATT_HIDDEN(AES_GCM_decrypt_final_AARCH64)
 .type	AES_GCM_decrypt_final_AARCH64,@function
 .align	2
 AES_GCM_decrypt_final_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_decrypt_final_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_GCM_decrypt_final_AARCH64)
 .p2align	2
 _AES_GCM_decrypt_final_AARCH64:
 #endif /* __APPLE__ */
@@ -32668,10 +32723,10 @@ _AES_GCM_decrypt_final_AARCH64:
 	ld1	{v4.2d}, [x5]
 	ushr	v6.2d, v6.2d, #56
 	ld1	{v7.2d}, [x6]
-	lsl	x4, x4, #3
+	ubfiz	x4, x4, #3, #32
 	rbit	x4, x4
 	mov	v0.d[0], x4
-	lsl	x3, x3, #3
+	ubfiz	x3, x3, #3, #32
 	rbit	x3, x3
 	mov	v0.d[1], x3
 	eor	v5.16b, v5.16b, v0.16b
@@ -32696,6 +32751,7 @@ _AES_GCM_decrypt_final_AARCH64:
 	ld1	{v0.16b}, [x1]
 	b	L_aes_gcm_decrypt_final_arm64_crypto_tag_loaded
 L_aes_gcm_decrypt_final_arm64_crypto_part_tag:
+	ubfiz	x2, x2, #0, #32
 	eor	v0.16b, v0.16b, v0.16b
 	mov	x10, x2
 	st1	{v0.2d}, [x0]
@@ -32750,16 +32806,20 @@ L_aes_gcm_decrypt_final_arm64_crypto_tag_loaded:
 #ifndef __APPLE__
 	.size	AES_GCM_decrypt_final_AARCH64,.-AES_GCM_decrypt_final_AARCH64
 #endif /* __APPLE__ */
+#endif /* HAVE_AES_DECRYPT || HAVE_AESGCM_DECRYPT */
 #ifdef WOLFSSL_ARMASM_CRYPTO_SHA3
+.arch_extension sha3
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_init_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_init_AARCH64_EOR3)
 .type	AES_GCM_init_AARCH64_EOR3,@function
 .align	2
 AES_GCM_init_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_init_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_init_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_init_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -32856,7 +32916,7 @@ L_aes_gcm_init_arm64_crypto_eor3_end_bytes:
 	# Done GHASH
 L_aes_gcm_init_arm64_crypto_eor3_partial_done:
 	eor	x7, x7, x7
-	lsl	x13, x3, #3
+	ubfiz	x13, x3, #3, #32
 	mov	v7.d[0], x7
 	mov	v7.d[1], x13
 	rev64	v7.16b, v7.16b
@@ -32929,12 +32989,14 @@ L_aes_gcm_init_arm64_crypto_eor3_round_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_ghash_block_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_ghash_block_AARCH64_EOR3)
 .type	AES_GCM_ghash_block_AARCH64_EOR3,@function
 .align	2
 AES_GCM_ghash_block_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_ghash_block_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_ghash_block_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_ghash_block_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -32973,12 +33035,14 @@ _AES_GCM_ghash_block_AARCH64_EOR3:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_aad_update_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_aad_update_AARCH64_EOR3)
 .type	AES_GCM_aad_update_AARCH64_EOR3,@function
 .align	2
 AES_GCM_aad_update_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_aad_update_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_aad_update_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_aad_update_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -33309,12 +33373,14 @@ L_aes_gcm_aad_update_arm64_crypto_eor3_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_block_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_block_AARCH64_EOR3)
 .type	AES_GCM_encrypt_block_AARCH64_EOR3,@function
 .align	2
 AES_GCM_encrypt_block_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_block_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_block_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_encrypt_block_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -33374,12 +33440,14 @@ L_aes_gcm_encrypt_block_arm64_crypto_eor3_round_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_update_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_update_AARCH64_EOR3)
 .type	AES_GCM_encrypt_update_AARCH64_EOR3,@function
 .align	2
 AES_GCM_encrypt_update_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_update_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_update_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_encrypt_update_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -33398,7 +33466,7 @@ _AES_GCM_encrypt_update_AARCH64_EOR3:
 	mov	w9, v13.s[3]
 	rev	w9, w9
 	cmp	w4, #32
-	blt	L_aes_gcm_encrypt_update_arm64_crypto_eor3_h_done
+	bcc	L_aes_gcm_encrypt_update_arm64_crypto_eor3_h_done
 	# Square H => H^2
 	pmull2	v31.1q, v22.2d, v22.2d
 	pmull	v30.1q, v22.1d, v22.1d
@@ -33409,7 +33477,7 @@ _AES_GCM_encrypt_update_AARCH64_EOR3:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w4, #0x40
-	blt	L_aes_gcm_encrypt_update_arm64_crypto_eor3_h_done
+	bcc	L_aes_gcm_encrypt_update_arm64_crypto_eor3_h_done
 	# Multiply H and H^2  => H^3
 	pmull	v28.1q, v22.1d, v23.1d
 	pmull2	v29.1q, v22.2d, v23.2d
@@ -33435,7 +33503,7 @@ _AES_GCM_encrypt_update_AARCH64_EOR3:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w4, #0x200
-	blt	L_aes_gcm_encrypt_update_arm64_crypto_eor3_h_done
+	bcc	L_aes_gcm_encrypt_update_arm64_crypto_eor3_h_done
 	# Multiply H and H^4  => H^5
 	pmull	v28.1q, v22.1d, v25.1d
 	pmull2	v29.1q, v22.2d, v25.2d
@@ -37100,12 +37168,14 @@ L_aes_gcm_encrypt_update_arm64_crypto_eor3_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_final_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_final_AARCH64_EOR3)
 .type	AES_GCM_encrypt_final_AARCH64_EOR3,@function
 .align	2
 AES_GCM_encrypt_final_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_final_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_final_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_encrypt_final_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -37114,10 +37184,10 @@ _AES_GCM_encrypt_final_AARCH64_EOR3:
 	ld1	{v4.2d}, [x5]
 	ushr	v6.2d, v6.2d, #56
 	ld1	{v7.2d}, [x6]
-	lsl	x4, x4, #3
+	ubfiz	x4, x4, #3, #32
 	rbit	x4, x4
 	mov	v0.d[0], x4
-	lsl	x3, x3, #3
+	ubfiz	x3, x3, #3, #32
 	rbit	x3, x3
 	mov	v0.d[1], x3
 	eor	v5.16b, v5.16b, v0.16b
@@ -37171,15 +37241,18 @@ L_aes_gcm_encrypt_final_arm64_crypto_eor3_done:
 #ifndef __APPLE__
 	.size	AES_GCM_encrypt_final_AARCH64_EOR3,.-AES_GCM_encrypt_final_AARCH64_EOR3
 #endif /* __APPLE__ */
+#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AESGCM_DECRYPT)
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_decrypt_update_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_decrypt_update_AARCH64_EOR3)
 .type	AES_GCM_decrypt_update_AARCH64_EOR3,@function
 .align	2
 AES_GCM_decrypt_update_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_decrypt_update_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_decrypt_update_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_decrypt_update_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -37198,7 +37271,7 @@ _AES_GCM_decrypt_update_AARCH64_EOR3:
 	mov	w9, v13.s[3]
 	rev	w9, w9
 	cmp	w4, #32
-	blt	L_aes_gcm_decrypt_update_arm64_crypto_eor3_h_done
+	bcc	L_aes_gcm_decrypt_update_arm64_crypto_eor3_h_done
 	# Square H => H^2
 	pmull2	v31.1q, v22.2d, v22.2d
 	pmull	v30.1q, v22.1d, v22.1d
@@ -37209,7 +37282,7 @@ _AES_GCM_decrypt_update_AARCH64_EOR3:
 	mov	v30.d[1], v29.d[0]
 	eor	v23.16b, v30.16b, v31.16b
 	cmp	w4, #0x40
-	blt	L_aes_gcm_decrypt_update_arm64_crypto_eor3_h_done
+	bcc	L_aes_gcm_decrypt_update_arm64_crypto_eor3_h_done
 	# Multiply H and H^2  => H^3
 	pmull	v28.1q, v22.1d, v23.1d
 	pmull2	v29.1q, v22.2d, v23.2d
@@ -37235,7 +37308,7 @@ _AES_GCM_decrypt_update_AARCH64_EOR3:
 	eor	v25.16b, v30.16b, v31.16b
 	# Done
 	cmp	w4, #0x200
-	blt	L_aes_gcm_decrypt_update_arm64_crypto_eor3_h_done
+	bcc	L_aes_gcm_decrypt_update_arm64_crypto_eor3_h_done
 	# Multiply H and H^4  => H^5
 	pmull	v28.1q, v22.1d, v25.1d
 	pmull2	v29.1q, v22.2d, v25.2d
@@ -40901,12 +40974,14 @@ L_aes_gcm_decrypt_update_arm64_crypto_eor3_done:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_decrypt_final_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(AES_GCM_decrypt_final_AARCH64_EOR3)
 .type	AES_GCM_decrypt_final_AARCH64_EOR3,@function
 .align	2
 AES_GCM_decrypt_final_AARCH64_EOR3:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_decrypt_final_AARCH64_EOR3
+WC_ASM_ATT_HIDDEN(_AES_GCM_decrypt_final_AARCH64_EOR3)
 .p2align	2
 _AES_GCM_decrypt_final_AARCH64_EOR3:
 #endif /* __APPLE__ */
@@ -40915,10 +40990,10 @@ _AES_GCM_decrypt_final_AARCH64_EOR3:
 	ld1	{v4.2d}, [x5]
 	ushr	v6.2d, v6.2d, #56
 	ld1	{v7.2d}, [x6]
-	lsl	x4, x4, #3
+	ubfiz	x4, x4, #3, #32
 	rbit	x4, x4
 	mov	v0.d[0], x4
-	lsl	x3, x3, #3
+	ubfiz	x3, x3, #3, #32
 	rbit	x3, x3
 	mov	v0.d[1], x3
 	eor	v5.16b, v5.16b, v0.16b
@@ -40942,6 +41017,7 @@ _AES_GCM_decrypt_final_AARCH64_EOR3:
 	ld1	{v0.16b}, [x1]
 	b	L_aes_gcm_decrypt_final_arm64_crypto_eor3_tag_loaded
 L_aes_gcm_decrypt_final_arm64_crypto_eor3_part_tag:
+	ubfiz	x2, x2, #0, #32
 	eor	v0.16b, v0.16b, v0.16b
 	mov	x10, x2
 	st1	{v0.2d}, [x0]
@@ -40996,6 +41072,7 @@ L_aes_gcm_decrypt_final_arm64_crypto_eor3_tag_loaded:
 #ifndef __APPLE__
 	.size	AES_GCM_decrypt_final_AARCH64_EOR3,.-AES_GCM_decrypt_final_AARCH64_EOR3
 #endif /* __APPLE__ */
+#endif /* HAVE_AES_DECRYPT || HAVE_AESGCM_DECRYPT */
 #endif /* !WOLFSSL_ARMASM_CRYPTO_SHA3 */
 #endif /* WOLFSSL_AESGCM_STREAM */
 #endif /* HAVE_AESGCM */
@@ -41003,12 +41080,14 @@ L_aes_gcm_decrypt_final_arm64_crypto_eor3_tag_loaded:
 #ifndef __APPLE__
 .text
 .globl	AES_XTS_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_XTS_encrypt_AARCH64)
 .type	AES_XTS_encrypt_AARCH64,@function
 .align	2
 AES_XTS_encrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_XTS_encrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_XTS_encrypt_AARCH64)
 .p2align	2
 _AES_XTS_encrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -42013,12 +42092,14 @@ L_aes_xts_encrypt_arm64_crypto_done:
 #ifndef __APPLE__
 .text
 .globl	AES_XTS_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(AES_XTS_decrypt_AARCH64)
 .type	AES_XTS_decrypt_AARCH64,@function
 .align	2
 AES_XTS_decrypt_AARCH64:
 #else
 .section	__TEXT,__text
 .globl	_AES_XTS_decrypt_AARCH64
+WC_ASM_ATT_HIDDEN(_AES_XTS_decrypt_AARCH64)
 .p2align	2
 _AES_XTS_decrypt_AARCH64:
 #endif /* __APPLE__ */
@@ -43116,23 +43197,1093 @@ L_aes_xts_decrypt_arm64_crypto_done:
 #endif /* __APPLE__ */
 #endif /* HAVE_AES_DECRYPT */
 #endif /* WOLFSSL_AES_XTS */
+#ifdef WOLFSSL_AESGCM_SIV
+#ifndef __APPLE__
+.text
+.globl	AES_GCMSIV_polyval_pmull
+WC_ASM_ATT_HIDDEN(AES_GCMSIV_polyval_pmull)
+.type	AES_GCMSIV_polyval_pmull,@function
+.align	2
+AES_GCMSIV_polyval_pmull:
+#else
+.section	__TEXT,__text
+.globl	_AES_GCMSIV_polyval_pmull
+WC_ASM_ATT_HIDDEN(_AES_GCMSIV_polyval_pmull)
+.p2align	2
+_AES_GCMSIV_polyval_pmull:
+#endif /* __APPLE__ */
+	stp	x29, x30, [sp, #-80]!
+	add	x29, sp, #0
+	stp	d8, d9, [x29, #16]
+	stp	d10, d11, [x29, #32]
+	stp	d12, d13, [x29, #48]
+	stp	d14, d15, [x29, #64]
+	movi	v2.16b, #0
+	ld1	{v1.16b}, [x1]
+	ld1	{v0.16b}, [x0]
+	rev64	v0.16b, v0.16b
+	ext	v0.16b, v0.16b, v0.16b, #8
+	pmull	v18.1q, v1.1d, v1.1d
+	pmull2	v19.1q, v1.2d, v1.2d
+	ext	v22.16b, v1.16b, v1.16b, #8
+	pmull	v23.1q, v22.1d, v1.1d
+	pmull2	v22.1q, v22.2d, v1.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v3.16b, v19.16b, v18.16b
+	pmull	v18.1q, v3.1d, v1.1d
+	pmull2	v19.1q, v3.2d, v1.2d
+	ext	v22.16b, v3.16b, v3.16b, #8
+	pmull	v23.1q, v22.1d, v1.1d
+	pmull2	v22.1q, v22.2d, v1.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v4.16b, v19.16b, v18.16b
+	pmull	v18.1q, v3.1d, v3.1d
+	pmull2	v19.1q, v3.2d, v3.2d
+	ext	v22.16b, v3.16b, v3.16b, #8
+	pmull	v23.1q, v22.1d, v3.1d
+	pmull2	v22.1q, v22.2d, v3.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v5.16b, v19.16b, v18.16b
+	pmull	v18.1q, v5.1d, v1.1d
+	pmull2	v19.1q, v5.2d, v1.2d
+	ext	v22.16b, v5.16b, v5.16b, #8
+	pmull	v23.1q, v22.1d, v1.1d
+	pmull2	v22.1q, v22.2d, v1.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v6.16b, v19.16b, v18.16b
+	pmull	v18.1q, v5.1d, v3.1d
+	pmull2	v19.1q, v5.2d, v3.2d
+	ext	v22.16b, v5.16b, v5.16b, #8
+	pmull	v23.1q, v22.1d, v3.1d
+	pmull2	v22.1q, v22.2d, v3.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v7.16b, v19.16b, v18.16b
+	pmull	v18.1q, v5.1d, v4.1d
+	pmull2	v19.1q, v5.2d, v4.2d
+	ext	v22.16b, v5.16b, v5.16b, #8
+	pmull	v23.1q, v22.1d, v4.1d
+	pmull2	v22.1q, v22.2d, v4.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v8.16b, v19.16b, v18.16b
+	pmull	v18.1q, v5.1d, v5.1d
+	pmull2	v19.1q, v5.2d, v5.2d
+	ext	v22.16b, v5.16b, v5.16b, #8
+	pmull	v23.1q, v22.1d, v5.1d
+	pmull2	v22.1q, v22.2d, v5.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v9.16b, v19.16b, v18.16b
+L_AES_GCMSIV_polyval_pmull_loop8:
+	cmp	w3, #8
+	blt	L_AES_GCMSIV_polyval_pmull_done8
+	ld1	{v10.16b, v11.16b, v12.16b, v13.16b}, [x2], #0x40
+	ld1	{v14.16b, v15.16b, v16.16b, v17.16b}, [x2], #0x40
+	eor	v10.16b, v10.16b, v0.16b
+	pmull	v18.1q, v10.1d, v9.1d
+	pmull2	v19.1q, v10.2d, v9.2d
+	ext	v22.16b, v10.16b, v10.16b, #8
+	pmull	v23.1q, v22.1d, v9.1d
+	pmull2	v22.1q, v22.2d, v9.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	pmull	v20.1q, v11.1d, v8.1d
+	pmull2	v21.1q, v11.2d, v8.2d
+	ext	v22.16b, v11.16b, v11.16b, #8
+	pmull	v23.1q, v22.1d, v8.1d
+	pmull2	v22.1q, v22.2d, v8.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v12.1d, v7.1d
+	pmull2	v21.1q, v12.2d, v7.2d
+	ext	v22.16b, v12.16b, v12.16b, #8
+	pmull	v23.1q, v22.1d, v7.1d
+	pmull2	v22.1q, v22.2d, v7.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v13.1d, v6.1d
+	pmull2	v21.1q, v13.2d, v6.2d
+	ext	v22.16b, v13.16b, v13.16b, #8
+	pmull	v23.1q, v22.1d, v6.1d
+	pmull2	v22.1q, v22.2d, v6.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v14.1d, v5.1d
+	pmull2	v21.1q, v14.2d, v5.2d
+	ext	v22.16b, v14.16b, v14.16b, #8
+	pmull	v23.1q, v22.1d, v5.1d
+	pmull2	v22.1q, v22.2d, v5.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v15.1d, v4.1d
+	pmull2	v21.1q, v15.2d, v4.2d
+	ext	v22.16b, v15.16b, v15.16b, #8
+	pmull	v23.1q, v22.1d, v4.1d
+	pmull2	v22.1q, v22.2d, v4.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v16.1d, v3.1d
+	pmull2	v21.1q, v16.2d, v3.2d
+	ext	v22.16b, v16.16b, v16.16b, #8
+	pmull	v23.1q, v22.1d, v3.1d
+	pmull2	v22.1q, v22.2d, v3.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v17.1d, v1.1d
+	pmull2	v21.1q, v17.2d, v1.2d
+	ext	v22.16b, v17.16b, v17.16b, #8
+	pmull	v23.1q, v22.1d, v1.1d
+	pmull2	v22.1q, v22.2d, v1.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v0.16b, v19.16b, v18.16b
+	sub	w3, w3, #8
+	b	L_AES_GCMSIV_polyval_pmull_loop8
+L_AES_GCMSIV_polyval_pmull_done8:
+L_AES_GCMSIV_polyval_pmull_loop4:
+	cmp	w3, #4
+	blt	L_AES_GCMSIV_polyval_pmull_done4
+	ld1	{v10.16b, v11.16b, v12.16b, v13.16b}, [x2], #0x40
+	eor	v10.16b, v10.16b, v0.16b
+	pmull	v18.1q, v10.1d, v5.1d
+	pmull2	v19.1q, v10.2d, v5.2d
+	ext	v22.16b, v10.16b, v10.16b, #8
+	pmull	v23.1q, v22.1d, v5.1d
+	pmull2	v22.1q, v22.2d, v5.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	pmull	v20.1q, v11.1d, v4.1d
+	pmull2	v21.1q, v11.2d, v4.2d
+	ext	v22.16b, v11.16b, v11.16b, #8
+	pmull	v23.1q, v22.1d, v4.1d
+	pmull2	v22.1q, v22.2d, v4.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v12.1d, v3.1d
+	pmull2	v21.1q, v12.2d, v3.2d
+	ext	v22.16b, v12.16b, v12.16b, #8
+	pmull	v23.1q, v22.1d, v3.1d
+	pmull2	v22.1q, v22.2d, v3.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	pmull	v20.1q, v13.1d, v1.1d
+	pmull2	v21.1q, v13.2d, v1.2d
+	ext	v22.16b, v13.16b, v13.16b, #8
+	pmull	v23.1q, v22.1d, v1.1d
+	pmull2	v22.1q, v22.2d, v1.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v20.16b, v20.16b, v23.16b
+	eor	v21.16b, v21.16b, v22.16b
+	eor	v18.16b, v18.16b, v20.16b
+	eor	v19.16b, v19.16b, v21.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v0.16b, v19.16b, v18.16b
+	sub	w3, w3, #4
+	b	L_AES_GCMSIV_polyval_pmull_loop4
+L_AES_GCMSIV_polyval_pmull_done4:
+L_AES_GCMSIV_polyval_pmull_rem:
+	cbz	w3, L_AES_GCMSIV_polyval_pmull_done
+	ld1	{v10.16b}, [x2], #16
+	eor	v0.16b, v0.16b, v10.16b
+	pmull	v18.1q, v0.1d, v1.1d
+	pmull2	v19.1q, v0.2d, v1.2d
+	ext	v22.16b, v0.16b, v0.16b, #8
+	pmull	v23.1q, v22.1d, v1.1d
+	pmull2	v22.1q, v22.2d, v1.2d
+	eor	v22.16b, v22.16b, v23.16b
+	ext	v23.16b, v2.16b, v22.16b, #8
+	ext	v22.16b, v22.16b, v2.16b, #8
+	eor	v18.16b, v18.16b, v23.16b
+	eor	v19.16b, v19.16b, v22.16b
+	ushr	v24.4s, v18.4s, #31
+	ushr	v25.4s, v19.4s, #31
+	shl	v18.4s, v18.4s, #1
+	shl	v19.4s, v19.4s, #1
+	ext	v26.16b, v24.16b, v2.16b, #12
+	ext	v25.16b, v2.16b, v25.16b, #12
+	ext	v24.16b, v2.16b, v24.16b, #12
+	orr	v18.16b, v18.16b, v24.16b
+	orr	v19.16b, v19.16b, v25.16b
+	orr	v19.16b, v19.16b, v26.16b
+	shl	v24.4s, v18.4s, #31
+	shl	v25.4s, v18.4s, #30
+	shl	v26.4s, v18.4s, #25
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v24.16b, v24.16b, v26.16b
+	ext	v25.16b, v24.16b, v2.16b, #4
+	ext	v24.16b, v2.16b, v24.16b, #4
+	eor	v18.16b, v18.16b, v24.16b
+	ushr	v24.4s, v18.4s, #1
+	ushr	v26.4s, v18.4s, #2
+	ushr	v27.4s, v18.4s, #7
+	eor	v24.16b, v24.16b, v26.16b
+	eor	v24.16b, v24.16b, v27.16b
+	eor	v24.16b, v24.16b, v25.16b
+	eor	v18.16b, v18.16b, v24.16b
+	eor	v0.16b, v19.16b, v18.16b
+	subs	w3, w3, #1
+	bne	L_AES_GCMSIV_polyval_pmull_rem
+L_AES_GCMSIV_polyval_pmull_done:
+	rev64	v0.16b, v0.16b
+	ext	v0.16b, v0.16b, v0.16b, #8
+	st1	{v0.16b}, [x0]
+	ldp	d8, d9, [x29, #16]
+	ldp	d10, d11, [x29, #32]
+	ldp	d12, d13, [x29, #48]
+	ldp	d14, d15, [x29, #64]
+	ldp	x29, x30, [sp], #0x50
+	ret
+#ifndef __APPLE__
+	.size	AES_GCMSIV_polyval_pmull,.-AES_GCMSIV_polyval_pmull
+#endif /* __APPLE__ */
+#ifndef __APPLE__
+.text
+.globl	AES_GCMSIV_ctr_aarch64
+WC_ASM_ATT_HIDDEN(AES_GCMSIV_ctr_aarch64)
+.type	AES_GCMSIV_ctr_aarch64,@function
+.align	2
+AES_GCMSIV_ctr_aarch64:
+#else
+.section	__TEXT,__text
+.globl	_AES_GCMSIV_ctr_aarch64
+WC_ASM_ATT_HIDDEN(_AES_GCMSIV_ctr_aarch64)
+.p2align	2
+_AES_GCMSIV_ctr_aarch64:
+#endif /* __APPLE__ */
+	stp	x29, x30, [sp, #-80]!
+	add	x29, sp, #0
+	stp	d8, d9, [x29, #16]
+	stp	d10, d11, [x29, #32]
+	stp	d12, d13, [x29, #48]
+	stp	d14, d15, [x29, #64]
+	ld1	{v15.2d}, [x5]
+	mov	w7, v15.s[0]
+	lsr	x6, x2, #4
+	ld1	{v0.2d, v1.2d, v2.2d, v3.2d}, [x3], #0x40
+	ld1	{v4.2d, v5.2d, v6.2d, v7.2d}, [x3], #0x40
+	cmp	w4, #12
+	blt	L_AES_GCMSIV_ctr_aarch64_start_128
+	bgt	L_AES_GCMSIV_ctr_aarch64_start_256
+	# AES_GCMSIV_CTR_192
+#ifndef NO_AES_192
+	ld1	{v8.2d, v9.2d, v10.2d, v11.2d}, [x3], #0x40
+	ld1	{v12.2d}, [x3]
+L_AES_GCMSIV_ctr_aarch64_192_loop4:
+	cmp	x6, #4
+	blt	L_AES_GCMSIV_ctr_aarch64_192_done4
+	mov	v16.16b, v15.16b
+	mov	v16.s[0], w7
+	mov	v17.16b, v15.16b
+	add	w8, w7, #1
+	mov	v17.s[0], w8
+	mov	v18.16b, v15.16b
+	add	w8, w7, #2
+	mov	v18.s[0], w8
+	mov	v19.16b, v15.16b
+	add	w8, w7, #3
+	mov	v19.s[0], w8
+	add	w7, w7, #4
+	ld1	{v20.16b, v21.16b, v22.16b, v23.16b}, [x0], #0x40
+	aese	v16.16b, v0.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v0.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v0.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v0.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v1.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v1.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v1.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v1.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v2.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v2.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v2.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v2.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v3.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v3.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v3.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v3.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v4.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v4.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v4.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v4.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v5.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v5.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v5.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v5.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v6.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v6.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v6.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v6.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v7.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v7.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v7.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v7.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v8.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v8.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v8.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v8.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v9.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v9.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v9.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v9.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v10.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v10.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v10.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v10.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v11.16b
+	eor	v16.16b, v16.16b, v12.16b
+	aese	v17.16b, v11.16b
+	eor	v17.16b, v17.16b, v12.16b
+	aese	v18.16b, v11.16b
+	eor	v18.16b, v18.16b, v12.16b
+	aese	v19.16b, v11.16b
+	eor	v19.16b, v19.16b, v12.16b
+	eor	v20.16b, v20.16b, v16.16b
+	eor	v21.16b, v21.16b, v17.16b
+	eor	v22.16b, v22.16b, v18.16b
+	eor	v23.16b, v23.16b, v19.16b
+	st1	{v20.16b, v21.16b, v22.16b, v23.16b}, [x1], #0x40
+	sub	x6, x6, #4
+	cmp	x6, #4
+	bge	L_AES_GCMSIV_ctr_aarch64_192_loop4
+L_AES_GCMSIV_ctr_aarch64_192_done4:
+L_AES_GCMSIV_ctr_aarch64_192_loop1:
+	cbz	x6, L_AES_GCMSIV_ctr_aarch64_192_done1
+	mov	v16.16b, v15.16b
+	mov	v16.s[0], w7
+	add	w7, w7, #1
+	ld1	{v20.16b}, [x0], #16
+	aese	v16.16b, v0.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v1.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v2.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v3.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v4.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v5.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v6.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v7.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v8.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v9.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v10.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v11.16b
+	eor	v16.16b, v16.16b, v12.16b
+	eor	v20.16b, v20.16b, v16.16b
+	st1	{v20.16b}, [x1], #16
+	sub	x6, x6, #1
+	b	L_AES_GCMSIV_ctr_aarch64_192_loop1
+L_AES_GCMSIV_ctr_aarch64_192_done1:
+#endif /* !NO_AES_192 */
+	b	L_AES_GCMSIV_ctr_aarch64_done
+	# AES_GCMSIV_CTR_256
+L_AES_GCMSIV_ctr_aarch64_start_256:
+#ifndef NO_AES_256
+	ld1	{v8.2d, v9.2d, v10.2d, v11.2d}, [x3], #0x40
+	ld1	{v12.2d, v13.2d}, [x3], #32
+	ld1	{v14.2d}, [x3]
+L_AES_GCMSIV_ctr_aarch64_256_loop4:
+	cmp	x6, #4
+	blt	L_AES_GCMSIV_ctr_aarch64_256_done4
+	mov	v16.16b, v15.16b
+	mov	v16.s[0], w7
+	mov	v17.16b, v15.16b
+	add	w8, w7, #1
+	mov	v17.s[0], w8
+	mov	v18.16b, v15.16b
+	add	w8, w7, #2
+	mov	v18.s[0], w8
+	mov	v19.16b, v15.16b
+	add	w8, w7, #3
+	mov	v19.s[0], w8
+	add	w7, w7, #4
+	ld1	{v20.16b, v21.16b, v22.16b, v23.16b}, [x0], #0x40
+	aese	v16.16b, v0.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v0.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v0.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v0.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v1.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v1.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v1.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v1.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v2.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v2.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v2.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v2.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v3.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v3.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v3.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v3.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v4.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v4.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v4.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v4.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v5.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v5.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v5.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v5.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v6.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v6.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v6.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v6.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v7.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v7.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v7.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v7.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v8.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v8.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v8.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v8.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v9.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v9.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v9.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v9.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v10.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v10.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v10.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v10.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v11.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v11.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v11.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v11.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v12.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v12.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v12.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v12.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v13.16b
+	eor	v16.16b, v16.16b, v14.16b
+	aese	v17.16b, v13.16b
+	eor	v17.16b, v17.16b, v14.16b
+	aese	v18.16b, v13.16b
+	eor	v18.16b, v18.16b, v14.16b
+	aese	v19.16b, v13.16b
+	eor	v19.16b, v19.16b, v14.16b
+	eor	v20.16b, v20.16b, v16.16b
+	eor	v21.16b, v21.16b, v17.16b
+	eor	v22.16b, v22.16b, v18.16b
+	eor	v23.16b, v23.16b, v19.16b
+	st1	{v20.16b, v21.16b, v22.16b, v23.16b}, [x1], #0x40
+	sub	x6, x6, #4
+	cmp	x6, #4
+	bge	L_AES_GCMSIV_ctr_aarch64_256_loop4
+L_AES_GCMSIV_ctr_aarch64_256_done4:
+L_AES_GCMSIV_ctr_aarch64_256_loop1:
+	cbz	x6, L_AES_GCMSIV_ctr_aarch64_256_done1
+	mov	v16.16b, v15.16b
+	mov	v16.s[0], w7
+	add	w7, w7, #1
+	ld1	{v20.16b}, [x0], #16
+	aese	v16.16b, v0.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v1.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v2.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v3.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v4.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v5.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v6.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v7.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v8.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v9.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v10.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v11.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v12.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v13.16b
+	eor	v16.16b, v16.16b, v14.16b
+	eor	v20.16b, v20.16b, v16.16b
+	st1	{v20.16b}, [x1], #16
+	sub	x6, x6, #1
+	b	L_AES_GCMSIV_ctr_aarch64_256_loop1
+L_AES_GCMSIV_ctr_aarch64_256_done1:
+#endif /* !NO_AES_256 */
+	b	L_AES_GCMSIV_ctr_aarch64_done
+	# AES_GCMSIV_CTR_128
+L_AES_GCMSIV_ctr_aarch64_start_128:
+#ifndef NO_AES_128
+	ld1	{v8.2d, v9.2d}, [x3], #32
+	ld1	{v10.2d}, [x3]
+L_AES_GCMSIV_ctr_aarch64_128_loop4:
+	cmp	x6, #4
+	blt	L_AES_GCMSIV_ctr_aarch64_128_done4
+	mov	v16.16b, v15.16b
+	mov	v16.s[0], w7
+	mov	v17.16b, v15.16b
+	add	w8, w7, #1
+	mov	v17.s[0], w8
+	mov	v18.16b, v15.16b
+	add	w8, w7, #2
+	mov	v18.s[0], w8
+	mov	v19.16b, v15.16b
+	add	w8, w7, #3
+	mov	v19.s[0], w8
+	add	w7, w7, #4
+	ld1	{v20.16b, v21.16b, v22.16b, v23.16b}, [x0], #0x40
+	aese	v16.16b, v0.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v0.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v0.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v0.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v1.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v1.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v1.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v1.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v2.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v2.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v2.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v2.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v3.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v3.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v3.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v3.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v4.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v4.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v4.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v4.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v5.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v5.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v5.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v5.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v6.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v6.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v6.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v6.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v7.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v7.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v7.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v7.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v8.16b
+	aesmc	v16.16b, v16.16b
+	aese	v17.16b, v8.16b
+	aesmc	v17.16b, v17.16b
+	aese	v18.16b, v8.16b
+	aesmc	v18.16b, v18.16b
+	aese	v19.16b, v8.16b
+	aesmc	v19.16b, v19.16b
+	aese	v16.16b, v9.16b
+	eor	v16.16b, v16.16b, v10.16b
+	aese	v17.16b, v9.16b
+	eor	v17.16b, v17.16b, v10.16b
+	aese	v18.16b, v9.16b
+	eor	v18.16b, v18.16b, v10.16b
+	aese	v19.16b, v9.16b
+	eor	v19.16b, v19.16b, v10.16b
+	eor	v20.16b, v20.16b, v16.16b
+	eor	v21.16b, v21.16b, v17.16b
+	eor	v22.16b, v22.16b, v18.16b
+	eor	v23.16b, v23.16b, v19.16b
+	st1	{v20.16b, v21.16b, v22.16b, v23.16b}, [x1], #0x40
+	sub	x6, x6, #4
+	cmp	x6, #4
+	bge	L_AES_GCMSIV_ctr_aarch64_128_loop4
+L_AES_GCMSIV_ctr_aarch64_128_done4:
+L_AES_GCMSIV_ctr_aarch64_128_loop1:
+	cbz	x6, L_AES_GCMSIV_ctr_aarch64_128_done1
+	mov	v16.16b, v15.16b
+	mov	v16.s[0], w7
+	add	w7, w7, #1
+	ld1	{v20.16b}, [x0], #16
+	aese	v16.16b, v0.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v1.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v2.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v3.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v4.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v5.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v6.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v7.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v8.16b
+	aesmc	v16.16b, v16.16b
+	aese	v16.16b, v9.16b
+	eor	v16.16b, v16.16b, v10.16b
+	eor	v20.16b, v20.16b, v16.16b
+	st1	{v20.16b}, [x1], #16
+	sub	x6, x6, #1
+	b	L_AES_GCMSIV_ctr_aarch64_128_loop1
+L_AES_GCMSIV_ctr_aarch64_128_done1:
+#endif /* !NO_AES_128 */
+L_AES_GCMSIV_ctr_aarch64_done:
+	mov	v15.s[0], w7
+	st1	{v15.2d}, [x5]
+	ldp	d8, d9, [x29, #16]
+	ldp	d10, d11, [x29, #32]
+	ldp	d12, d13, [x29, #48]
+	ldp	d14, d15, [x29, #64]
+	ldp	x29, x30, [sp], #0x50
+	ret
+#ifndef __APPLE__
+	.size	AES_GCMSIV_ctr_aarch64,.-AES_GCMSIV_ctr_aarch64
+#endif /* __APPLE__ */
+#endif /* WOLFSSL_AESGCM_SIV */
 #endif /* !WOLFSSL_ARMASM_NO_HW_CRYPTO */
 #ifndef WOLFSSL_ARMASM_NO_NEON
-#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AES_CBC) || \
-    defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || \
-    defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER)
+#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AES_CBC) || defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER)
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_NEON_te, %object
 	.section	.rodata
+	.type	L_AES_ARM64_NEON_te, %object
 	.size	L_AES_ARM64_NEON_te, 256
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
-	.align	1
+	.align	3
 #else
-	.p2align	1
+	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_NEON_te:
 	.byte	0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5
@@ -43169,32 +44320,34 @@ L_AES_ARM64_NEON_te:
 	.byte	0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_NEON_shift_rows_shuffle, %object
 	.section	.rodata
+	.type	L_AES_ARM64_NEON_shift_rows_shuffle, %object
 	.size	L_AES_ARM64_NEON_shift_rows_shuffle, 16
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
-	.align	1
+	.align	3
 #else
-	.p2align	1
+	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_NEON_shift_rows_shuffle:
 	.byte	0x0c,0x09,0x06,0x03,0x00,0x0d,0x0a,0x07
 	.byte	0x04,0x01,0x0e,0x0b,0x08,0x05,0x02,0x0f
-#endif /* HAVE_AES_DECRYPT || HAVE_AES_CBC || HAVE_AESCCM || HAVE_AESGCM ||
-        * WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER */
+#endif /* HAVE_AES_DECRYPT || HAVE_AES_CBC || HAVE_AESCCM || HAVE_AESGCM || WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER */
 #ifdef HAVE_AES_DECRYPT
 #ifndef __APPLE__
 .text
 .globl	AES_invert_key_NEON
+WC_ASM_ATT_HIDDEN(AES_invert_key_NEON)
 .type	AES_invert_key_NEON,@function
 .align	2
 AES_invert_key_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_invert_key_NEON
+WC_ASM_ATT_HIDDEN(_AES_invert_key_NEON)
 .p2align	2
 _AES_invert_key_NEON:
 #endif /* __APPLE__ */
@@ -43249,37 +44402,33 @@ L_AES_invert_key_NEON_mix_loop:
 #endif /* HAVE_AES_DECRYPT */
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_NEON_rcon, %object
 	.section	.rodata
+	.type	L_AES_ARM64_NEON_rcon, %object
 	.size	L_AES_ARM64_NEON_rcon, 40
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
 	.align	3
 #else
 	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_NEON_rcon:
-	.word	0x01000000
-	.word	0x02000000
-	.word	0x04000000
-	.word	0x08000000
-	.word	0x10000000
-	.word	0x20000000
-	.word	0x40000000
-	.word	0x80000000
-	.word	0x1b000000
-	.word	0x36000000
+	.long	0x01000000,0x02000000,0x04000000,0x08000000
+	.long	0x10000000,0x20000000,0x40000000,0x80000000
+	.long	0x1b000000,0x36000000
 #ifndef __APPLE__
 .text
 .globl	AES_set_encrypt_key_NEON
+WC_ASM_ATT_HIDDEN(AES_set_encrypt_key_NEON)
 .type	AES_set_encrypt_key_NEON,@function
 .align	2
 AES_set_encrypt_key_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_set_encrypt_key_NEON
+WC_ASM_ATT_HIDDEN(_AES_set_encrypt_key_NEON)
 .p2align	2
 _AES_set_encrypt_key_NEON:
 #endif /* __APPLE__ */
@@ -43517,18 +44666,18 @@ L_AES_set_encrypt_key_NEON_end:
 #ifndef __APPLE__
 	.size	AES_set_encrypt_key_NEON,.-AES_set_encrypt_key_NEON
 #endif /* __APPLE__ */
-#if defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || \
-    defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || \
-    defined(HAVE_AES_ECB)
+#if defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || defined(HAVE_AES_ECB)
 #ifndef __APPLE__
 .text
 .globl	AES_ECB_encrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_ECB_encrypt_NEON)
 .type	AES_ECB_encrypt_NEON,@function
 .align	2
 AES_ECB_encrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_ECB_encrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_ECB_encrypt_NEON)
 .p2align	2
 _AES_ECB_encrypt_NEON:
 #endif /* __APPLE__ */
@@ -43557,7 +44706,7 @@ _AES_ECB_encrypt_NEON:
 	ld1	{v24.16b, v25.16b, v26.16b, v27.16b}, [x5], #0x40
 	ld1	{v28.16b, v29.16b, v30.16b, v31.16b}, [x5]
 	cmp	x2, #0x40
-	blt	L_AES_ECB_encrypt_NEON_start_2
+	bcc	L_AES_ECB_encrypt_NEON_start_2
 L_AES_ECB_encrypt_NEON_loop_4:
 	mov	x8, x3
 	ld1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x0], #0x40
@@ -43961,7 +45110,7 @@ L_AES_ECB_encrypt_NEON_loop_nr_4:
 	st1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x1], #0x40
 	sub	x2, x2, #0x40
 	cmp	x2, #0x40
-	bge	L_AES_ECB_encrypt_NEON_loop_4
+	bcs	L_AES_ECB_encrypt_NEON_loop_4
 L_AES_ECB_encrypt_NEON_start_2:
 	movi	v12.16b, #0x40
 	movi	v13.16b, #0x80
@@ -43969,7 +45118,7 @@ L_AES_ECB_encrypt_NEON_start_2:
 	movi	v15.16b, #27
 	cmp	x2, #16
 	beq	L_AES_ECB_encrypt_NEON_start_1
-	blt	L_AES_ECB_encrypt_NEON_data_done
+	bcc	L_AES_ECB_encrypt_NEON_data_done
 L_AES_ECB_encrypt_NEON_loop_2:
 	mov	x8, x3
 	ld1	{v0.16b, v1.16b}, [x0], #32
@@ -44298,18 +45447,19 @@ L_AES_ECB_encrypt_NEON_data_done:
 #ifndef __APPLE__
 	.size	AES_ECB_encrypt_NEON,.-AES_ECB_encrypt_NEON
 #endif /* __APPLE__ */
-#endif /* HAVE_AESCCM || HAVE_AESGCM || WOLFSSL_AES_DIRECT ||
-        * WOLFSSL_AES_COUNTER || HAVE_AES_ECB */
+#endif /* HAVE_AESCCM || HAVE_AESGCM || WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER || HAVE_AES_ECB */
 #ifdef HAVE_AES_CBC
 #ifndef __APPLE__
 .text
 .globl	AES_CBC_encrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_CBC_encrypt_NEON)
 .type	AES_CBC_encrypt_NEON,@function
 .align	2
 AES_CBC_encrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_CBC_encrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_CBC_encrypt_NEON)
 .p2align	2
 _AES_CBC_encrypt_NEON:
 #endif /* __APPLE__ */
@@ -44469,12 +45619,14 @@ L_AES_CBC_encrypt_NEON_loop_nr:
 #ifndef __APPLE__
 .text
 .globl	AES_CTR_encrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_CTR_encrypt_NEON)
 .type	AES_CTR_encrypt_NEON,@function
 .align	2
 AES_CTR_encrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_CTR_encrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_CTR_encrypt_NEON)
 .p2align	2
 _AES_CTR_encrypt_NEON:
 #endif /* __APPLE__ */
@@ -44508,43 +45660,38 @@ _AES_CTR_encrypt_NEON:
 	mov	x10, v8.d[1]
 	mov	x11, v8.d[0]
 	cmp	x2, #0x40
-	blt	L_AES_CTR_encrypt_NEON_start_2
+	bcc	L_AES_CTR_encrypt_NEON_start_2
 L_AES_CTR_encrypt_NEON_loop_4:
 	mov	x9, x3
 	ld1	{v4.2d}, [x9], #16
 	mov	v8.d[1], x10
 	mov	v8.d[0], x11
-	rev64	v8.16b, v8.16b
-	rev32	v8.16b, v8.16b
+	rev64	v8.4s, v8.4s
 	# Round: 0 - XOR in key schedule
 	eor	v0.16b, v8.16b, v4.16b
 	adds	x10, x10, #1
 	adc	x11, x11, xzr
 	mov	v8.d[1], x10
 	mov	v8.d[0], x11
-	rev64	v8.16b, v8.16b
-	rev32	v8.16b, v8.16b
+	rev64	v8.4s, v8.4s
 	eor	v1.16b, v8.16b, v4.16b
 	adds	x10, x10, #1
 	adc	x11, x11, xzr
 	mov	v8.d[1], x10
 	mov	v8.d[0], x11
-	rev64	v8.16b, v8.16b
-	rev32	v8.16b, v8.16b
+	rev64	v8.4s, v8.4s
 	eor	v2.16b, v8.16b, v4.16b
 	adds	x10, x10, #1
 	adc	x11, x11, xzr
 	mov	v8.d[1], x10
 	mov	v8.d[0], x11
-	rev64	v8.16b, v8.16b
-	rev32	v8.16b, v8.16b
+	rev64	v8.4s, v8.4s
 	eor	v3.16b, v8.16b, v4.16b
 	adds	x10, x10, #1
 	adc	x11, x11, xzr
 	mov	v8.d[1], x10
 	mov	v8.d[0], x11
-	rev64	v8.16b, v8.16b
-	rev32	v8.16b, v8.16b
+	rev64	v8.4s, v8.4s
 	sub	w8, w4, #2
 L_AES_CTR_encrypt_NEON_loop_nr_4:
 	tbl	v4.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v0.16b
@@ -44940,11 +46087,10 @@ L_AES_CTR_encrypt_NEON_loop_nr_4:
 	st1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x1], #0x40
 	sub	x2, x2, #0x40
 	cmp	x2, #0x40
-	bge	L_AES_CTR_encrypt_NEON_loop_4
+	bcs	L_AES_CTR_encrypt_NEON_loop_4
 	mov	v2.d[1], x10
 	mov	v2.d[0], x11
-	rev64	v2.16b, v2.16b
-	rev32	v2.16b, v2.16b
+	rev64	v2.4s, v2.4s
 L_AES_CTR_encrypt_NEON_start_2:
 	movi	v12.16b, #0x40
 	movi	v13.16b, #0x80
@@ -44952,7 +46098,7 @@ L_AES_CTR_encrypt_NEON_start_2:
 	movi	v15.16b, #27
 	cmp	x2, #16
 	beq	L_AES_CTR_encrypt_NEON_start_1
-	blt	L_AES_CTR_encrypt_NEON_data_done
+	bcc	L_AES_CTR_encrypt_NEON_data_done
 L_AES_CTR_encrypt_NEON_loop_2:
 	mov	x9, x3
 	ld1	{v4.2d}, [x9], #16
@@ -44962,15 +46108,13 @@ L_AES_CTR_encrypt_NEON_loop_2:
 	adc	x11, x11, xzr
 	mov	v2.d[1], x10
 	mov	v2.d[0], x11
-	rev64	v2.16b, v2.16b
-	rev32	v2.16b, v2.16b
+	rev64	v2.4s, v2.4s
 	eor	v1.16b, v2.16b, v4.16b
 	adds	x10, x10, #1
 	adc	x11, x11, xzr
 	mov	v2.d[1], x10
 	mov	v2.d[0], x11
-	rev64	v2.16b, v2.16b
-	rev32	v2.16b, v2.16b
+	rev64	v2.4s, v2.4s
 	sub	w8, w4, #2
 L_AES_CTR_encrypt_NEON_loop_nr_2:
 	eor	v8.16b, v0.16b, v12.16b
@@ -45287,8 +46431,7 @@ L_AES_CTR_encrypt_NEON_loop_nr_1:
 	adc	x11, x11, xzr
 	mov	v2.d[1], x10
 	mov	v2.d[0], x11
-	rev64	v2.16b, v2.16b
-	rev32	v2.16b, v2.16b
+	rev64	v2.4s, v2.4s
 L_AES_CTR_encrypt_NEON_data_done:
 	rev32	v2.16b, v2.16b
 	st1	{v2.2d}, [x5]
@@ -45303,20 +46446,20 @@ L_AES_CTR_encrypt_NEON_data_done:
 #endif /* __APPLE__ */
 #endif /* WOLFSSL_AES_COUNTER */
 #ifdef HAVE_AES_DECRYPT
-#if defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || \
-    defined(HAVE_AES_CBC) || defined(HAVE_AES_ECB)
+#if defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || defined(HAVE_AES_CBC) || defined(HAVE_AES_ECB)
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_NEON_td, %object
 	.section	.rodata
+	.type	L_AES_ARM64_NEON_td, %object
 	.size	L_AES_ARM64_NEON_td, 256
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
-	.align	1
+	.align	3
 #else
-	.p2align	1
+	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_NEON_td:
 	.byte	0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38
@@ -45353,16 +46496,17 @@ L_AES_ARM64_NEON_td:
 	.byte	0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_NEON_shift_rows_invshuffle, %object
 	.section	.rodata
+	.type	L_AES_ARM64_NEON_shift_rows_invshuffle, %object
 	.size	L_AES_ARM64_NEON_shift_rows_invshuffle, 16
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
-	.align	1
+	.align	3
 #else
-	.p2align	1
+	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_NEON_shift_rows_invshuffle:
 	.byte	0x04,0x09,0x0e,0x03,0x08,0x0d,0x02,0x07
@@ -45371,12 +46515,14 @@ L_AES_ARM64_NEON_shift_rows_invshuffle:
 #ifndef __APPLE__
 .text
 .globl	AES_ECB_decrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_ECB_decrypt_NEON)
 .type	AES_ECB_decrypt_NEON,@function
 .align	2
 AES_ECB_decrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_ECB_decrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_ECB_decrypt_NEON)
 .p2align	2
 _AES_ECB_decrypt_NEON:
 #endif /* __APPLE__ */
@@ -45405,7 +46551,7 @@ _AES_ECB_decrypt_NEON:
 	ld1	{v24.16b, v25.16b, v26.16b, v27.16b}, [x5], #0x40
 	ld1	{v28.16b, v29.16b, v30.16b, v31.16b}, [x5]
 	cmp	x2, #0x40
-	blt	L_AES_ECB_decrypt_NEON_start_2
+	bcc	L_AES_ECB_decrypt_NEON_start_2
 L_AES_ECB_decrypt_NEON_loop_4:
 	mov	x8, x3
 	ld1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x0], #0x40
@@ -45956,11 +47102,11 @@ L_AES_ECB_decrypt_NEON_loop_nr_4:
 	st1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x1], #0x40
 	sub	x2, x2, #0x40
 	cmp	x2, #0x40
-	bge	L_AES_ECB_decrypt_NEON_loop_4
+	bcs	L_AES_ECB_decrypt_NEON_loop_4
 L_AES_ECB_decrypt_NEON_start_2:
 	cmp	x2, #16
 	beq	L_AES_ECB_decrypt_NEON_start_1
-	blt	L_AES_ECB_decrypt_NEON_data_done
+	bcc	L_AES_ECB_decrypt_NEON_data_done
 L_AES_ECB_decrypt_NEON_loop_2:
 	mov	x8, x3
 	ld1	{v0.16b, v1.16b}, [x0], #32
@@ -46421,12 +47567,14 @@ L_AES_ECB_decrypt_NEON_data_done:
 #ifndef __APPLE__
 .text
 .globl	AES_CBC_decrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_CBC_decrypt_NEON)
 .type	AES_CBC_decrypt_NEON,@function
 .align	2
 AES_CBC_decrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_CBC_decrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_CBC_decrypt_NEON)
 .p2align	2
 _AES_CBC_decrypt_NEON:
 #endif /* __APPLE__ */
@@ -46457,7 +47605,7 @@ _AES_CBC_decrypt_NEON:
 	ld1	{v3.2d}, [x5]
 	add	x10, x29, #16
 	cmp	x2, #0x40
-	blt	L_AES_CBC_decrypt_NEON_start_2
+	bcc	L_AES_CBC_decrypt_NEON_start_2
 L_AES_CBC_decrypt_NEON_loop_4:
 	mov	x9, x3
 	ld1	{v4.16b, v5.16b, v6.16b, v7.16b}, [x0], #0x40
@@ -47016,11 +48164,11 @@ L_AES_CBC_decrypt_NEON_loop_nr_4:
 	st1	{v4.16b, v5.16b, v6.16b, v7.16b}, [x1], #0x40
 	sub	x2, x2, #0x40
 	cmp	x2, #0x40
-	bge	L_AES_CBC_decrypt_NEON_loop_4
+	bcs	L_AES_CBC_decrypt_NEON_loop_4
 L_AES_CBC_decrypt_NEON_start_2:
 	cmp	x2, #16
 	beq	L_AES_CBC_decrypt_NEON_start_1
-	blt	L_AES_CBC_decrypt_NEON_data_done
+	bcc	L_AES_CBC_decrypt_NEON_data_done
 L_AES_CBC_decrypt_NEON_loop_2:
 	mov	x9, x3
 	ld1	{v4.16b, v5.16b}, [x0], #32
@@ -47320,7 +48468,7 @@ L_AES_CBC_decrypt_NEON_loop_nr_2:
 	st1	{v4.16b, v5.16b}, [x1], #32
 	sub	x2, x2, #32
 	cmp	x2, #32
-	bge	L_AES_CBC_decrypt_NEON_loop_2
+	bcs	L_AES_CBC_decrypt_NEON_loop_2
 	cmp	x2, #0
 	beq	L_AES_CBC_decrypt_NEON_data_done
 L_AES_CBC_decrypt_NEON_start_1:
@@ -47488,19 +48636,20 @@ L_AES_CBC_decrypt_NEON_data_done:
 	.size	AES_CBC_decrypt_NEON,.-AES_CBC_decrypt_NEON
 #endif /* __APPLE__ */
 #endif /* HAVE_AES_CBC */
-#endif /* WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER || HAVE_AES_CBC
-        * HAVE_AES_ECB */
+#endif /* WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER || HAVE_AES_CBC || HAVE_AES_ECB */
 #endif /* HAVE_AES_DECRYPT */
 #ifdef HAVE_AESGCM
 #ifndef __APPLE__
 .text
 .globl	GCM_gmult_len_NEON
+WC_ASM_ATT_HIDDEN(GCM_gmult_len_NEON)
 .type	GCM_gmult_len_NEON,@function
 .align	2
 GCM_gmult_len_NEON:
 #else
 .section	__TEXT,__text
 .globl	_GCM_gmult_len_NEON
+WC_ASM_ATT_HIDDEN(_GCM_gmult_len_NEON)
 .p2align	2
 _GCM_gmult_len_NEON:
 #endif /* __APPLE__ */
@@ -47837,12 +48986,14 @@ L_GCM_gmult_len_NEON_start_block:
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt_NEON)
 .type	AES_GCM_encrypt_NEON,@function
 .align	2
 AES_GCM_encrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt_NEON)
 .p2align	2
 _AES_GCM_encrypt_NEON:
 #endif /* __APPLE__ */
@@ -47874,7 +49025,7 @@ _AES_GCM_encrypt_NEON:
 	rev32	v2.16b, v2.16b
 	mov	w6, v2.s[3]
 	cmp	x2, #0x40
-	blt	L_AES_GCM_encrypt_NEON_start_2
+	bcc	L_AES_GCM_encrypt_NEON_start_2
 	mov	x7, v2.d[0]
 	mov	x8, v2.d[1]
 L_AES_GCM_encrypt_NEON_loop_4:
@@ -48290,7 +49441,7 @@ L_AES_GCM_encrypt_NEON_loop_nr_4:
 	st1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x1], #0x40
 	sub	x2, x2, #0x40
 	cmp	x2, #0x40
-	bge	L_AES_GCM_encrypt_NEON_loop_4
+	bcs	L_AES_GCM_encrypt_NEON_loop_4
 	mov	v2.d[0], x7
 	mov	v2.d[1], x8
 	mov	v2.s[3], w6
@@ -48301,7 +49452,7 @@ L_AES_GCM_encrypt_NEON_start_2:
 	movi	v15.16b, #27
 	cmp	x2, #16
 	beq	L_AES_GCM_encrypt_NEON_start_1
-	blt	L_AES_GCM_encrypt_NEON_data_done
+	bcc	L_AES_GCM_encrypt_NEON_data_done
 L_AES_GCM_encrypt_NEON_loop_2:
 	mov	x12, x3
 	ld1	{v4.2d}, [x12], #16
@@ -48643,12 +49794,14 @@ L_AES_GCM_encrypt_NEON_data_done:
 #ifndef __APPLE__
 .text
 .globl	AES_XTS_encrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_XTS_encrypt_NEON)
 .type	AES_XTS_encrypt_NEON,@function
 .align	2
 AES_XTS_encrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_XTS_encrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_XTS_encrypt_NEON)
 .p2align	2
 _AES_XTS_encrypt_NEON:
 #endif /* __APPLE__ */
@@ -48794,7 +49947,7 @@ L_AES_XTS_encrypt_NEON_loop_nr_tweak:
 	mov	x8, v2.d[0]
 	mov	x9, v2.d[1]
 	cmp	w2, #0x40
-	blt	L_AES_XTS_encrypt_NEON_start_2
+	bcc	L_AES_XTS_encrypt_NEON_start_2
 L_AES_XTS_encrypt_NEON_loop_4:
 	mov	x22, x4
 	ld1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x0], #0x40
@@ -49233,14 +50386,14 @@ L_AES_XTS_encrypt_NEON_loop_nr_4:
 	eor	x8, x16, x14, lsl 1
 	sub	w2, w2, #0x40
 	cmp	w2, #0x40
-	bge	L_AES_XTS_encrypt_NEON_loop_4
+	bcs	L_AES_XTS_encrypt_NEON_loop_4
 	movi	v12.16b, #0x40
 	movi	v13.16b, #0x80
 	movi	v14.16b, #0xc0
 	movi	v15.16b, #27
 L_AES_XTS_encrypt_NEON_start_2:
 	cmp	w2, #32
-	blt	L_AES_XTS_encrypt_NEON_start_1
+	bcc	L_AES_XTS_encrypt_NEON_start_1
 	mov	x22, x4
 	ld1	{v0.16b, v1.16b}, [x0], #32
 	ld1	{v4.16b}, [x22], #16
@@ -49468,7 +50621,7 @@ L_AES_XTS_encrypt_NEON_start_1:
 	mov	v2.d[0], x8
 	mov	v2.d[1], x9
 	cmp	w2, #16
-	blt	L_AES_XTS_encrypt_NEON_start_partial
+	bcc	L_AES_XTS_encrypt_NEON_start_partial
 	mov	x22, x4
 	ld1	{v0.16b}, [x0], #16
 	ld1	{v4.2d}, [x22], #16
@@ -49725,12 +50878,14 @@ L_AES_XTS_encrypt_NEON_data_done:
 #ifndef __APPLE__
 .text
 .globl	AES_XTS_decrypt_NEON
+WC_ASM_ATT_HIDDEN(AES_XTS_decrypt_NEON)
 .type	AES_XTS_decrypt_NEON,@function
 .align	2
 AES_XTS_decrypt_NEON:
 #else
 .section	__TEXT,__text
 .globl	_AES_XTS_decrypt_NEON
+WC_ASM_ATT_HIDDEN(_AES_XTS_decrypt_NEON)
 .p2align	2
 _AES_XTS_decrypt_NEON:
 #endif /* __APPLE__ */
@@ -49784,8 +50939,7 @@ _AES_XTS_decrypt_NEON:
 	mov	x17, #0x87
 	ands	w19, w2, #15
 	cset	w16, ne
-	lsl	w16, w16, #4
-	sub	w2, w2, w16
+	sub	w2, w2, w16, lsl 4
 	ld1	{v2.2d}, [x3]
 	ld1	{v4.2d}, [x5]
 	rev32	v2.16b, v2.16b
@@ -49900,7 +51054,7 @@ L_AES_XTS_decrypt_NEON_loop_nr_tweak:
 	ld1	{v28.16b, v29.16b, v30.16b, v31.16b}, [x21]
 	ld1	{v3.2d}, [x23]
 	cmp	w2, #0x40
-	blt	L_AES_XTS_decrypt_NEON_start_2
+	bcc	L_AES_XTS_decrypt_NEON_start_2
 L_AES_XTS_decrypt_NEON_loop_4:
 	mov	x25, x4
 	ld1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x0], #0x40
@@ -50486,14 +51640,14 @@ L_AES_XTS_decrypt_NEON_loop_nr_4:
 	eor	x8, x16, x14, lsl 1
 	sub	w2, w2, #0x40
 	cmp	w2, #0x40
-	bge	L_AES_XTS_decrypt_NEON_loop_4
+	bcs	L_AES_XTS_decrypt_NEON_loop_4
 	movi	v12.16b, #0x40
 	movi	v13.16b, #0x80
 	movi	v14.16b, #0xc0
 	movi	v15.16b, #27
 L_AES_XTS_decrypt_NEON_start_2:
 	cmp	w2, #32
-	blt	L_AES_XTS_decrypt_NEON_start_1
+	bcc	L_AES_XTS_decrypt_NEON_start_1
 	mov	x25, x4
 	ld1	{v0.16b, v1.16b}, [x0], #32
 	ld1	{v4.16b}, [x25], #16
@@ -50808,7 +51962,7 @@ L_AES_XTS_decrypt_NEON_start_1:
 	mov	v2.d[0], x8
 	mov	v2.d[1], x9
 	cmp	w2, #16
-	blt	L_AES_XTS_decrypt_NEON_start_partial
+	bcc	L_AES_XTS_decrypt_NEON_start_partial
 	mov	x25, x4
 	ld1	{v0.16b}, [x0], #16
 	ld1	{v4.2d}, [x25], #16
@@ -51284,565 +52438,1406 @@ L_AES_XTS_decrypt_NEON_data_done:
 #endif /* __APPLE__ */
 #endif /* HAVE_AES_DECRYPT */
 #endif /* WOLFSSL_AES_XTS */
+#ifdef WOLFSSL_AESGCM_SIV
+#ifndef __APPLE__
+.text
+.globl	AES_GCMSIV_polyval_neon
+WC_ASM_ATT_HIDDEN(AES_GCMSIV_polyval_neon)
+.type	AES_GCMSIV_polyval_neon,@function
+.align	2
+AES_GCMSIV_polyval_neon:
+#else
+.section	__TEXT,__text
+.globl	_AES_GCMSIV_polyval_neon
+WC_ASM_ATT_HIDDEN(_AES_GCMSIV_polyval_neon)
+.p2align	2
+_AES_GCMSIV_polyval_neon:
+#endif /* __APPLE__ */
+	stp	x29, x30, [sp, #-80]!
+	add	x29, sp, #0
+	stp	d8, d9, [x29, #16]
+	stp	d10, d11, [x29, #32]
+	stp	d12, d13, [x29, #48]
+	stp	d14, d15, [x29, #64]
+	ld1	{v18.2d}, [x0]
+	ld1	{v10.2d}, [x1]
+	movi	v19.16b, #15
+	eor	v20.16b, v20.16b, v20.16b
+	rev64	v10.16b, v10.16b
+	ext	v10.16b, v10.16b, v10.16b, #8
+	rbit	v10.16b, v10.16b
+	rbit	v18.16b, v18.16b
+	and	v12.16b, v10.16b, v19.16b
+	ushr	v13.16b, v10.16b, #4
+	eor	v14.16b, v12.16b, v13.16b
+	cbz	w3, L_AES_GCMSIV_polyval_neon_done
+L_AES_GCMSIV_polyval_neon_loop:
+	ld1	{v0.16b}, [x2], #16
+	rev64	v0.16b, v0.16b
+	ext	v0.16b, v0.16b, v0.16b, #8
+	rbit	v0.16b, v0.16b
+	eor	v18.16b, v18.16b, v0.16b
+	and	v15.16b, v18.16b, v19.16b
+	ushr	v16.16b, v18.16b, #4
+	eor	v17.16b, v15.16b, v16.16b
+	dup	v0.16b, v12.b[0]
+	dup	v2.16b, v14.b[0]
+	dup	v1.16b, v13.b[0]
+	pmul	v8.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v8.16b
+	eor	v5.16b, v5.16b, v4.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v8.16b, v8.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	dup	v0.16b, v12.b[1]
+	dup	v2.16b, v14.b[1]
+	dup	v1.16b, v13.b[1]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v6.16b, v20.16b, v3.16b, #15
+	ext	v9.16b, v3.16b, v20.16b, #15
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[2]
+	dup	v2.16b, v14.b[2]
+	dup	v1.16b, v13.b[2]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #14
+	ext	v6.16b, v20.16b, v3.16b, #14
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[3]
+	dup	v2.16b, v14.b[3]
+	dup	v1.16b, v13.b[3]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #13
+	ext	v6.16b, v20.16b, v3.16b, #13
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[4]
+	dup	v2.16b, v14.b[4]
+	dup	v1.16b, v13.b[4]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #12
+	ext	v6.16b, v20.16b, v3.16b, #12
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[5]
+	dup	v2.16b, v14.b[5]
+	dup	v1.16b, v13.b[5]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #11
+	ext	v6.16b, v20.16b, v3.16b, #11
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[6]
+	dup	v2.16b, v14.b[6]
+	dup	v1.16b, v13.b[6]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #10
+	ext	v6.16b, v20.16b, v3.16b, #10
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[7]
+	dup	v2.16b, v14.b[7]
+	dup	v1.16b, v13.b[7]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #9
+	ext	v6.16b, v20.16b, v3.16b, #9
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[8]
+	dup	v2.16b, v14.b[8]
+	dup	v1.16b, v13.b[8]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #8
+	ext	v6.16b, v20.16b, v3.16b, #8
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[9]
+	dup	v2.16b, v14.b[9]
+	dup	v1.16b, v13.b[9]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #7
+	ext	v6.16b, v20.16b, v3.16b, #7
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[10]
+	dup	v2.16b, v14.b[10]
+	dup	v1.16b, v13.b[10]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #6
+	ext	v6.16b, v20.16b, v3.16b, #6
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[11]
+	dup	v2.16b, v14.b[11]
+	dup	v1.16b, v13.b[11]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #5
+	ext	v6.16b, v20.16b, v3.16b, #5
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[12]
+	dup	v2.16b, v14.b[12]
+	dup	v1.16b, v13.b[12]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #4
+	ext	v6.16b, v20.16b, v3.16b, #4
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[13]
+	dup	v2.16b, v14.b[13]
+	dup	v1.16b, v13.b[13]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #3
+	ext	v6.16b, v20.16b, v3.16b, #3
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[14]
+	dup	v2.16b, v14.b[14]
+	dup	v1.16b, v13.b[14]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #2
+	ext	v6.16b, v20.16b, v3.16b, #2
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	dup	v0.16b, v12.b[15]
+	dup	v2.16b, v14.b[15]
+	dup	v1.16b, v13.b[15]
+	pmul	v3.16b, v15.16b, v0.16b
+	pmul	v5.16b, v17.16b, v2.16b
+	pmul	v4.16b, v16.16b, v1.16b
+	eor	v5.16b, v5.16b, v3.16b
+	eor	v5.16b, v5.16b, v4.16b
+	eor	v3.16b, v3.16b, v11.16b
+	shl	v6.16b, v5.16b, #4
+	ushr	v7.16b, v5.16b, #4
+	eor	v3.16b, v3.16b, v6.16b
+	eor	v11.16b, v4.16b, v7.16b
+	ext	v7.16b, v3.16b, v20.16b, #1
+	ext	v6.16b, v20.16b, v3.16b, #1
+	eor	v9.16b, v9.16b, v7.16b
+	eor	v8.16b, v8.16b, v6.16b
+	eor	v9.16b, v9.16b, v11.16b
+	shl	v0.16b, v9.16b, #1
+	shl	v1.16b, v9.16b, #2
+	shl	v2.16b, v9.16b, #7
+	ushr	v3.16b, v9.16b, #7
+	ushr	v4.16b, v9.16b, #6
+	ushr	v5.16b, v9.16b, #1
+	eor	v0.16b, v0.16b, v9.16b
+	eor	v1.16b, v1.16b, v2.16b
+	eor	v0.16b, v0.16b, v1.16b
+	eor	v8.16b, v8.16b, v0.16b
+	ext	v0.16b, v20.16b, v3.16b, #15
+	ext	v1.16b, v20.16b, v4.16b, #15
+	ext	v2.16b, v20.16b, v5.16b, #15
+	ext	v4.16b, v4.16b, v20.16b, #15
+	ext	v5.16b, v5.16b, v20.16b, #15
+	eor	v0.16b, v0.16b, v1.16b
+	eor	v8.16b, v8.16b, v2.16b
+	eor	v8.16b, v8.16b, v0.16b
+	eor	v3.16b, v4.16b, v5.16b
+	shl	v0.2d, v3.2d, #1
+	shl	v1.2d, v3.2d, #2
+	shl	v2.2d, v3.2d, #7
+	eor	v3.16b, v3.16b, v0.16b
+	eor	v1.16b, v1.16b, v2.16b
+	eor	v8.16b, v8.16b, v3.16b
+	eor	v18.16b, v8.16b, v1.16b
+	subs	w3, w3, #1
+	bne	L_AES_GCMSIV_polyval_neon_loop
+L_AES_GCMSIV_polyval_neon_done:
+	rbit	v18.16b, v18.16b
+	st1	{v18.2d}, [x0]
+	ldp	d8, d9, [x29, #16]
+	ldp	d10, d11, [x29, #32]
+	ldp	d12, d13, [x29, #48]
+	ldp	d14, d15, [x29, #64]
+	ldp	x29, x30, [sp], #0x50
+	ret
+#ifndef __APPLE__
+	.size	AES_GCMSIV_polyval_neon,.-AES_GCMSIV_polyval_neon
+#endif /* __APPLE__ */
+#ifndef __APPLE__
+	.text
+	.section	.rodata
+	.type	L_AES_GCMSIV_ctr_neon_te, %object
+	.size	L_AES_GCMSIV_ctr_neon_te, 256
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
+L_AES_GCMSIV_ctr_neon_te:
+	.byte	0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5
+	.byte	0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76
+	.byte	0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0
+	.byte	0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0
+	.byte	0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc
+	.byte	0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15
+	.byte	0x04,0xc7,0x23,0xc3,0x18,0x96,0x05,0x9a
+	.byte	0x07,0x12,0x80,0xe2,0xeb,0x27,0xb2,0x75
+	.byte	0x09,0x83,0x2c,0x1a,0x1b,0x6e,0x5a,0xa0
+	.byte	0x52,0x3b,0xd6,0xb3,0x29,0xe3,0x2f,0x84
+	.byte	0x53,0xd1,0x00,0xed,0x20,0xfc,0xb1,0x5b
+	.byte	0x6a,0xcb,0xbe,0x39,0x4a,0x4c,0x58,0xcf
+	.byte	0xd0,0xef,0xaa,0xfb,0x43,0x4d,0x33,0x85
+	.byte	0x45,0xf9,0x02,0x7f,0x50,0x3c,0x9f,0xa8
+	.byte	0x51,0xa3,0x40,0x8f,0x92,0x9d,0x38,0xf5
+	.byte	0xbc,0xb6,0xda,0x21,0x10,0xff,0xf3,0xd2
+	.byte	0xcd,0x0c,0x13,0xec,0x5f,0x97,0x44,0x17
+	.byte	0xc4,0xa7,0x7e,0x3d,0x64,0x5d,0x19,0x73
+	.byte	0x60,0x81,0x4f,0xdc,0x22,0x2a,0x90,0x88
+	.byte	0x46,0xee,0xb8,0x14,0xde,0x5e,0x0b,0xdb
+	.byte	0xe0,0x32,0x3a,0x0a,0x49,0x06,0x24,0x5c
+	.byte	0xc2,0xd3,0xac,0x62,0x91,0x95,0xe4,0x79
+	.byte	0xe7,0xc8,0x37,0x6d,0x8d,0xd5,0x4e,0xa9
+	.byte	0x6c,0x56,0xf4,0xea,0x65,0x7a,0xae,0x08
+	.byte	0xba,0x78,0x25,0x2e,0x1c,0xa6,0xb4,0xc6
+	.byte	0xe8,0xdd,0x74,0x1f,0x4b,0xbd,0x8b,0x8a
+	.byte	0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e
+	.byte	0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e
+	.byte	0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94
+	.byte	0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf
+	.byte	0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68
+	.byte	0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
+#ifndef __APPLE__
+	.text
+	.section	.rodata
+	.type	L_AES_GCMSIV_ctr_neon_shuffle, %object
+	.size	L_AES_GCMSIV_ctr_neon_shuffle, 16
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
+L_AES_GCMSIV_ctr_neon_shuffle:
+	.byte	0x0c,0x09,0x06,0x03,0x00,0x0d,0x0a,0x07
+	.byte	0x04,0x01,0x0e,0x0b,0x08,0x05,0x02,0x0f
+#ifndef __APPLE__
+.text
+.globl	AES_GCMSIV_ctr_neon
+WC_ASM_ATT_HIDDEN(AES_GCMSIV_ctr_neon)
+.type	AES_GCMSIV_ctr_neon,@function
+.align	2
+AES_GCMSIV_ctr_neon:
+#else
+.section	__TEXT,__text
+.globl	_AES_GCMSIV_ctr_neon
+WC_ASM_ATT_HIDDEN(_AES_GCMSIV_ctr_neon)
+.p2align	2
+_AES_GCMSIV_ctr_neon:
+#endif /* __APPLE__ */
+	stp	x29, x30, [sp, #-80]!
+	add	x29, sp, #0
+	stp	d8, d9, [x29, #16]
+	stp	d10, d11, [x29, #32]
+	stp	d12, d13, [x29, #48]
+	stp	d14, d15, [x29, #64]
+#ifndef __APPLE__
+	adrp x6, L_AES_GCMSIV_ctr_neon_te
+	add  x6, x6, :lo12:L_AES_GCMSIV_ctr_neon_te
+#else
+	adrp x6, L_AES_GCMSIV_ctr_neon_te@PAGE
+	add  x6, x6, L_AES_GCMSIV_ctr_neon_te@PAGEOFF
+#endif /* __APPLE__ */
+#ifndef __APPLE__
+	adrp x7, L_AES_GCMSIV_ctr_neon_shuffle
+	add  x7, x7, :lo12:L_AES_GCMSIV_ctr_neon_shuffle
+#else
+	adrp x7, L_AES_GCMSIV_ctr_neon_shuffle@PAGE
+	add  x7, x7, L_AES_GCMSIV_ctr_neon_shuffle@PAGEOFF
+#endif /* __APPLE__ */
+	ld1	{v16.16b, v17.16b, v18.16b, v19.16b}, [x6], #0x40
+	ld1	{v20.16b, v21.16b, v22.16b, v23.16b}, [x6], #0x40
+	ld1	{v24.16b, v25.16b, v26.16b, v27.16b}, [x6], #0x40
+	ld1	{v28.16b, v29.16b, v30.16b, v31.16b}, [x6]
+	ldr	w10, [x5]
+	cmp	x2, #0x40
+	bcc	L_AES_GCMSIV_ctr_neon_start_2
+L_AES_GCMSIV_ctr_neon_loop_4:
+	mov	x9, x3
+	ld1	{v4.2d}, [x9], #16
+	# Round: 0 - build counters and XOR in key schedule
+	ld1	{v0.2d}, [x5]
+	mov	v0.s[0], w10
+	rev32	v0.16b, v0.16b
+	eor	v0.16b, v0.16b, v4.16b
+	ld1	{v1.2d}, [x5]
+	add	w8, w10, #1
+	mov	v1.s[0], w8
+	rev32	v1.16b, v1.16b
+	eor	v1.16b, v1.16b, v4.16b
+	ld1	{v2.2d}, [x5]
+	add	w8, w10, #2
+	mov	v2.s[0], w8
+	rev32	v2.16b, v2.16b
+	eor	v2.16b, v2.16b, v4.16b
+	ld1	{v3.2d}, [x5]
+	add	w8, w10, #3
+	mov	v3.s[0], w8
+	rev32	v3.16b, v3.16b
+	eor	v3.16b, v3.16b, v4.16b
+	add	w10, w10, #4
+	sub	w8, w4, #2
+L_AES_GCMSIV_ctr_neon_loop_nr_4:
+	tbl	v4.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v0.16b
+	tbl	v5.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v1.16b
+	tbl	v6.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v2.16b
+	tbl	v7.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v3.16b
+	movi	v12.16b, #0x40
+	movi	v13.16b, #0x80
+	movi	v14.16b, #0xc0
+	eor	v8.16b, v0.16b, v12.16b
+	eor	v9.16b, v1.16b, v12.16b
+	eor	v10.16b, v2.16b, v12.16b
+	eor	v11.16b, v3.16b, v12.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	tbl	v10.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v10.16b
+	tbl	v11.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	orr	v6.16b, v6.16b, v10.16b
+	orr	v7.16b, v7.16b, v11.16b
+	eor	v8.16b, v0.16b, v13.16b
+	eor	v9.16b, v1.16b, v13.16b
+	eor	v10.16b, v2.16b, v13.16b
+	eor	v11.16b, v3.16b, v13.16b
+	tbl	v8.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	orr	v6.16b, v6.16b, v10.16b
+	orr	v7.16b, v7.16b, v11.16b
+	eor	v8.16b, v0.16b, v14.16b
+	eor	v9.16b, v1.16b, v14.16b
+	eor	v10.16b, v2.16b, v14.16b
+	eor	v11.16b, v3.16b, v14.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	tbl	v11.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	orr	v6.16b, v6.16b, v10.16b
+	orr	v7.16b, v7.16b, v11.16b
+	ld1	{v0.16b}, [x7]
+	tbl	v4.16b, {v4.16b}, v0.16b
+	tbl	v5.16b, {v5.16b}, v0.16b
+	tbl	v6.16b, {v6.16b}, v0.16b
+	tbl	v7.16b, {v7.16b}, v0.16b
+	sshr	v8.16b, v4.16b, #7
+	sshr	v9.16b, v5.16b, #7
+	sshr	v10.16b, v6.16b, #7
+	sshr	v11.16b, v7.16b, #7
+	shl	v12.16b, v4.16b, #1
+	shl	v13.16b, v5.16b, #1
+	shl	v14.16b, v6.16b, #1
+	shl	v15.16b, v7.16b, #1
+	movi	v0.16b, #27
+	and	v8.16b, v8.16b, v0.16b
+	and	v9.16b, v9.16b, v0.16b
+	and	v10.16b, v10.16b, v0.16b
+	and	v11.16b, v11.16b, v0.16b
+	eor	v8.16b, v8.16b, v12.16b
+	eor	v9.16b, v9.16b, v13.16b
+	eor	v10.16b, v10.16b, v14.16b
+	eor	v11.16b, v11.16b, v15.16b
+	eor	v0.16b, v8.16b, v4.16b
+	eor	v1.16b, v9.16b, v5.16b
+	eor	v2.16b, v10.16b, v6.16b
+	eor	v3.16b, v11.16b, v7.16b
+	shl	v12.4s, v0.4s, #8
+	shl	v13.4s, v1.4s, #8
+	shl	v14.4s, v2.4s, #8
+	shl	v15.4s, v3.4s, #8
+	sri	v12.4s, v0.4s, #24
+	sri	v13.4s, v1.4s, #24
+	sri	v14.4s, v2.4s, #24
+	sri	v15.4s, v3.4s, #24
+	shl	v0.4s, v4.4s, #24
+	shl	v1.4s, v5.4s, #24
+	shl	v2.4s, v6.4s, #24
+	shl	v3.4s, v7.4s, #24
+	sri	v0.4s, v4.4s, #8
+	sri	v1.4s, v5.4s, #8
+	sri	v2.4s, v6.4s, #8
+	sri	v3.4s, v7.4s, #8
+	rev32	v4.8h, v4.8h
+	rev32	v5.8h, v5.8h
+	rev32	v6.8h, v6.8h
+	rev32	v7.8h, v7.8h
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v1.16b
+	eor	v6.16b, v6.16b, v2.16b
+	eor	v7.16b, v7.16b, v3.16b
+	#   XOR in Key Schedule
+	ld1	{v0.2d}, [x9], #16
+	eor	v4.16b, v4.16b, v8.16b
+	eor	v5.16b, v5.16b, v9.16b
+	eor	v6.16b, v6.16b, v10.16b
+	eor	v7.16b, v7.16b, v11.16b
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v0.16b
+	eor	v6.16b, v6.16b, v0.16b
+	eor	v7.16b, v7.16b, v0.16b
+	eor	v4.16b, v4.16b, v12.16b
+	eor	v5.16b, v5.16b, v13.16b
+	eor	v6.16b, v6.16b, v14.16b
+	eor	v7.16b, v7.16b, v15.16b
+	# Round Done
+	tbl	v0.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v4.16b
+	tbl	v1.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v5.16b
+	tbl	v2.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v6.16b
+	tbl	v3.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v7.16b
+	movi	v12.16b, #0x40
+	movi	v13.16b, #0x80
+	movi	v14.16b, #0xc0
+	eor	v8.16b, v4.16b, v12.16b
+	eor	v9.16b, v5.16b, v12.16b
+	eor	v10.16b, v6.16b, v12.16b
+	eor	v11.16b, v7.16b, v12.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	tbl	v10.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v10.16b
+	tbl	v11.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	orr	v2.16b, v2.16b, v10.16b
+	orr	v3.16b, v3.16b, v11.16b
+	eor	v8.16b, v4.16b, v13.16b
+	eor	v9.16b, v5.16b, v13.16b
+	eor	v10.16b, v6.16b, v13.16b
+	eor	v11.16b, v7.16b, v13.16b
+	tbl	v8.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	orr	v2.16b, v2.16b, v10.16b
+	orr	v3.16b, v3.16b, v11.16b
+	eor	v8.16b, v4.16b, v14.16b
+	eor	v9.16b, v5.16b, v14.16b
+	eor	v10.16b, v6.16b, v14.16b
+	eor	v11.16b, v7.16b, v14.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	tbl	v11.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	orr	v2.16b, v2.16b, v10.16b
+	orr	v3.16b, v3.16b, v11.16b
+	ld1	{v4.16b}, [x7]
+	tbl	v0.16b, {v0.16b}, v4.16b
+	tbl	v1.16b, {v1.16b}, v4.16b
+	tbl	v2.16b, {v2.16b}, v4.16b
+	tbl	v3.16b, {v3.16b}, v4.16b
+	sshr	v8.16b, v0.16b, #7
+	sshr	v9.16b, v1.16b, #7
+	sshr	v10.16b, v2.16b, #7
+	sshr	v11.16b, v3.16b, #7
+	shl	v12.16b, v0.16b, #1
+	shl	v13.16b, v1.16b, #1
+	shl	v14.16b, v2.16b, #1
+	shl	v15.16b, v3.16b, #1
+	movi	v4.16b, #27
+	and	v8.16b, v8.16b, v4.16b
+	and	v9.16b, v9.16b, v4.16b
+	and	v10.16b, v10.16b, v4.16b
+	and	v11.16b, v11.16b, v4.16b
+	eor	v8.16b, v8.16b, v12.16b
+	eor	v9.16b, v9.16b, v13.16b
+	eor	v10.16b, v10.16b, v14.16b
+	eor	v11.16b, v11.16b, v15.16b
+	eor	v4.16b, v8.16b, v0.16b
+	eor	v5.16b, v9.16b, v1.16b
+	eor	v6.16b, v10.16b, v2.16b
+	eor	v7.16b, v11.16b, v3.16b
+	shl	v12.4s, v4.4s, #8
+	shl	v13.4s, v5.4s, #8
+	shl	v14.4s, v6.4s, #8
+	shl	v15.4s, v7.4s, #8
+	sri	v12.4s, v4.4s, #24
+	sri	v13.4s, v5.4s, #24
+	sri	v14.4s, v6.4s, #24
+	sri	v15.4s, v7.4s, #24
+	shl	v4.4s, v0.4s, #24
+	shl	v5.4s, v1.4s, #24
+	shl	v6.4s, v2.4s, #24
+	shl	v7.4s, v3.4s, #24
+	sri	v4.4s, v0.4s, #8
+	sri	v5.4s, v1.4s, #8
+	sri	v6.4s, v2.4s, #8
+	sri	v7.4s, v3.4s, #8
+	rev32	v0.8h, v0.8h
+	rev32	v1.8h, v1.8h
+	rev32	v2.8h, v2.8h
+	rev32	v3.8h, v3.8h
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v5.16b
+	eor	v2.16b, v2.16b, v6.16b
+	eor	v3.16b, v3.16b, v7.16b
+	#   XOR in Key Schedule
+	ld1	{v4.2d}, [x9], #16
+	eor	v0.16b, v0.16b, v8.16b
+	eor	v1.16b, v1.16b, v9.16b
+	eor	v2.16b, v2.16b, v10.16b
+	eor	v3.16b, v3.16b, v11.16b
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v4.16b
+	eor	v2.16b, v2.16b, v4.16b
+	eor	v3.16b, v3.16b, v4.16b
+	eor	v0.16b, v0.16b, v12.16b
+	eor	v1.16b, v1.16b, v13.16b
+	eor	v2.16b, v2.16b, v14.16b
+	eor	v3.16b, v3.16b, v15.16b
+	# Round Done
+	subs	w8, w8, #2
+	bne	L_AES_GCMSIV_ctr_neon_loop_nr_4
+	tbl	v4.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v0.16b
+	tbl	v5.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v1.16b
+	tbl	v6.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v2.16b
+	tbl	v7.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v3.16b
+	movi	v12.16b, #0x40
+	movi	v13.16b, #0x80
+	movi	v14.16b, #0xc0
+	eor	v8.16b, v0.16b, v12.16b
+	eor	v9.16b, v1.16b, v12.16b
+	eor	v10.16b, v2.16b, v12.16b
+	eor	v11.16b, v3.16b, v12.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	tbl	v10.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v10.16b
+	tbl	v11.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	orr	v6.16b, v6.16b, v10.16b
+	orr	v7.16b, v7.16b, v11.16b
+	eor	v8.16b, v0.16b, v13.16b
+	eor	v9.16b, v1.16b, v13.16b
+	eor	v10.16b, v2.16b, v13.16b
+	eor	v11.16b, v3.16b, v13.16b
+	tbl	v8.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	orr	v6.16b, v6.16b, v10.16b
+	orr	v7.16b, v7.16b, v11.16b
+	eor	v8.16b, v0.16b, v14.16b
+	eor	v9.16b, v1.16b, v14.16b
+	eor	v10.16b, v2.16b, v14.16b
+	eor	v11.16b, v3.16b, v14.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	tbl	v11.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	orr	v6.16b, v6.16b, v10.16b
+	orr	v7.16b, v7.16b, v11.16b
+	ld1	{v0.16b}, [x7]
+	tbl	v4.16b, {v4.16b}, v0.16b
+	tbl	v5.16b, {v5.16b}, v0.16b
+	tbl	v6.16b, {v6.16b}, v0.16b
+	tbl	v7.16b, {v7.16b}, v0.16b
+	sshr	v8.16b, v4.16b, #7
+	sshr	v9.16b, v5.16b, #7
+	sshr	v10.16b, v6.16b, #7
+	sshr	v11.16b, v7.16b, #7
+	shl	v12.16b, v4.16b, #1
+	shl	v13.16b, v5.16b, #1
+	shl	v14.16b, v6.16b, #1
+	shl	v15.16b, v7.16b, #1
+	movi	v0.16b, #27
+	and	v8.16b, v8.16b, v0.16b
+	and	v9.16b, v9.16b, v0.16b
+	and	v10.16b, v10.16b, v0.16b
+	and	v11.16b, v11.16b, v0.16b
+	eor	v8.16b, v8.16b, v12.16b
+	eor	v9.16b, v9.16b, v13.16b
+	eor	v10.16b, v10.16b, v14.16b
+	eor	v11.16b, v11.16b, v15.16b
+	eor	v0.16b, v8.16b, v4.16b
+	eor	v1.16b, v9.16b, v5.16b
+	eor	v2.16b, v10.16b, v6.16b
+	eor	v3.16b, v11.16b, v7.16b
+	shl	v12.4s, v0.4s, #8
+	shl	v13.4s, v1.4s, #8
+	shl	v14.4s, v2.4s, #8
+	shl	v15.4s, v3.4s, #8
+	sri	v12.4s, v0.4s, #24
+	sri	v13.4s, v1.4s, #24
+	sri	v14.4s, v2.4s, #24
+	sri	v15.4s, v3.4s, #24
+	shl	v0.4s, v4.4s, #24
+	shl	v1.4s, v5.4s, #24
+	shl	v2.4s, v6.4s, #24
+	shl	v3.4s, v7.4s, #24
+	sri	v0.4s, v4.4s, #8
+	sri	v1.4s, v5.4s, #8
+	sri	v2.4s, v6.4s, #8
+	sri	v3.4s, v7.4s, #8
+	rev32	v4.8h, v4.8h
+	rev32	v5.8h, v5.8h
+	rev32	v6.8h, v6.8h
+	rev32	v7.8h, v7.8h
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v1.16b
+	eor	v6.16b, v6.16b, v2.16b
+	eor	v7.16b, v7.16b, v3.16b
+	#   XOR in Key Schedule
+	ld1	{v0.2d}, [x9], #16
+	eor	v4.16b, v4.16b, v8.16b
+	eor	v5.16b, v5.16b, v9.16b
+	eor	v6.16b, v6.16b, v10.16b
+	eor	v7.16b, v7.16b, v11.16b
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v0.16b
+	eor	v6.16b, v6.16b, v0.16b
+	eor	v7.16b, v7.16b, v0.16b
+	eor	v4.16b, v4.16b, v12.16b
+	eor	v5.16b, v5.16b, v13.16b
+	eor	v6.16b, v6.16b, v14.16b
+	eor	v7.16b, v7.16b, v15.16b
+	# Round Done
+	tbl	v0.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v4.16b
+	tbl	v1.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v5.16b
+	tbl	v2.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v6.16b
+	tbl	v3.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v7.16b
+	movi	v12.16b, #0x40
+	movi	v13.16b, #0x80
+	movi	v14.16b, #0xc0
+	eor	v8.16b, v4.16b, v12.16b
+	eor	v9.16b, v5.16b, v12.16b
+	eor	v10.16b, v6.16b, v12.16b
+	eor	v11.16b, v7.16b, v12.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	tbl	v10.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v10.16b
+	tbl	v11.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	orr	v2.16b, v2.16b, v10.16b
+	orr	v3.16b, v3.16b, v11.16b
+	eor	v8.16b, v4.16b, v13.16b
+	eor	v9.16b, v5.16b, v13.16b
+	eor	v10.16b, v6.16b, v13.16b
+	eor	v11.16b, v7.16b, v13.16b
+	tbl	v8.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	orr	v2.16b, v2.16b, v10.16b
+	orr	v3.16b, v3.16b, v11.16b
+	eor	v8.16b, v4.16b, v14.16b
+	eor	v9.16b, v5.16b, v14.16b
+	eor	v10.16b, v6.16b, v14.16b
+	eor	v11.16b, v7.16b, v14.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	tbl	v11.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	orr	v2.16b, v2.16b, v10.16b
+	orr	v3.16b, v3.16b, v11.16b
+	ld1	{v4.16b}, [x7]
+	tbl	v0.16b, {v0.16b}, v4.16b
+	tbl	v1.16b, {v1.16b}, v4.16b
+	tbl	v2.16b, {v2.16b}, v4.16b
+	tbl	v3.16b, {v3.16b}, v4.16b
+	#   XOR in Key Schedule
+	ld1	{v4.2d}, [x9], #16
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v4.16b
+	eor	v2.16b, v2.16b, v4.16b
+	eor	v3.16b, v3.16b, v4.16b
+	# Round Done
+	rev32	v0.16b, v0.16b
+	rev32	v1.16b, v1.16b
+	rev32	v2.16b, v2.16b
+	rev32	v3.16b, v3.16b
+	ld1	{v4.16b, v5.16b, v6.16b, v7.16b}, [x0], #0x40
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v5.16b
+	eor	v2.16b, v2.16b, v6.16b
+	eor	v3.16b, v3.16b, v7.16b
+	st1	{v0.16b, v1.16b, v2.16b, v3.16b}, [x1], #0x40
+	sub	x2, x2, #0x40
+	cmp	x2, #0x40
+	bcs	L_AES_GCMSIV_ctr_neon_loop_4
+L_AES_GCMSIV_ctr_neon_start_2:
+	movi	v12.16b, #0x40
+	movi	v13.16b, #0x80
+	movi	v14.16b, #0xc0
+	movi	v15.16b, #27
+	cmp	x2, #16
+	beq	L_AES_GCMSIV_ctr_neon_start_1
+	bcc	L_AES_GCMSIV_ctr_neon_data_done
+L_AES_GCMSIV_ctr_neon_loop_2:
+	mov	x9, x3
+	ld1	{v4.2d}, [x9], #16
+	# Round: 0 - build counters and XOR in key schedule
+	ld1	{v0.2d}, [x5]
+	mov	v0.s[0], w10
+	rev32	v0.16b, v0.16b
+	eor	v0.16b, v0.16b, v4.16b
+	ld1	{v1.2d}, [x5]
+	add	w8, w10, #1
+	mov	v1.s[0], w8
+	rev32	v1.16b, v1.16b
+	eor	v1.16b, v1.16b, v4.16b
+	add	w10, w10, #2
+	sub	w8, w4, #2
+L_AES_GCMSIV_ctr_neon_loop_nr_2:
+	eor	v8.16b, v0.16b, v12.16b
+	eor	v9.16b, v1.16b, v12.16b
+	tbl	v4.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v0.16b
+	tbl	v5.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v1.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	eor	v10.16b, v0.16b, v13.16b
+	eor	v11.16b, v1.16b, v13.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	eor	v8.16b, v0.16b, v14.16b
+	eor	v9.16b, v1.16b, v14.16b
+	orr	v4.16b, v4.16b, v10.16b
+	orr	v5.16b, v5.16b, v11.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	ld1	{v0.16b}, [x7]
+	tbl	v4.16b, {v4.16b}, v0.16b
+	tbl	v5.16b, {v5.16b}, v0.16b
+	sshr	v8.16b, v4.16b, #7
+	sshr	v9.16b, v5.16b, #7
+	shl	v10.16b, v4.16b, #1
+	shl	v11.16b, v5.16b, #1
+	and	v8.16b, v8.16b, v15.16b
+	and	v9.16b, v9.16b, v15.16b
+	eor	v8.16b, v8.16b, v10.16b
+	eor	v9.16b, v9.16b, v11.16b
+	eor	v0.16b, v8.16b, v4.16b
+	eor	v1.16b, v9.16b, v5.16b
+	shl	v10.4s, v0.4s, #8
+	shl	v11.4s, v1.4s, #8
+	sri	v10.4s, v0.4s, #24
+	sri	v11.4s, v1.4s, #24
+	shl	v0.4s, v4.4s, #24
+	shl	v1.4s, v5.4s, #24
+	sri	v0.4s, v4.4s, #8
+	sri	v1.4s, v5.4s, #8
+	rev32	v4.8h, v4.8h
+	rev32	v5.8h, v5.8h
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v1.16b
+	#   XOR in Key Schedule
+	ld1	{v0.2d}, [x9], #16
+	eor	v4.16b, v4.16b, v8.16b
+	eor	v5.16b, v5.16b, v9.16b
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v0.16b
+	eor	v4.16b, v4.16b, v10.16b
+	eor	v5.16b, v5.16b, v11.16b
+	# Round Done
+	eor	v8.16b, v4.16b, v12.16b
+	eor	v9.16b, v5.16b, v12.16b
+	tbl	v0.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v4.16b
+	tbl	v1.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v5.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	eor	v10.16b, v4.16b, v13.16b
+	eor	v11.16b, v5.16b, v13.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	eor	v8.16b, v4.16b, v14.16b
+	eor	v9.16b, v5.16b, v14.16b
+	orr	v0.16b, v0.16b, v10.16b
+	orr	v1.16b, v1.16b, v11.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	ld1	{v4.16b}, [x7]
+	tbl	v0.16b, {v0.16b}, v4.16b
+	tbl	v1.16b, {v1.16b}, v4.16b
+	sshr	v8.16b, v0.16b, #7
+	sshr	v9.16b, v1.16b, #7
+	shl	v10.16b, v0.16b, #1
+	shl	v11.16b, v1.16b, #1
+	and	v8.16b, v8.16b, v15.16b
+	and	v9.16b, v9.16b, v15.16b
+	eor	v8.16b, v8.16b, v10.16b
+	eor	v9.16b, v9.16b, v11.16b
+	eor	v4.16b, v8.16b, v0.16b
+	eor	v5.16b, v9.16b, v1.16b
+	shl	v10.4s, v4.4s, #8
+	shl	v11.4s, v5.4s, #8
+	sri	v10.4s, v4.4s, #24
+	sri	v11.4s, v5.4s, #24
+	shl	v4.4s, v0.4s, #24
+	shl	v5.4s, v1.4s, #24
+	sri	v4.4s, v0.4s, #8
+	sri	v5.4s, v1.4s, #8
+	rev32	v0.8h, v0.8h
+	rev32	v1.8h, v1.8h
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v5.16b
+	#   XOR in Key Schedule
+	ld1	{v4.2d}, [x9], #16
+	eor	v0.16b, v0.16b, v8.16b
+	eor	v1.16b, v1.16b, v9.16b
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v4.16b
+	eor	v0.16b, v0.16b, v10.16b
+	eor	v1.16b, v1.16b, v11.16b
+	# Round Done
+	subs	w8, w8, #2
+	bne	L_AES_GCMSIV_ctr_neon_loop_nr_2
+	eor	v8.16b, v0.16b, v12.16b
+	eor	v9.16b, v1.16b, v12.16b
+	tbl	v4.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v0.16b
+	tbl	v5.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v1.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	eor	v10.16b, v0.16b, v13.16b
+	eor	v11.16b, v1.16b, v13.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	eor	v8.16b, v0.16b, v14.16b
+	eor	v9.16b, v1.16b, v14.16b
+	orr	v4.16b, v4.16b, v10.16b
+	orr	v5.16b, v5.16b, v11.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v5.16b, v5.16b, v9.16b
+	ld1	{v0.16b}, [x7]
+	tbl	v4.16b, {v4.16b}, v0.16b
+	tbl	v5.16b, {v5.16b}, v0.16b
+	sshr	v8.16b, v4.16b, #7
+	sshr	v9.16b, v5.16b, #7
+	shl	v10.16b, v4.16b, #1
+	shl	v11.16b, v5.16b, #1
+	and	v8.16b, v8.16b, v15.16b
+	and	v9.16b, v9.16b, v15.16b
+	eor	v8.16b, v8.16b, v10.16b
+	eor	v9.16b, v9.16b, v11.16b
+	eor	v0.16b, v8.16b, v4.16b
+	eor	v1.16b, v9.16b, v5.16b
+	shl	v10.4s, v0.4s, #8
+	shl	v11.4s, v1.4s, #8
+	sri	v10.4s, v0.4s, #24
+	sri	v11.4s, v1.4s, #24
+	shl	v0.4s, v4.4s, #24
+	shl	v1.4s, v5.4s, #24
+	sri	v0.4s, v4.4s, #8
+	sri	v1.4s, v5.4s, #8
+	rev32	v4.8h, v4.8h
+	rev32	v5.8h, v5.8h
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v1.16b
+	#   XOR in Key Schedule
+	ld1	{v0.2d}, [x9], #16
+	eor	v4.16b, v4.16b, v8.16b
+	eor	v5.16b, v5.16b, v9.16b
+	eor	v4.16b, v4.16b, v0.16b
+	eor	v5.16b, v5.16b, v0.16b
+	eor	v4.16b, v4.16b, v10.16b
+	eor	v5.16b, v5.16b, v11.16b
+	# Round Done
+	eor	v8.16b, v4.16b, v12.16b
+	eor	v9.16b, v5.16b, v12.16b
+	tbl	v0.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v4.16b
+	tbl	v1.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v5.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v9.16b
+	eor	v10.16b, v4.16b, v13.16b
+	eor	v11.16b, v5.16b, v13.16b
+	tbl	v10.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v10.16b
+	tbl	v11.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v11.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	eor	v8.16b, v4.16b, v14.16b
+	eor	v9.16b, v5.16b, v14.16b
+	orr	v0.16b, v0.16b, v10.16b
+	orr	v1.16b, v1.16b, v11.16b
+	tbl	v8.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v8.16b
+	tbl	v9.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v9.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v1.16b, v1.16b, v9.16b
+	ld1	{v4.16b}, [x7]
+	tbl	v0.16b, {v0.16b}, v4.16b
+	tbl	v1.16b, {v1.16b}, v4.16b
+	#   XOR in Key Schedule
+	ld1	{v4.2d}, [x9], #16
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v4.16b
+	# Round Done
+	rev32	v0.16b, v0.16b
+	rev32	v1.16b, v1.16b
+	ld1	{v4.16b, v5.16b}, [x0], #32
+	eor	v0.16b, v0.16b, v4.16b
+	eor	v1.16b, v1.16b, v5.16b
+	st1	{v0.16b, v1.16b}, [x1], #32
+	sub	x2, x2, #32
+	cmp	x2, #0
+	beq	L_AES_GCMSIV_ctr_neon_data_done
+L_AES_GCMSIV_ctr_neon_start_1:
+	ld1	{v3.2d}, [x7]
+	mov	x9, x3
+	ld1	{v4.2d}, [x9], #16
+	# Round: 0 - build counter and XOR in key schedule
+	ld1	{v0.2d}, [x5]
+	mov	v0.s[0], w10
+	rev32	v0.16b, v0.16b
+	eor	v0.16b, v0.16b, v4.16b
+	add	w10, w10, #1
+	sub	w8, w4, #2
+L_AES_GCMSIV_ctr_neon_loop_nr_1:
+	eor	v8.16b, v0.16b, v12.16b
+	eor	v9.16b, v0.16b, v13.16b
+	eor	v10.16b, v0.16b, v14.16b
+	tbl	v4.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v0.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v9.16b, v9.16b, v10.16b
+	orr	v4.16b, v4.16b, v9.16b
+	tbl	v4.16b, {v4.16b}, v3.16b
+	ld1	{v0.2d}, [x9], #16
+	sshr	v10.16b, v4.16b, #7
+	shl	v9.16b, v4.16b, #1
+	and	v10.16b, v10.16b, v15.16b
+	eor	v10.16b, v10.16b, v9.16b
+	rev32	v8.8h, v4.8h
+	eor	v11.16b, v10.16b, v4.16b
+	eor	v10.16b, v10.16b, v8.16b
+	shl	v9.4s, v4.4s, #24
+	shl	v8.4s, v11.4s, #8
+	#   XOR in Key Schedule
+	eor	v10.16b, v10.16b, v0.16b
+	sri	v9.4s, v4.4s, #8
+	sri	v8.4s, v11.4s, #24
+	eor	v4.16b, v10.16b, v9.16b
+	eor	v4.16b, v4.16b, v8.16b
+	eor	v8.16b, v4.16b, v12.16b
+	eor	v9.16b, v4.16b, v13.16b
+	eor	v10.16b, v4.16b, v14.16b
+	tbl	v0.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v4.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v9.16b, v9.16b, v10.16b
+	orr	v0.16b, v0.16b, v9.16b
+	tbl	v0.16b, {v0.16b}, v3.16b
+	ld1	{v4.2d}, [x9], #16
+	sshr	v10.16b, v0.16b, #7
+	shl	v9.16b, v0.16b, #1
+	and	v10.16b, v10.16b, v15.16b
+	eor	v10.16b, v10.16b, v9.16b
+	rev32	v8.8h, v0.8h
+	eor	v11.16b, v10.16b, v0.16b
+	eor	v10.16b, v10.16b, v8.16b
+	shl	v9.4s, v0.4s, #24
+	shl	v8.4s, v11.4s, #8
+	#   XOR in Key Schedule
+	eor	v10.16b, v10.16b, v4.16b
+	sri	v9.4s, v0.4s, #8
+	sri	v8.4s, v11.4s, #24
+	eor	v0.16b, v10.16b, v9.16b
+	eor	v0.16b, v0.16b, v8.16b
+	subs	w8, w8, #2
+	bne	L_AES_GCMSIV_ctr_neon_loop_nr_1
+	eor	v8.16b, v0.16b, v12.16b
+	eor	v9.16b, v0.16b, v13.16b
+	eor	v10.16b, v0.16b, v14.16b
+	tbl	v4.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v0.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	orr	v4.16b, v4.16b, v8.16b
+	orr	v9.16b, v9.16b, v10.16b
+	orr	v4.16b, v4.16b, v9.16b
+	tbl	v4.16b, {v4.16b}, v3.16b
+	ld1	{v0.2d}, [x9], #16
+	sshr	v10.16b, v4.16b, #7
+	shl	v9.16b, v4.16b, #1
+	and	v10.16b, v10.16b, v15.16b
+	eor	v10.16b, v10.16b, v9.16b
+	rev32	v8.8h, v4.8h
+	eor	v11.16b, v10.16b, v4.16b
+	eor	v10.16b, v10.16b, v8.16b
+	shl	v9.4s, v4.4s, #24
+	shl	v8.4s, v11.4s, #8
+	#   XOR in Key Schedule
+	eor	v10.16b, v10.16b, v0.16b
+	sri	v9.4s, v4.4s, #8
+	sri	v8.4s, v11.4s, #24
+	eor	v4.16b, v10.16b, v9.16b
+	eor	v4.16b, v4.16b, v8.16b
+	eor	v8.16b, v4.16b, v12.16b
+	eor	v9.16b, v4.16b, v13.16b
+	eor	v10.16b, v4.16b, v14.16b
+	tbl	v0.16b, {v16.16b, v17.16b, v18.16b, v19.16b}, v4.16b
+	tbl	v8.16b, {v20.16b, v21.16b, v22.16b, v23.16b}, v8.16b
+	tbl	v9.16b, {v24.16b, v25.16b, v26.16b, v27.16b}, v9.16b
+	tbl	v10.16b, {v28.16b, v29.16b, v30.16b, v31.16b}, v10.16b
+	orr	v0.16b, v0.16b, v8.16b
+	orr	v9.16b, v9.16b, v10.16b
+	orr	v0.16b, v0.16b, v9.16b
+	tbl	v0.16b, {v0.16b}, v3.16b
+	ld1	{v4.2d}, [x9], #16
+	#   XOR in Key Schedule
+	eor	v0.16b, v0.16b, v4.16b
+	rev32	v0.16b, v0.16b
+	ld1	{v4.16b}, [x0], #16
+	eor	v0.16b, v0.16b, v4.16b
+	st1	{v0.16b}, [x1], #16
+L_AES_GCMSIV_ctr_neon_data_done:
+	str	w10, [x5]
+	ldp	d8, d9, [x29, #16]
+	ldp	d10, d11, [x29, #32]
+	ldp	d12, d13, [x29, #48]
+	ldp	d14, d15, [x29, #64]
+	ldp	x29, x30, [sp], #0x50
+	ret
+#ifndef __APPLE__
+	.size	AES_GCMSIV_ctr_neon,.-AES_GCMSIV_ctr_neon
+#endif /* __APPLE__ */
+#endif /* WOLFSSL_AESGCM_SIV */
 #endif /* !WOLFSSL_ARMASM_NO_NEON */
 #ifndef WOLFSSL_ARMASM_NEON_NO_TABLE_LOOKUP
 #ifdef HAVE_AES_DECRYPT
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_td, %object
 	.section	.rodata
+	.type	L_AES_ARM64_td, %object
 	.size	L_AES_ARM64_td, 1024
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
 	.align	3
 #else
 	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_td:
-	.word	0x5051f4a7
-	.word	0x537e4165
-	.word	0xc31a17a4
-	.word	0x963a275e
-	.word	0xcb3bab6b
-	.word	0xf11f9d45
-	.word	0xabacfa58
-	.word	0x934be303
-	.word	0x552030fa
-	.word	0xf6ad766d
-	.word	0x9188cc76
-	.word	0x25f5024c
-	.word	0xfc4fe5d7
-	.word	0xd7c52acb
-	.word	0x80263544
-	.word	0x8fb562a3
-	.word	0x49deb15a
-	.word	0x6725ba1b
-	.word	0x9845ea0e
-	.word	0xe15dfec0
-	.word	0x02c32f75
-	.word	0x12814cf0
-	.word	0xa38d4697
-	.word	0xc66bd3f9
-	.word	0xe7038f5f
-	.word	0x9515929c
-	.word	0xebbf6d7a
-	.word	0xda955259
-	.word	0x2dd4be83
-	.word	0xd3587421
-	.word	0x2949e069
-	.word	0x448ec9c8
-	.word	0x6a75c289
-	.word	0x78f48e79
-	.word	0x6b99583e
-	.word	0xdd27b971
-	.word	0xb6bee14f
-	.word	0x17f088ad
-	.word	0x66c920ac
-	.word	0xb47dce3a
-	.word	0x1863df4a
-	.word	0x82e51a31
-	.word	0x60975133
-	.word	0x4562537f
-	.word	0xe0b16477
-	.word	0x84bb6bae
-	.word	0x1cfe81a0
-	.word	0x94f9082b
-	.word	0x58704868
-	.word	0x198f45fd
-	.word	0x8794de6c
-	.word	0xb7527bf8
-	.word	0x23ab73d3
-	.word	0xe2724b02
-	.word	0x57e31f8f
-	.word	0x2a6655ab
-	.word	0x07b2eb28
-	.word	0x032fb5c2
-	.word	0x9a86c57b
-	.word	0xa5d33708
-	.word	0xf2302887
-	.word	0xb223bfa5
-	.word	0xba02036a
-	.word	0x5ced1682
-	.word	0x2b8acf1c
-	.word	0x92a779b4
-	.word	0xf0f307f2
-	.word	0xa14e69e2
-	.word	0xcd65daf4
-	.word	0xd50605be
-	.word	0x1fd13462
-	.word	0x8ac4a6fe
-	.word	0x9d342e53
-	.word	0xa0a2f355
-	.word	0x32058ae1
-	.word	0x75a4f6eb
-	.word	0x390b83ec
-	.word	0xaa4060ef
-	.word	0x065e719f
-	.word	0x51bd6e10
-	.word	0xf93e218a
-	.word	0x3d96dd06
-	.word	0xaedd3e05
-	.word	0x464de6bd
-	.word	0xb591548d
-	.word	0x0571c45d
-	.word	0x6f0406d4
-	.word	0xff605015
-	.word	0x241998fb
-	.word	0x97d6bde9
-	.word	0xcc894043
-	.word	0x7767d99e
-	.word	0xbdb0e842
-	.word	0x8807898b
-	.word	0x38e7195b
-	.word	0xdb79c8ee
-	.word	0x47a17c0a
-	.word	0xe97c420f
-	.word	0xc9f8841e
-	.word	0x00000000
-	.word	0x83098086
-	.word	0x48322bed
-	.word	0xac1e1170
-	.word	0x4e6c5a72
-	.word	0xfbfd0eff
-	.word	0x560f8538
-	.word	0x1e3daed5
-	.word	0x27362d39
-	.word	0x640a0fd9
-	.word	0x21685ca6
-	.word	0xd19b5b54
-	.word	0x3a24362e
-	.word	0xb10c0a67
-	.word	0x0f9357e7
-	.word	0xd2b4ee96
-	.word	0x9e1b9b91
-	.word	0x4f80c0c5
-	.word	0xa261dc20
-	.word	0x695a774b
-	.word	0x161c121a
-	.word	0x0ae293ba
-	.word	0xe5c0a02a
-	.word	0x433c22e0
-	.word	0x1d121b17
-	.word	0x0b0e090d
-	.word	0xadf28bc7
-	.word	0xb92db6a8
-	.word	0xc8141ea9
-	.word	0x8557f119
-	.word	0x4caf7507
-	.word	0xbbee99dd
-	.word	0xfda37f60
-	.word	0x9ff70126
-	.word	0xbc5c72f5
-	.word	0xc544663b
-	.word	0x345bfb7e
-	.word	0x768b4329
-	.word	0xdccb23c6
-	.word	0x68b6edfc
-	.word	0x63b8e4f1
-	.word	0xcad731dc
-	.word	0x10426385
-	.word	0x40139722
-	.word	0x2084c611
-	.word	0x7d854a24
-	.word	0xf8d2bb3d
-	.word	0x11aef932
-	.word	0x6dc729a1
-	.word	0x4b1d9e2f
-	.word	0xf3dcb230
-	.word	0xec0d8652
-	.word	0xd077c1e3
-	.word	0x6c2bb316
-	.word	0x99a970b9
-	.word	0xfa119448
-	.word	0x2247e964
-	.word	0xc4a8fc8c
-	.word	0x1aa0f03f
-	.word	0xd8567d2c
-	.word	0xef223390
-	.word	0xc787494e
-	.word	0xc1d938d1
-	.word	0xfe8ccaa2
-	.word	0x3698d40b
-	.word	0xcfa6f581
-	.word	0x28a57ade
-	.word	0x26dab78e
-	.word	0xa43fadbf
-	.word	0xe42c3a9d
-	.word	0x0d507892
-	.word	0x9b6a5fcc
-	.word	0x62547e46
-	.word	0xc2f68d13
-	.word	0xe890d8b8
-	.word	0x5e2e39f7
-	.word	0xf582c3af
-	.word	0xbe9f5d80
-	.word	0x7c69d093
-	.word	0xa96fd52d
-	.word	0xb3cf2512
-	.word	0x3bc8ac99
-	.word	0xa710187d
-	.word	0x6ee89c63
-	.word	0x7bdb3bbb
-	.word	0x09cd2678
-	.word	0xf46e5918
-	.word	0x01ec9ab7
-	.word	0xa8834f9a
-	.word	0x65e6956e
-	.word	0x7eaaffe6
-	.word	0x0821bccf
-	.word	0xe6ef15e8
-	.word	0xd9bae79b
-	.word	0xce4a6f36
-	.word	0xd4ea9f09
-	.word	0xd629b07c
-	.word	0xaf31a4b2
-	.word	0x312a3f23
-	.word	0x30c6a594
-	.word	0xc035a266
-	.word	0x37744ebc
-	.word	0xa6fc82ca
-	.word	0xb0e090d0
-	.word	0x1533a7d8
-	.word	0x4af10498
-	.word	0xf741ecda
-	.word	0x0e7fcd50
-	.word	0x2f1791f6
-	.word	0x8d764dd6
-	.word	0x4d43efb0
-	.word	0x54ccaa4d
-	.word	0xdfe49604
-	.word	0xe39ed1b5
-	.word	0x1b4c6a88
-	.word	0xb8c12c1f
-	.word	0x7f466551
-	.word	0x049d5eea
-	.word	0x5d018c35
-	.word	0x73fa8774
-	.word	0x2efb0b41
-	.word	0x5ab3671d
-	.word	0x5292dbd2
-	.word	0x33e91056
-	.word	0x136dd647
-	.word	0x8c9ad761
-	.word	0x7a37a10c
-	.word	0x8e59f814
-	.word	0x89eb133c
-	.word	0xeecea927
-	.word	0x35b761c9
-	.word	0xede11ce5
-	.word	0x3c7a47b1
-	.word	0x599cd2df
-	.word	0x3f55f273
-	.word	0x791814ce
-	.word	0xbf73c737
-	.word	0xea53f7cd
-	.word	0x5b5ffdaa
-	.word	0x14df3d6f
-	.word	0x867844db
-	.word	0x81caaff3
-	.word	0x3eb968c4
-	.word	0x2c382434
-	.word	0x5fc2a340
-	.word	0x72161dc3
-	.word	0x0cbce225
-	.word	0x8b283c49
-	.word	0x41ff0d95
-	.word	0x7139a801
-	.word	0xde080cb3
-	.word	0x9cd8b4e4
-	.word	0x906456c1
-	.word	0x617bcb84
-	.word	0x70d532b6
-	.word	0x74486c5c
-	.word	0x42d0b857
+	.long	0x5051f4a7,0x537e4165,0xc31a17a4,0x963a275e
+	.long	0xcb3bab6b,0xf11f9d45,0xabacfa58,0x934be303
+	.long	0x552030fa,0xf6ad766d,0x9188cc76,0x25f5024c
+	.long	0xfc4fe5d7,0xd7c52acb,0x80263544,0x8fb562a3
+	.long	0x49deb15a,0x6725ba1b,0x9845ea0e,0xe15dfec0
+	.long	0x02c32f75,0x12814cf0,0xa38d4697,0xc66bd3f9
+	.long	0xe7038f5f,0x9515929c,0xebbf6d7a,0xda955259
+	.long	0x2dd4be83,0xd3587421,0x2949e069,0x448ec9c8
+	.long	0x6a75c289,0x78f48e79,0x6b99583e,0xdd27b971
+	.long	0xb6bee14f,0x17f088ad,0x66c920ac,0xb47dce3a
+	.long	0x1863df4a,0x82e51a31,0x60975133,0x4562537f
+	.long	0xe0b16477,0x84bb6bae,0x1cfe81a0,0x94f9082b
+	.long	0x58704868,0x198f45fd,0x8794de6c,0xb7527bf8
+	.long	0x23ab73d3,0xe2724b02,0x57e31f8f,0x2a6655ab
+	.long	0x07b2eb28,0x032fb5c2,0x9a86c57b,0xa5d33708
+	.long	0xf2302887,0xb223bfa5,0xba02036a,0x5ced1682
+	.long	0x2b8acf1c,0x92a779b4,0xf0f307f2,0xa14e69e2
+	.long	0xcd65daf4,0xd50605be,0x1fd13462,0x8ac4a6fe
+	.long	0x9d342e53,0xa0a2f355,0x32058ae1,0x75a4f6eb
+	.long	0x390b83ec,0xaa4060ef,0x065e719f,0x51bd6e10
+	.long	0xf93e218a,0x3d96dd06,0xaedd3e05,0x464de6bd
+	.long	0xb591548d,0x0571c45d,0x6f0406d4,0xff605015
+	.long	0x241998fb,0x97d6bde9,0xcc894043,0x7767d99e
+	.long	0xbdb0e842,0x8807898b,0x38e7195b,0xdb79c8ee
+	.long	0x47a17c0a,0xe97c420f,0xc9f8841e,0x00000000
+	.long	0x83098086,0x48322bed,0xac1e1170,0x4e6c5a72
+	.long	0xfbfd0eff,0x560f8538,0x1e3daed5,0x27362d39
+	.long	0x640a0fd9,0x21685ca6,0xd19b5b54,0x3a24362e
+	.long	0xb10c0a67,0x0f9357e7,0xd2b4ee96,0x9e1b9b91
+	.long	0x4f80c0c5,0xa261dc20,0x695a774b,0x161c121a
+	.long	0x0ae293ba,0xe5c0a02a,0x433c22e0,0x1d121b17
+	.long	0x0b0e090d,0xadf28bc7,0xb92db6a8,0xc8141ea9
+	.long	0x8557f119,0x4caf7507,0xbbee99dd,0xfda37f60
+	.long	0x9ff70126,0xbc5c72f5,0xc544663b,0x345bfb7e
+	.long	0x768b4329,0xdccb23c6,0x68b6edfc,0x63b8e4f1
+	.long	0xcad731dc,0x10426385,0x40139722,0x2084c611
+	.long	0x7d854a24,0xf8d2bb3d,0x11aef932,0x6dc729a1
+	.long	0x4b1d9e2f,0xf3dcb230,0xec0d8652,0xd077c1e3
+	.long	0x6c2bb316,0x99a970b9,0xfa119448,0x2247e964
+	.long	0xc4a8fc8c,0x1aa0f03f,0xd8567d2c,0xef223390
+	.long	0xc787494e,0xc1d938d1,0xfe8ccaa2,0x3698d40b
+	.long	0xcfa6f581,0x28a57ade,0x26dab78e,0xa43fadbf
+	.long	0xe42c3a9d,0x0d507892,0x9b6a5fcc,0x62547e46
+	.long	0xc2f68d13,0xe890d8b8,0x5e2e39f7,0xf582c3af
+	.long	0xbe9f5d80,0x7c69d093,0xa96fd52d,0xb3cf2512
+	.long	0x3bc8ac99,0xa710187d,0x6ee89c63,0x7bdb3bbb
+	.long	0x09cd2678,0xf46e5918,0x01ec9ab7,0xa8834f9a
+	.long	0x65e6956e,0x7eaaffe6,0x0821bccf,0xe6ef15e8
+	.long	0xd9bae79b,0xce4a6f36,0xd4ea9f09,0xd629b07c
+	.long	0xaf31a4b2,0x312a3f23,0x30c6a594,0xc035a266
+	.long	0x37744ebc,0xa6fc82ca,0xb0e090d0,0x1533a7d8
+	.long	0x4af10498,0xf741ecda,0x0e7fcd50,0x2f1791f6
+	.long	0x8d764dd6,0x4d43efb0,0x54ccaa4d,0xdfe49604
+	.long	0xe39ed1b5,0x1b4c6a88,0xb8c12c1f,0x7f466551
+	.long	0x049d5eea,0x5d018c35,0x73fa8774,0x2efb0b41
+	.long	0x5ab3671d,0x5292dbd2,0x33e91056,0x136dd647
+	.long	0x8c9ad761,0x7a37a10c,0x8e59f814,0x89eb133c
+	.long	0xeecea927,0x35b761c9,0xede11ce5,0x3c7a47b1
+	.long	0x599cd2df,0x3f55f273,0x791814ce,0xbf73c737
+	.long	0xea53f7cd,0x5b5ffdaa,0x14df3d6f,0x867844db
+	.long	0x81caaff3,0x3eb968c4,0x2c382434,0x5fc2a340
+	.long	0x72161dc3,0x0cbce225,0x8b283c49,0x41ff0d95
+	.long	0x7139a801,0xde080cb3,0x9cd8b4e4,0x906456c1
+	.long	0x617bcb84,0x70d532b6,0x74486c5c,0x42d0b857
 #endif /* HAVE_AES_DECRYPT */
-#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AES_CBC) || \
-    defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || \
-    defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER)
+#if defined(HAVE_AES_DECRYPT) || defined(HAVE_AES_CBC) || defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER)
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_te, %object
 	.section	.rodata
+	.type	L_AES_ARM64_te, %object
 	.size	L_AES_ARM64_te, 1024
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
 	.align	3
 #else
 	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_te:
-	.word	0xa5c66363
-	.word	0x84f87c7c
-	.word	0x99ee7777
-	.word	0x8df67b7b
-	.word	0x0dfff2f2
-	.word	0xbdd66b6b
-	.word	0xb1de6f6f
-	.word	0x5491c5c5
-	.word	0x50603030
-	.word	0x03020101
-	.word	0xa9ce6767
-	.word	0x7d562b2b
-	.word	0x19e7fefe
-	.word	0x62b5d7d7
-	.word	0xe64dabab
-	.word	0x9aec7676
-	.word	0x458fcaca
-	.word	0x9d1f8282
-	.word	0x4089c9c9
-	.word	0x87fa7d7d
-	.word	0x15effafa
-	.word	0xebb25959
-	.word	0xc98e4747
-	.word	0x0bfbf0f0
-	.word	0xec41adad
-	.word	0x67b3d4d4
-	.word	0xfd5fa2a2
-	.word	0xea45afaf
-	.word	0xbf239c9c
-	.word	0xf753a4a4
-	.word	0x96e47272
-	.word	0x5b9bc0c0
-	.word	0xc275b7b7
-	.word	0x1ce1fdfd
-	.word	0xae3d9393
-	.word	0x6a4c2626
-	.word	0x5a6c3636
-	.word	0x417e3f3f
-	.word	0x02f5f7f7
-	.word	0x4f83cccc
-	.word	0x5c683434
-	.word	0xf451a5a5
-	.word	0x34d1e5e5
-	.word	0x08f9f1f1
-	.word	0x93e27171
-	.word	0x73abd8d8
-	.word	0x53623131
-	.word	0x3f2a1515
-	.word	0x0c080404
-	.word	0x5295c7c7
-	.word	0x65462323
-	.word	0x5e9dc3c3
-	.word	0x28301818
-	.word	0xa1379696
-	.word	0x0f0a0505
-	.word	0xb52f9a9a
-	.word	0x090e0707
-	.word	0x36241212
-	.word	0x9b1b8080
-	.word	0x3ddfe2e2
-	.word	0x26cdebeb
-	.word	0x694e2727
-	.word	0xcd7fb2b2
-	.word	0x9fea7575
-	.word	0x1b120909
-	.word	0x9e1d8383
-	.word	0x74582c2c
-	.word	0x2e341a1a
-	.word	0x2d361b1b
-	.word	0xb2dc6e6e
-	.word	0xeeb45a5a
-	.word	0xfb5ba0a0
-	.word	0xf6a45252
-	.word	0x4d763b3b
-	.word	0x61b7d6d6
-	.word	0xce7db3b3
-	.word	0x7b522929
-	.word	0x3edde3e3
-	.word	0x715e2f2f
-	.word	0x97138484
-	.word	0xf5a65353
-	.word	0x68b9d1d1
-	.word	0x00000000
-	.word	0x2cc1eded
-	.word	0x60402020
-	.word	0x1fe3fcfc
-	.word	0xc879b1b1
-	.word	0xedb65b5b
-	.word	0xbed46a6a
-	.word	0x468dcbcb
-	.word	0xd967bebe
-	.word	0x4b723939
-	.word	0xde944a4a
-	.word	0xd4984c4c
-	.word	0xe8b05858
-	.word	0x4a85cfcf
-	.word	0x6bbbd0d0
-	.word	0x2ac5efef
-	.word	0xe54faaaa
-	.word	0x16edfbfb
-	.word	0xc5864343
-	.word	0xd79a4d4d
-	.word	0x55663333
-	.word	0x94118585
-	.word	0xcf8a4545
-	.word	0x10e9f9f9
-	.word	0x06040202
-	.word	0x81fe7f7f
-	.word	0xf0a05050
-	.word	0x44783c3c
-	.word	0xba259f9f
-	.word	0xe34ba8a8
-	.word	0xf3a25151
-	.word	0xfe5da3a3
-	.word	0xc0804040
-	.word	0x8a058f8f
-	.word	0xad3f9292
-	.word	0xbc219d9d
-	.word	0x48703838
-	.word	0x04f1f5f5
-	.word	0xdf63bcbc
-	.word	0xc177b6b6
-	.word	0x75afdada
-	.word	0x63422121
-	.word	0x30201010
-	.word	0x1ae5ffff
-	.word	0x0efdf3f3
-	.word	0x6dbfd2d2
-	.word	0x4c81cdcd
-	.word	0x14180c0c
-	.word	0x35261313
-	.word	0x2fc3ecec
-	.word	0xe1be5f5f
-	.word	0xa2359797
-	.word	0xcc884444
-	.word	0x392e1717
-	.word	0x5793c4c4
-	.word	0xf255a7a7
-	.word	0x82fc7e7e
-	.word	0x477a3d3d
-	.word	0xacc86464
-	.word	0xe7ba5d5d
-	.word	0x2b321919
-	.word	0x95e67373
-	.word	0xa0c06060
-	.word	0x98198181
-	.word	0xd19e4f4f
-	.word	0x7fa3dcdc
-	.word	0x66442222
-	.word	0x7e542a2a
-	.word	0xab3b9090
-	.word	0x830b8888
-	.word	0xca8c4646
-	.word	0x29c7eeee
-	.word	0xd36bb8b8
-	.word	0x3c281414
-	.word	0x79a7dede
-	.word	0xe2bc5e5e
-	.word	0x1d160b0b
-	.word	0x76addbdb
-	.word	0x3bdbe0e0
-	.word	0x56643232
-	.word	0x4e743a3a
-	.word	0x1e140a0a
-	.word	0xdb924949
-	.word	0x0a0c0606
-	.word	0x6c482424
-	.word	0xe4b85c5c
-	.word	0x5d9fc2c2
-	.word	0x6ebdd3d3
-	.word	0xef43acac
-	.word	0xa6c46262
-	.word	0xa8399191
-	.word	0xa4319595
-	.word	0x37d3e4e4
-	.word	0x8bf27979
-	.word	0x32d5e7e7
-	.word	0x438bc8c8
-	.word	0x596e3737
-	.word	0xb7da6d6d
-	.word	0x8c018d8d
-	.word	0x64b1d5d5
-	.word	0xd29c4e4e
-	.word	0xe049a9a9
-	.word	0xb4d86c6c
-	.word	0xfaac5656
-	.word	0x07f3f4f4
-	.word	0x25cfeaea
-	.word	0xafca6565
-	.word	0x8ef47a7a
-	.word	0xe947aeae
-	.word	0x18100808
-	.word	0xd56fbaba
-	.word	0x88f07878
-	.word	0x6f4a2525
-	.word	0x725c2e2e
-	.word	0x24381c1c
-	.word	0xf157a6a6
-	.word	0xc773b4b4
-	.word	0x5197c6c6
-	.word	0x23cbe8e8
-	.word	0x7ca1dddd
-	.word	0x9ce87474
-	.word	0x213e1f1f
-	.word	0xdd964b4b
-	.word	0xdc61bdbd
-	.word	0x860d8b8b
-	.word	0x850f8a8a
-	.word	0x90e07070
-	.word	0x427c3e3e
-	.word	0xc471b5b5
-	.word	0xaacc6666
-	.word	0xd8904848
-	.word	0x05060303
-	.word	0x01f7f6f6
-	.word	0x121c0e0e
-	.word	0xa3c26161
-	.word	0x5f6a3535
-	.word	0xf9ae5757
-	.word	0xd069b9b9
-	.word	0x91178686
-	.word	0x5899c1c1
-	.word	0x273a1d1d
-	.word	0xb9279e9e
-	.word	0x38d9e1e1
-	.word	0x13ebf8f8
-	.word	0xb32b9898
-	.word	0x33221111
-	.word	0xbbd26969
-	.word	0x70a9d9d9
-	.word	0x89078e8e
-	.word	0xa7339494
-	.word	0xb62d9b9b
-	.word	0x223c1e1e
-	.word	0x92158787
-	.word	0x20c9e9e9
-	.word	0x4987cece
-	.word	0xffaa5555
-	.word	0x78502828
-	.word	0x7aa5dfdf
-	.word	0x8f038c8c
-	.word	0xf859a1a1
-	.word	0x80098989
-	.word	0x171a0d0d
-	.word	0xda65bfbf
-	.word	0x31d7e6e6
-	.word	0xc6844242
-	.word	0xb8d06868
-	.word	0xc3824141
-	.word	0xb0299999
-	.word	0x775a2d2d
-	.word	0x111e0f0f
-	.word	0xcb7bb0b0
-	.word	0xfca85454
-	.word	0xd66dbbbb
-	.word	0x3a2c1616
-#endif /* HAVE_AES_DECRYPT || HAVE_AES_CBC || HAVE_AESCCM || HAVE_AESGCM ||
-        * WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER */
+	.long	0xa5c66363,0x84f87c7c,0x99ee7777,0x8df67b7b
+	.long	0x0dfff2f2,0xbdd66b6b,0xb1de6f6f,0x5491c5c5
+	.long	0x50603030,0x03020101,0xa9ce6767,0x7d562b2b
+	.long	0x19e7fefe,0x62b5d7d7,0xe64dabab,0x9aec7676
+	.long	0x458fcaca,0x9d1f8282,0x4089c9c9,0x87fa7d7d
+	.long	0x15effafa,0xebb25959,0xc98e4747,0x0bfbf0f0
+	.long	0xec41adad,0x67b3d4d4,0xfd5fa2a2,0xea45afaf
+	.long	0xbf239c9c,0xf753a4a4,0x96e47272,0x5b9bc0c0
+	.long	0xc275b7b7,0x1ce1fdfd,0xae3d9393,0x6a4c2626
+	.long	0x5a6c3636,0x417e3f3f,0x02f5f7f7,0x4f83cccc
+	.long	0x5c683434,0xf451a5a5,0x34d1e5e5,0x08f9f1f1
+	.long	0x93e27171,0x73abd8d8,0x53623131,0x3f2a1515
+	.long	0x0c080404,0x5295c7c7,0x65462323,0x5e9dc3c3
+	.long	0x28301818,0xa1379696,0x0f0a0505,0xb52f9a9a
+	.long	0x090e0707,0x36241212,0x9b1b8080,0x3ddfe2e2
+	.long	0x26cdebeb,0x694e2727,0xcd7fb2b2,0x9fea7575
+	.long	0x1b120909,0x9e1d8383,0x74582c2c,0x2e341a1a
+	.long	0x2d361b1b,0xb2dc6e6e,0xeeb45a5a,0xfb5ba0a0
+	.long	0xf6a45252,0x4d763b3b,0x61b7d6d6,0xce7db3b3
+	.long	0x7b522929,0x3edde3e3,0x715e2f2f,0x97138484
+	.long	0xf5a65353,0x68b9d1d1,0x00000000,0x2cc1eded
+	.long	0x60402020,0x1fe3fcfc,0xc879b1b1,0xedb65b5b
+	.long	0xbed46a6a,0x468dcbcb,0xd967bebe,0x4b723939
+	.long	0xde944a4a,0xd4984c4c,0xe8b05858,0x4a85cfcf
+	.long	0x6bbbd0d0,0x2ac5efef,0xe54faaaa,0x16edfbfb
+	.long	0xc5864343,0xd79a4d4d,0x55663333,0x94118585
+	.long	0xcf8a4545,0x10e9f9f9,0x06040202,0x81fe7f7f
+	.long	0xf0a05050,0x44783c3c,0xba259f9f,0xe34ba8a8
+	.long	0xf3a25151,0xfe5da3a3,0xc0804040,0x8a058f8f
+	.long	0xad3f9292,0xbc219d9d,0x48703838,0x04f1f5f5
+	.long	0xdf63bcbc,0xc177b6b6,0x75afdada,0x63422121
+	.long	0x30201010,0x1ae5ffff,0x0efdf3f3,0x6dbfd2d2
+	.long	0x4c81cdcd,0x14180c0c,0x35261313,0x2fc3ecec
+	.long	0xe1be5f5f,0xa2359797,0xcc884444,0x392e1717
+	.long	0x5793c4c4,0xf255a7a7,0x82fc7e7e,0x477a3d3d
+	.long	0xacc86464,0xe7ba5d5d,0x2b321919,0x95e67373
+	.long	0xa0c06060,0x98198181,0xd19e4f4f,0x7fa3dcdc
+	.long	0x66442222,0x7e542a2a,0xab3b9090,0x830b8888
+	.long	0xca8c4646,0x29c7eeee,0xd36bb8b8,0x3c281414
+	.long	0x79a7dede,0xe2bc5e5e,0x1d160b0b,0x76addbdb
+	.long	0x3bdbe0e0,0x56643232,0x4e743a3a,0x1e140a0a
+	.long	0xdb924949,0x0a0c0606,0x6c482424,0xe4b85c5c
+	.long	0x5d9fc2c2,0x6ebdd3d3,0xef43acac,0xa6c46262
+	.long	0xa8399191,0xa4319595,0x37d3e4e4,0x8bf27979
+	.long	0x32d5e7e7,0x438bc8c8,0x596e3737,0xb7da6d6d
+	.long	0x8c018d8d,0x64b1d5d5,0xd29c4e4e,0xe049a9a9
+	.long	0xb4d86c6c,0xfaac5656,0x07f3f4f4,0x25cfeaea
+	.long	0xafca6565,0x8ef47a7a,0xe947aeae,0x18100808
+	.long	0xd56fbaba,0x88f07878,0x6f4a2525,0x725c2e2e
+	.long	0x24381c1c,0xf157a6a6,0xc773b4b4,0x5197c6c6
+	.long	0x23cbe8e8,0x7ca1dddd,0x9ce87474,0x213e1f1f
+	.long	0xdd964b4b,0xdc61bdbd,0x860d8b8b,0x850f8a8a
+	.long	0x90e07070,0x427c3e3e,0xc471b5b5,0xaacc6666
+	.long	0xd8904848,0x05060303,0x01f7f6f6,0x121c0e0e
+	.long	0xa3c26161,0x5f6a3535,0xf9ae5757,0xd069b9b9
+	.long	0x91178686,0x5899c1c1,0x273a1d1d,0xb9279e9e
+	.long	0x38d9e1e1,0x13ebf8f8,0xb32b9898,0x33221111
+	.long	0xbbd26969,0x70a9d9d9,0x89078e8e,0xa7339494
+	.long	0xb62d9b9b,0x223c1e1e,0x92158787,0x20c9e9e9
+	.long	0x4987cece,0xffaa5555,0x78502828,0x7aa5dfdf
+	.long	0x8f038c8c,0xf859a1a1,0x80098989,0x171a0d0d
+	.long	0xda65bfbf,0x31d7e6e6,0xc6844242,0xb8d06868
+	.long	0xc3824141,0xb0299999,0x775a2d2d,0x111e0f0f
+	.long	0xcb7bb0b0,0xfca85454,0xd66dbbbb,0x3a2c1616
+#endif /* HAVE_AES_DECRYPT || HAVE_AES_CBC || HAVE_AESCCM || HAVE_AESGCM || WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER */
 #ifdef HAVE_AES_DECRYPT
 #ifndef __APPLE__
 .text
 .globl	AES_invert_key
+WC_ASM_ATT_HIDDEN(AES_invert_key)
 .type	AES_invert_key,@function
 .align	2
 AES_invert_key:
 #else
 .section	__TEXT,__text
 .globl	_AES_invert_key
+WC_ASM_ATT_HIDDEN(_AES_invert_key)
 .p2align	2
 _AES_invert_key:
 #endif /* __APPLE__ */
@@ -51969,37 +53964,33 @@ L_AES_invert_key_mix_loop:
 #endif /* HAVE_AES_DECRYPT */
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_rcon, %object
 	.section	.rodata
+	.type	L_AES_ARM64_rcon, %object
 	.size	L_AES_ARM64_rcon, 40
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
 	.align	3
 #else
 	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_rcon:
-	.word	0x01000000
-	.word	0x02000000
-	.word	0x04000000
-	.word	0x08000000
-	.word	0x10000000
-	.word	0x20000000
-	.word	0x40000000
-	.word	0x80000000
-	.word	0x1b000000
-	.word	0x36000000
+	.long	0x01000000,0x02000000,0x04000000,0x08000000
+	.long	0x10000000,0x20000000,0x40000000,0x80000000
+	.long	0x1b000000,0x36000000
 #ifndef __APPLE__
 .text
 .globl	AES_set_encrypt_key
+WC_ASM_ATT_HIDDEN(AES_set_encrypt_key)
 .type	AES_set_encrypt_key,@function
 .align	2
 AES_set_encrypt_key:
 #else
 .section	__TEXT,__text
 .globl	_AES_set_encrypt_key
+WC_ASM_ATT_HIDDEN(_AES_set_encrypt_key)
 .p2align	2
 _AES_set_encrypt_key:
 #endif /* __APPLE__ */
@@ -52071,11 +54062,10 @@ L_AES_set_encrypt_key_loop_256:
 	stp	w6, w7, [x2]
 	stnp	w8, w9, [x2, #8]
 	sub	x2, x2, #16
-	mov	w3, w9
-	ubfx	w6, w3, #8, #8
-	ubfx	w7, w3, #16, #8
-	ubfx	w8, w3, #24, #8
-	ubfx	w3, w3, #0, #8
+	ubfx	w6, w9, #8, #8
+	ubfx	w7, w9, #16, #8
+	ubfx	w8, w9, #24, #8
+	ubfx	w3, w9, #0, #8
 	lsl	w6, w6, #2
 	lsl	w7, w7, #2
 	lsl	w8, w8, #2
@@ -52248,18 +54238,18 @@ L_AES_set_encrypt_key_end:
 #ifndef __APPLE__
 	.size	AES_set_encrypt_key,.-AES_set_encrypt_key
 #endif /* __APPLE__ */
-#if defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || \
-    defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || \
-    defined(HAVE_AES_ECB)
+#if defined(HAVE_AESCCM) || defined(HAVE_AESGCM) || defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || defined(HAVE_AES_ECB)
 #ifndef __APPLE__
 .text
 .globl	AES_ECB_encrypt
+WC_ASM_ATT_HIDDEN(AES_ECB_encrypt)
 .type	AES_ECB_encrypt,@function
 .align	2
 AES_ECB_encrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_ECB_encrypt
+WC_ASM_ATT_HIDDEN(_AES_ECB_encrypt)
 .p2align	2
 _AES_ECB_encrypt:
 #endif /* __APPLE__ */
@@ -52581,18 +54571,19 @@ L_AES_ECB_encrypt_loop_nr:
 #ifndef __APPLE__
 	.size	AES_ECB_encrypt,.-AES_ECB_encrypt
 #endif /* __APPLE__ */
-#endif /* HAVE_AESCCM || HAVE_AESGCM || WOLFSSL_AES_DIRECT ||
-        * WOLFSSL_AES_COUNTER || HAVE_AES_ECB */
+#endif /* HAVE_AESCCM || HAVE_AESGCM || WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER || HAVE_AES_ECB */
 #ifdef HAVE_AES_CBC
 #ifndef __APPLE__
 .text
 .globl	AES_CBC_encrypt
+WC_ASM_ATT_HIDDEN(AES_CBC_encrypt)
 .type	AES_CBC_encrypt,@function
 .align	2
 AES_CBC_encrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_CBC_encrypt
+WC_ASM_ATT_HIDDEN(_AES_CBC_encrypt)
 .p2align	2
 _AES_CBC_encrypt:
 #endif /* __APPLE__ */
@@ -52923,12 +54914,14 @@ L_AES_CBC_encrypt_loop_nr:
 #ifndef __APPLE__
 .text
 .globl	AES_CTR_encrypt
+WC_ASM_ATT_HIDDEN(AES_CTR_encrypt)
 .type	AES_CTR_encrypt,@function
 .align	2
 AES_CTR_encrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_CTR_encrypt
+WC_ASM_ATT_HIDDEN(_AES_CTR_encrypt)
 .p2align	2
 _AES_CTR_encrypt:
 #endif /* __APPLE__ */
@@ -53266,20 +55259,20 @@ L_AES_CTR_encrypt_loop_nr:
 #endif /* __APPLE__ */
 #endif /* WOLFSSL_AES_COUNTER */
 #ifdef HAVE_AES_DECRYPT
-#if defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || \
-    defined(HAVE_AES_CBC) || defined(HAVE_AES_ECB)
+#if defined(WOLFSSL_AES_DIRECT) || defined(WOLFSSL_AES_COUNTER) || defined(HAVE_AES_CBC) || defined(HAVE_AES_ECB)
 #ifndef __APPLE__
 	.text
-	.type	L_AES_ARM64_td4, %object
 	.section	.rodata
+	.type	L_AES_ARM64_td4, %object
 	.size	L_AES_ARM64_td4, 256
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
-	.align	1
+	.align	3
 #else
-	.p2align	1
+	.p2align	3
 #endif /* __APPLE__ */
 L_AES_ARM64_td4:
 	.byte	0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38
@@ -53318,12 +55311,14 @@ L_AES_ARM64_td4:
 #ifndef __APPLE__
 .text
 .globl	AES_ECB_decrypt
+WC_ASM_ATT_HIDDEN(AES_ECB_decrypt)
 .type	AES_ECB_decrypt,@function
 .align	2
 AES_ECB_decrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_ECB_decrypt
+WC_ASM_ATT_HIDDEN(_AES_ECB_decrypt)
 .p2align	2
 _AES_ECB_decrypt:
 #endif /* __APPLE__ */
@@ -53629,12 +55624,14 @@ L_AES_ECB_decrypt_loop_nr:
 #ifndef __APPLE__
 .text
 .globl	AES_CBC_decrypt
+WC_ASM_ATT_HIDDEN(AES_CBC_decrypt)
 .type	AES_CBC_decrypt,@function
 .align	2
 AES_CBC_decrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_CBC_decrypt
+WC_ASM_ATT_HIDDEN(_AES_CBC_decrypt)
 .p2align	2
 _AES_CBC_decrypt:
 #endif /* __APPLE__ */
@@ -54224,65 +56221,44 @@ L_AES_CBC_decrypt_end_dec:
 	.size	AES_CBC_decrypt,.-AES_CBC_decrypt
 #endif /* __APPLE__ */
 #endif /* HAVE_AES_CBC */
-#endif /* WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER || HAVE_AES_CBC
-        * HAVE_AES_ECB */
+#endif /* WOLFSSL_AES_DIRECT || WOLFSSL_AES_COUNTER || HAVE_AES_CBC || HAVE_AES_ECB */
 #endif /* HAVE_AES_DECRYPT */
 #ifdef HAVE_AESGCM
+#if !defined(GCM_SMALL) && !defined(GCM_TABLE)
 #ifndef __APPLE__
 	.text
-	.type	L_GCM_gmult_len_r, %object
 	.section	.rodata
+	.type	L_GCM_gmult_len_r, %object
 	.size	L_GCM_gmult_len_r, 128
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
 	.align	3
 #else
 	.p2align	3
 #endif /* __APPLE__ */
 L_GCM_gmult_len_r:
-	.word	0x00000000
-	.word	0x1c200000
-	.word	0x38400000
-	.word	0x24600000
-	.word	0x70800000
-	.word	0x6ca00000
-	.word	0x48c00000
-	.word	0x54e00000
-	.word	0xe1000000
-	.word	0xfd200000
-	.word	0xd9400000
-	.word	0xc5600000
-	.word	0x91800000
-	.word	0x8da00000
-	.word	0xa9c00000
-	.word	0xb5e00000
-	.word	0x00000000
-	.word	0x01c20000
-	.word	0x03840000
-	.word	0x02460000
-	.word	0x07080000
-	.word	0x06ca0000
-	.word	0x048c0000
-	.word	0x054e0000
-	.word	0x0e100000
-	.word	0x0fd20000
-	.word	0x0d940000
-	.word	0x0c560000
-	.word	0x09180000
-	.word	0x08da0000
-	.word	0x0a9c0000
-	.word	0x0b5e0000
+	.long	0x00000000,0x1c200000,0x38400000,0x24600000
+	.long	0x70800000,0x6ca00000,0x48c00000,0x54e00000
+	.long	0xe1000000,0xfd200000,0xd9400000,0xc5600000
+	.long	0x91800000,0x8da00000,0xa9c00000,0xb5e00000
+	.long	0x00000000,0x01c20000,0x03840000,0x02460000
+	.long	0x07080000,0x06ca0000,0x048c0000,0x054e0000
+	.long	0x0e100000,0x0fd20000,0x0d940000,0x0c560000
+	.long	0x09180000,0x08da0000,0x0a9c0000,0x0b5e0000
 #ifndef __APPLE__
 .text
 .globl	GCM_gmult_len
+WC_ASM_ATT_HIDDEN(GCM_gmult_len)
 .type	GCM_gmult_len,@function
 .align	2
 GCM_gmult_len:
 #else
 .section	__TEXT,__text
 .globl	_GCM_gmult_len
+WC_ASM_ATT_HIDDEN(_GCM_gmult_len)
 .p2align	2
 _GCM_gmult_len:
 #endif /* __APPLE__ */
@@ -54697,15 +56673,400 @@ L_GCM_gmult_len_start_block:
 #ifndef __APPLE__
 	.size	GCM_gmult_len,.-GCM_gmult_len
 #endif /* __APPLE__ */
+#endif /* !defined(GCM_SMALL) && !defined(GCM_TABLE) */
+#ifdef GCM_TABLE
+#ifndef __APPLE__
+	.text
+	.section	.rodata
+	.type	L_GCM_gmult_len_r, %object
+	.size	L_GCM_gmult_len_r, 512
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
+L_GCM_gmult_len_r:
+	.byte	0x00,0x00,0x01,0xc2,0x03,0x84,0x02,0x46
+	.byte	0x07,0x08,0x06,0xca,0x04,0x8c,0x05,0x4e
+	.byte	0x0e,0x10,0x0f,0xd2,0x0d,0x94,0x0c,0x56
+	.byte	0x09,0x18,0x08,0xda,0x0a,0x9c,0x0b,0x5e
+	.byte	0x1c,0x20,0x1d,0xe2,0x1f,0xa4,0x1e,0x66
+	.byte	0x1b,0x28,0x1a,0xea,0x18,0xac,0x19,0x6e
+	.byte	0x12,0x30,0x13,0xf2,0x11,0xb4,0x10,0x76
+	.byte	0x15,0x38,0x14,0xfa,0x16,0xbc,0x17,0x7e
+	.byte	0x38,0x40,0x39,0x82,0x3b,0xc4,0x3a,0x06
+	.byte	0x3f,0x48,0x3e,0x8a,0x3c,0xcc,0x3d,0x0e
+	.byte	0x36,0x50,0x37,0x92,0x35,0xd4,0x34,0x16
+	.byte	0x31,0x58,0x30,0x9a,0x32,0xdc,0x33,0x1e
+	.byte	0x24,0x60,0x25,0xa2,0x27,0xe4,0x26,0x26
+	.byte	0x23,0x68,0x22,0xaa,0x20,0xec,0x21,0x2e
+	.byte	0x2a,0x70,0x2b,0xb2,0x29,0xf4,0x28,0x36
+	.byte	0x2d,0x78,0x2c,0xba,0x2e,0xfc,0x2f,0x3e
+	.byte	0x70,0x80,0x71,0x42,0x73,0x04,0x72,0xc6
+	.byte	0x77,0x88,0x76,0x4a,0x74,0x0c,0x75,0xce
+	.byte	0x7e,0x90,0x7f,0x52,0x7d,0x14,0x7c,0xd6
+	.byte	0x79,0x98,0x78,0x5a,0x7a,0x1c,0x7b,0xde
+	.byte	0x6c,0xa0,0x6d,0x62,0x6f,0x24,0x6e,0xe6
+	.byte	0x6b,0xa8,0x6a,0x6a,0x68,0x2c,0x69,0xee
+	.byte	0x62,0xb0,0x63,0x72,0x61,0x34,0x60,0xf6
+	.byte	0x65,0xb8,0x64,0x7a,0x66,0x3c,0x67,0xfe
+	.byte	0x48,0xc0,0x49,0x02,0x4b,0x44,0x4a,0x86
+	.byte	0x4f,0xc8,0x4e,0x0a,0x4c,0x4c,0x4d,0x8e
+	.byte	0x46,0xd0,0x47,0x12,0x45,0x54,0x44,0x96
+	.byte	0x41,0xd8,0x40,0x1a,0x42,0x5c,0x43,0x9e
+	.byte	0x54,0xe0,0x55,0x22,0x57,0x64,0x56,0xa6
+	.byte	0x53,0xe8,0x52,0x2a,0x50,0x6c,0x51,0xae
+	.byte	0x5a,0xf0,0x5b,0x32,0x59,0x74,0x58,0xb6
+	.byte	0x5d,0xf8,0x5c,0x3a,0x5e,0x7c,0x5f,0xbe
+	.byte	0xe1,0x00,0xe0,0xc2,0xe2,0x84,0xe3,0x46
+	.byte	0xe6,0x08,0xe7,0xca,0xe5,0x8c,0xe4,0x4e
+	.byte	0xef,0x10,0xee,0xd2,0xec,0x94,0xed,0x56
+	.byte	0xe8,0x18,0xe9,0xda,0xeb,0x9c,0xea,0x5e
+	.byte	0xfd,0x20,0xfc,0xe2,0xfe,0xa4,0xff,0x66
+	.byte	0xfa,0x28,0xfb,0xea,0xf9,0xac,0xf8,0x6e
+	.byte	0xf3,0x30,0xf2,0xf2,0xf0,0xb4,0xf1,0x76
+	.byte	0xf4,0x38,0xf5,0xfa,0xf7,0xbc,0xf6,0x7e
+	.byte	0xd9,0x40,0xd8,0x82,0xda,0xc4,0xdb,0x06
+	.byte	0xde,0x48,0xdf,0x8a,0xdd,0xcc,0xdc,0x0e
+	.byte	0xd7,0x50,0xd6,0x92,0xd4,0xd4,0xd5,0x16
+	.byte	0xd0,0x58,0xd1,0x9a,0xd3,0xdc,0xd2,0x1e
+	.byte	0xc5,0x60,0xc4,0xa2,0xc6,0xe4,0xc7,0x26
+	.byte	0xc2,0x68,0xc3,0xaa,0xc1,0xec,0xc0,0x2e
+	.byte	0xcb,0x70,0xca,0xb2,0xc8,0xf4,0xc9,0x36
+	.byte	0xcc,0x78,0xcd,0xba,0xcf,0xfc,0xce,0x3e
+	.byte	0x91,0x80,0x90,0x42,0x92,0x04,0x93,0xc6
+	.byte	0x96,0x88,0x97,0x4a,0x95,0x0c,0x94,0xce
+	.byte	0x9f,0x90,0x9e,0x52,0x9c,0x14,0x9d,0xd6
+	.byte	0x98,0x98,0x99,0x5a,0x9b,0x1c,0x9a,0xde
+	.byte	0x8d,0xa0,0x8c,0x62,0x8e,0x24,0x8f,0xe6
+	.byte	0x8a,0xa8,0x8b,0x6a,0x89,0x2c,0x88,0xee
+	.byte	0x83,0xb0,0x82,0x72,0x80,0x34,0x81,0xf6
+	.byte	0x84,0xb8,0x85,0x7a,0x87,0x3c,0x86,0xfe
+	.byte	0xa9,0xc0,0xa8,0x02,0xaa,0x44,0xab,0x86
+	.byte	0xae,0xc8,0xaf,0x0a,0xad,0x4c,0xac,0x8e
+	.byte	0xa7,0xd0,0xa6,0x12,0xa4,0x54,0xa5,0x96
+	.byte	0xa0,0xd8,0xa1,0x1a,0xa3,0x5c,0xa2,0x9e
+	.byte	0xb5,0xe0,0xb4,0x22,0xb6,0x64,0xb7,0xa6
+	.byte	0xb2,0xe8,0xb3,0x2a,0xb1,0x6c,0xb0,0xae
+	.byte	0xbb,0xf0,0xba,0x32,0xb8,0x74,0xb9,0xb6
+	.byte	0xbc,0xf8,0xbd,0x3a,0xbf,0x7c,0xbe,0xbe
+#ifndef __APPLE__
+.text
+.globl	GCM_gmult_len
+WC_ASM_ATT_HIDDEN(GCM_gmult_len)
+.type	GCM_gmult_len,@function
+.align	2
+GCM_gmult_len:
+#else
+.section	__TEXT,__text
+.globl	_GCM_gmult_len
+WC_ASM_ATT_HIDDEN(_GCM_gmult_len)
+.p2align	2
+_GCM_gmult_len:
+#endif /* __APPLE__ */
+#ifndef __APPLE__
+	adrp x10, L_GCM_gmult_len_r
+	add  x10, x10, :lo12:L_GCM_gmult_len_r
+#else
+	adrp x10, L_GCM_gmult_len_r@PAGE
+	add  x10, x10, L_GCM_gmult_len_r@PAGEOFF
+#endif /* __APPLE__ */
+L_GCM_gmult_len_start_block:
+	ldp	x6, x7, [x0]
+	ldp	x8, x9, [x2]
+	eor	x6, x6, x8
+	eor	x7, x7, x9
+	mov	x4, #0
+	mov	x5, #0
+	# Byte 15
+	ubfx	x12, x7, #56, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 14
+	ubfx	x12, x7, #48, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 13
+	ubfx	x12, x7, #40, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 12
+	ubfx	x12, x7, #32, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 11
+	ubfx	x12, x7, #24, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 10
+	ubfx	x12, x7, #16, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 9
+	ubfx	x12, x7, #8, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 8
+	ubfx	x12, x7, #0, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 7
+	ubfx	x12, x6, #56, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 6
+	ubfx	x12, x6, #48, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 5
+	ubfx	x12, x6, #40, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 4
+	ubfx	x12, x6, #32, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 3
+	ubfx	x12, x6, #24, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 2
+	ubfx	x12, x6, #16, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 1
+	ubfx	x12, x6, #8, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	and	x13, x5, #0xff
+	lsr	x5, x5, #8
+	orr	x5, x5, x4, lsl 56
+	lsr	x4, x4, #8
+	add	x11, x10, x13, lsl 1
+	ldrb	w8, [x11], #1
+	ldrb	w9, [x11]
+	orr	x4, x4, x8, lsl 56
+	eor	x4, x4, x9, lsl 48
+	# Byte 0
+	ubfx	x12, x6, #0, #8
+	add	x11, x1, x12, lsl 4
+	ldp	x8, x9, [x11]
+	rev	x8, x8
+	rev	x9, x9
+	eor	x4, x4, x8
+	eor	x5, x5, x9
+	rev	x4, x4
+	rev	x5, x5
+	stp	x4, x5, [x0]
+	subs	x3, x3, #16
+	add	x2, x2, #16
+	bne	L_GCM_gmult_len_start_block
+	ret
+#ifndef __APPLE__
+	.size	GCM_gmult_len,.-GCM_gmult_len
+#endif /* __APPLE__ */
+#endif /* GCM_TABLE */
 #ifndef __APPLE__
 .text
 .globl	AES_GCM_encrypt
+WC_ASM_ATT_HIDDEN(AES_GCM_encrypt)
 .type	AES_GCM_encrypt,@function
 .align	2
 AES_GCM_encrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_GCM_encrypt
+WC_ASM_ATT_HIDDEN(_AES_GCM_encrypt)
 .p2align	2
 _AES_GCM_encrypt:
 #endif /* __APPLE__ */
@@ -55043,12 +57404,14 @@ L_AES_GCM_encrypt_loop_nr:
 #ifndef __APPLE__
 .text
 .globl	AES_XTS_encrypt
+WC_ASM_ATT_HIDDEN(AES_XTS_encrypt)
 .type	AES_XTS_encrypt,@function
 .align	2
 AES_XTS_encrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_XTS_encrypt
+WC_ASM_ATT_HIDDEN(_AES_XTS_encrypt)
 .p2align	2
 _AES_XTS_encrypt:
 #endif /* __APPLE__ */
@@ -55668,7 +58031,7 @@ L_AES_XTS_encrypt_loop_nr:
 	add	x0, x0, #16
 	add	x1, x1, #16
 	cmp	w2, #16
-	bge	L_AES_XTS_encrypt_loop_block
+	bcs	L_AES_XTS_encrypt_loop_block
 	cbz	w2, L_AES_XTS_encrypt_done_data
 	mov	x26, x4
 	sub	x1, x1, #16
@@ -55998,12 +58361,14 @@ L_AES_XTS_encrypt_done_data:
 #ifndef __APPLE__
 .text
 .globl	AES_XTS_decrypt
+WC_ASM_ATT_HIDDEN(AES_XTS_decrypt)
 .type	AES_XTS_decrypt,@function
 .align	2
 AES_XTS_decrypt:
 #else
 .section	__TEXT,__text
 .globl	_AES_XTS_decrypt
+WC_ASM_ATT_HIDDEN(_AES_XTS_decrypt)
 .p2align	2
 _AES_XTS_decrypt:
 #endif /* __APPLE__ */
@@ -56038,8 +58403,7 @@ _AES_XTS_decrypt:
 #endif /* __APPLE__ */
 	ands	w11, w2, #15
 	cset	w11, ne
-	lsl	w11, w11, #4
-	sub	w2, w2, w11
+	sub	w2, w2, w11, lsl 4
 	mov	x11, #0x87
 	mov	x28, x5
 	ldp	x23, x24, [x3]
@@ -56336,7 +58700,7 @@ L_AES_XTS_decrypt_loop_nr_tweak:
 	rev32	x23, x23
 	rev32	x24, x24
 	cmp	w2, #16
-	blt	L_AES_XTS_decrypt_start_partail
+	bcc	L_AES_XTS_decrypt_start_partail
 L_AES_XTS_decrypt_loop_block:
 	mov	x28, x4
 	ldp	x12, x13, [x0]
@@ -56616,7 +58980,7 @@ L_AES_XTS_decrypt_loop_nr:
 	add	x0, x0, #16
 	add	x1, x1, #16
 	cmp	w2, #16
-	bge	L_AES_XTS_decrypt_loop_block
+	bcs	L_AES_XTS_decrypt_loop_block
 	cbz	w2, L_AES_XTS_decrypt_done_data
 L_AES_XTS_decrypt_start_partail:
 	and	x21, x11, x24, asr 63
@@ -57190,6 +59554,844 @@ L_AES_XTS_decrypt_done_data:
 #endif /* __APPLE__ */
 #endif /* HAVE_AES_DECRYPT */
 #endif /* WOLFSSL_AES_XTS */
+#ifdef WOLFSSL_AESGCM_SIV
+#ifndef __APPLE__
+	.text
+	.section	.rodata
+	.type	L_AES_GCMSIV_polyval_base_r, %object
+	.size	L_AES_GCMSIV_polyval_base_r, 128
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 16-byte aligned, 128-bit aligned
+#ifndef __APPLE__
+	.align	4
+#else
+	.p2align	4
+#endif /* __APPLE__ */
+L_AES_GCMSIV_polyval_base_r:
+	.quad	0x0000000000000000,0x1c20000000000000
+	.quad	0x3840000000000000,0x2460000000000000
+	.quad	0x7080000000000000,0x6ca0000000000000
+	.quad	0x48c0000000000000,0x54e0000000000000
+	.quad	0xe100000000000000,0xfd20000000000000
+	.quad	0xd940000000000000,0xc560000000000000
+	.quad	0x9180000000000000,0x8da0000000000000
+	.quad	0xa9c0000000000000,0xb5e0000000000000
+#ifndef __APPLE__
+.text
+.globl	AES_GCMSIV_polyval_base
+WC_ASM_ATT_HIDDEN(AES_GCMSIV_polyval_base)
+.type	AES_GCMSIV_polyval_base,@function
+.align	2
+AES_GCMSIV_polyval_base:
+#else
+.section	__TEXT,__text
+.globl	_AES_GCMSIV_polyval_base
+WC_ASM_ATT_HIDDEN(_AES_GCMSIV_polyval_base)
+.p2align	2
+_AES_GCMSIV_polyval_base:
+#endif /* __APPLE__ */
+#ifndef __APPLE__
+	adrp x15, L_AES_GCMSIV_polyval_base_r
+	add  x15, x15, :lo12:L_AES_GCMSIV_polyval_base_r
+#else
+	adrp x15, L_AES_GCMSIV_polyval_base_r@PAGE
+	add  x15, x15, L_AES_GCMSIV_polyval_base_r@PAGEOFF
+#endif /* __APPLE__ */
+	cbz	w3, L_AES_GCMSIV_polyval_base_done
+L_AES_GCMSIV_polyval_base_loop:
+	ldp	x6, x7, [x2]
+	ldp	x4, x5, [x0]
+	rev	x6, x6
+	rev	x7, x7
+	eor	x4, x4, x7
+	eor	x5, x5, x6
+	eor	x8, x8, x8
+	eor	x9, x9, x9
+	ubfx	x12, x5, #56, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #60, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #48, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #52, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #40, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #44, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #32, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #36, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #24, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #28, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #16, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #20, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #8, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #12, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #0, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x5, #4, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #56, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #60, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #48, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #52, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #40, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #44, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #32, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #36, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #24, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #28, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #16, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #20, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #8, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #12, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #0, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	and	x13, x9, #15
+	lsr	x9, x9, #4
+	orr	x9, x9, x8, lsl 60
+	lsr	x8, x8, #4
+	ldr	x10, [x15, x13, LSL 3]
+	eor	x8, x8, x10
+	ubfx	x12, x4, #4, #4
+	add	x14, x1, x12, lsl 4
+	ldp	x10, x11, [x14]
+	eor	x8, x8, x10
+	eor	x9, x9, x11
+	rev	x8, x8
+	rev	x9, x9
+	stp	x8, x9, [x0]
+	subs	w3, w3, #1
+	add	x2, x2, #16
+	bne	L_AES_GCMSIV_polyval_base_loop
+L_AES_GCMSIV_polyval_base_done:
+	ret
+#ifndef __APPLE__
+	.size	AES_GCMSIV_polyval_base,.-AES_GCMSIV_polyval_base
+#endif /* __APPLE__ */
+#ifndef __APPLE__
+	.text
+	.section	.rodata
+	.type	L_AES_GCMSIV_ctr_base_te, %object
+	.size	L_AES_GCMSIV_ctr_base_te, 1024
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
+L_AES_GCMSIV_ctr_base_te:
+	.long	0xa5c66363,0x84f87c7c,0x99ee7777,0x8df67b7b
+	.long	0x0dfff2f2,0xbdd66b6b,0xb1de6f6f,0x5491c5c5
+	.long	0x50603030,0x03020101,0xa9ce6767,0x7d562b2b
+	.long	0x19e7fefe,0x62b5d7d7,0xe64dabab,0x9aec7676
+	.long	0x458fcaca,0x9d1f8282,0x4089c9c9,0x87fa7d7d
+	.long	0x15effafa,0xebb25959,0xc98e4747,0x0bfbf0f0
+	.long	0xec41adad,0x67b3d4d4,0xfd5fa2a2,0xea45afaf
+	.long	0xbf239c9c,0xf753a4a4,0x96e47272,0x5b9bc0c0
+	.long	0xc275b7b7,0x1ce1fdfd,0xae3d9393,0x6a4c2626
+	.long	0x5a6c3636,0x417e3f3f,0x02f5f7f7,0x4f83cccc
+	.long	0x5c683434,0xf451a5a5,0x34d1e5e5,0x08f9f1f1
+	.long	0x93e27171,0x73abd8d8,0x53623131,0x3f2a1515
+	.long	0x0c080404,0x5295c7c7,0x65462323,0x5e9dc3c3
+	.long	0x28301818,0xa1379696,0x0f0a0505,0xb52f9a9a
+	.long	0x090e0707,0x36241212,0x9b1b8080,0x3ddfe2e2
+	.long	0x26cdebeb,0x694e2727,0xcd7fb2b2,0x9fea7575
+	.long	0x1b120909,0x9e1d8383,0x74582c2c,0x2e341a1a
+	.long	0x2d361b1b,0xb2dc6e6e,0xeeb45a5a,0xfb5ba0a0
+	.long	0xf6a45252,0x4d763b3b,0x61b7d6d6,0xce7db3b3
+	.long	0x7b522929,0x3edde3e3,0x715e2f2f,0x97138484
+	.long	0xf5a65353,0x68b9d1d1,0x00000000,0x2cc1eded
+	.long	0x60402020,0x1fe3fcfc,0xc879b1b1,0xedb65b5b
+	.long	0xbed46a6a,0x468dcbcb,0xd967bebe,0x4b723939
+	.long	0xde944a4a,0xd4984c4c,0xe8b05858,0x4a85cfcf
+	.long	0x6bbbd0d0,0x2ac5efef,0xe54faaaa,0x16edfbfb
+	.long	0xc5864343,0xd79a4d4d,0x55663333,0x94118585
+	.long	0xcf8a4545,0x10e9f9f9,0x06040202,0x81fe7f7f
+	.long	0xf0a05050,0x44783c3c,0xba259f9f,0xe34ba8a8
+	.long	0xf3a25151,0xfe5da3a3,0xc0804040,0x8a058f8f
+	.long	0xad3f9292,0xbc219d9d,0x48703838,0x04f1f5f5
+	.long	0xdf63bcbc,0xc177b6b6,0x75afdada,0x63422121
+	.long	0x30201010,0x1ae5ffff,0x0efdf3f3,0x6dbfd2d2
+	.long	0x4c81cdcd,0x14180c0c,0x35261313,0x2fc3ecec
+	.long	0xe1be5f5f,0xa2359797,0xcc884444,0x392e1717
+	.long	0x5793c4c4,0xf255a7a7,0x82fc7e7e,0x477a3d3d
+	.long	0xacc86464,0xe7ba5d5d,0x2b321919,0x95e67373
+	.long	0xa0c06060,0x98198181,0xd19e4f4f,0x7fa3dcdc
+	.long	0x66442222,0x7e542a2a,0xab3b9090,0x830b8888
+	.long	0xca8c4646,0x29c7eeee,0xd36bb8b8,0x3c281414
+	.long	0x79a7dede,0xe2bc5e5e,0x1d160b0b,0x76addbdb
+	.long	0x3bdbe0e0,0x56643232,0x4e743a3a,0x1e140a0a
+	.long	0xdb924949,0x0a0c0606,0x6c482424,0xe4b85c5c
+	.long	0x5d9fc2c2,0x6ebdd3d3,0xef43acac,0xa6c46262
+	.long	0xa8399191,0xa4319595,0x37d3e4e4,0x8bf27979
+	.long	0x32d5e7e7,0x438bc8c8,0x596e3737,0xb7da6d6d
+	.long	0x8c018d8d,0x64b1d5d5,0xd29c4e4e,0xe049a9a9
+	.long	0xb4d86c6c,0xfaac5656,0x07f3f4f4,0x25cfeaea
+	.long	0xafca6565,0x8ef47a7a,0xe947aeae,0x18100808
+	.long	0xd56fbaba,0x88f07878,0x6f4a2525,0x725c2e2e
+	.long	0x24381c1c,0xf157a6a6,0xc773b4b4,0x5197c6c6
+	.long	0x23cbe8e8,0x7ca1dddd,0x9ce87474,0x213e1f1f
+	.long	0xdd964b4b,0xdc61bdbd,0x860d8b8b,0x850f8a8a
+	.long	0x90e07070,0x427c3e3e,0xc471b5b5,0xaacc6666
+	.long	0xd8904848,0x05060303,0x01f7f6f6,0x121c0e0e
+	.long	0xa3c26161,0x5f6a3535,0xf9ae5757,0xd069b9b9
+	.long	0x91178686,0x5899c1c1,0x273a1d1d,0xb9279e9e
+	.long	0x38d9e1e1,0x13ebf8f8,0xb32b9898,0x33221111
+	.long	0xbbd26969,0x70a9d9d9,0x89078e8e,0xa7339494
+	.long	0xb62d9b9b,0x223c1e1e,0x92158787,0x20c9e9e9
+	.long	0x4987cece,0xffaa5555,0x78502828,0x7aa5dfdf
+	.long	0x8f038c8c,0xf859a1a1,0x80098989,0x171a0d0d
+	.long	0xda65bfbf,0x31d7e6e6,0xc6844242,0xb8d06868
+	.long	0xc3824141,0xb0299999,0x775a2d2d,0x111e0f0f
+	.long	0xcb7bb0b0,0xfca85454,0xd66dbbbb,0x3a2c1616
+#ifndef __APPLE__
+.text
+.globl	AES_GCMSIV_ctr_base
+WC_ASM_ATT_HIDDEN(AES_GCMSIV_ctr_base)
+.type	AES_GCMSIV_ctr_base,@function
+.align	2
+AES_GCMSIV_ctr_base:
+#else
+.section	__TEXT,__text
+.globl	_AES_GCMSIV_ctr_base
+WC_ASM_ATT_HIDDEN(_AES_GCMSIV_ctr_base)
+.p2align	2
+_AES_GCMSIV_ctr_base:
+#endif /* __APPLE__ */
+	stp	x29, x30, [sp, #-64]!
+	add	x29, sp, #0
+	stp	x17, x19, [x29, #24]
+	stp	x20, x21, [x29, #40]
+	str	x22, [x29, #56]
+#ifndef __APPLE__
+	adrp x6, L_AES_GCMSIV_ctr_base_te
+	add  x6, x6, :lo12:L_AES_GCMSIV_ctr_base_te
+#else
+	adrp x6, L_AES_GCMSIV_ctr_base_te@PAGE
+	add  x6, x6, L_AES_GCMSIV_ctr_base_te@PAGEOFF
+#endif /* __APPLE__ */
+	ldp	x15, x16, [x5]
+	mov	w17, w15
+	cbz	x2, L_AES_GCMSIV_ctr_base_done
+L_AES_GCMSIV_ctr_base_loop_block:
+	mov	x22, x3
+	ldp	x11, x12, [x22], #16
+	# Round: 0 - set counter, XOR in key schedule
+	bfi	x15, x17, #0, #32
+	rev32	x7, x15
+	rev32	x8, x16
+	eor	x7, x7, x11
+	eor	x8, x8, x12
+	sub	w21, w4, #2
+L_AES_GCMSIV_ctr_base_loop_nr:
+	ubfx	x11, x7, #48, #8
+	ubfx	x14, x7, #24, #8
+	ubfx	x19, x8, #8, #8
+	ubfx	x20, x8, #32, #8
+	ldr	x9, [x6]
+	ldr	x9, [x6, #64]
+	ldr	x9, [x6, #128]
+	ldr	x9, [x6, #192]
+	ldr	x9, [x6, #256]
+	ldr	x9, [x6, #320]
+	ldr	x9, [x6, #384]
+	ldr	x9, [x6, #448]
+	ldr	x9, [x6, #512]
+	ldr	x9, [x6, #576]
+	ldr	x9, [x6, #640]
+	ldr	x9, [x6, #704]
+	ldr	x9, [x6, #768]
+	ldr	x9, [x6, #832]
+	ldr	x9, [x6, #896]
+	ldr	x9, [x6, #960]
+	ldr	w11, [x6, x11, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x12, x8, #16, #8
+	eor	w11, w11, w14, ror 24
+	ubfx	x14, x7, #56, #8
+	eor	w11, w11, w19, ror 8
+	ubfx	x19, x8, #40, #8
+	eor	w11, w11, w20, ror 16
+	ubfx	x20, x7, #0, #8
+	ldr	w12, [x6, x12, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x13, x8, #48, #8
+	eor	w12, w12, w14, ror 24
+	ubfx	x14, x8, #24, #8
+	eor	w12, w12, w19, ror 8
+	ubfx	x19, x7, #8, #8
+	eor	w12, w12, w20, ror 16
+	ubfx	x20, x7, #32, #8
+	bfi	x11, x12, #32, #32
+	ldr	w13, [x6, x13, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x9, x8, #0, #8
+	eor	w13, w13, w14, ror 24
+	ubfx	x14, x7, #16, #8
+	eor	w13, w13, w19, ror 8
+	ubfx	x19, x8, #56, #8
+	eor	w12, w13, w20, ror 16
+	ubfx	x20, x7, #40, #8
+	ldr	w9, [x6, x9, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	eor	w19, w19, w9, ror 24
+	ldp	x7, x8, [x22], #16
+	eor	w14, w14, w19, ror 24
+	eor	w14, w14, w20, ror 8
+	bfi	x12, x14, #32, #32
+	#   XOR in Key Schedule
+	eor	x11, x11, x7
+	eor	x12, x12, x8
+	ubfx	x7, x11, #48, #8
+	ubfx	x10, x11, #24, #8
+	ubfx	x19, x12, #8, #8
+	ubfx	x20, x12, #32, #8
+	ldr	x13, [x6]
+	ldr	x13, [x6, #64]
+	ldr	x13, [x6, #128]
+	ldr	x13, [x6, #192]
+	ldr	x13, [x6, #256]
+	ldr	x13, [x6, #320]
+	ldr	x13, [x6, #384]
+	ldr	x13, [x6, #448]
+	ldr	x13, [x6, #512]
+	ldr	x13, [x6, #576]
+	ldr	x13, [x6, #640]
+	ldr	x13, [x6, #704]
+	ldr	x13, [x6, #768]
+	ldr	x13, [x6, #832]
+	ldr	x13, [x6, #896]
+	ldr	x13, [x6, #960]
+	ldr	w7, [x6, x7, LSL 2]
+	ldr	w10, [x6, x10, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x8, x12, #16, #8
+	eor	w7, w7, w10, ror 24
+	ubfx	x10, x11, #56, #8
+	eor	w7, w7, w19, ror 8
+	ubfx	x19, x12, #40, #8
+	eor	w7, w7, w20, ror 16
+	ubfx	x20, x11, #0, #8
+	ldr	w8, [x6, x8, LSL 2]
+	ldr	w10, [x6, x10, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x9, x12, #48, #8
+	eor	w8, w8, w10, ror 24
+	ubfx	x10, x12, #24, #8
+	eor	w8, w8, w19, ror 8
+	ubfx	x19, x11, #8, #8
+	eor	w8, w8, w20, ror 16
+	ubfx	x20, x11, #32, #8
+	bfi	x7, x8, #32, #32
+	ldr	w9, [x6, x9, LSL 2]
+	ldr	w10, [x6, x10, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x13, x12, #0, #8
+	eor	w9, w9, w10, ror 24
+	ubfx	x10, x11, #16, #8
+	eor	w9, w9, w19, ror 8
+	ubfx	x19, x12, #56, #8
+	eor	w8, w9, w20, ror 16
+	ubfx	x20, x11, #40, #8
+	ldr	w13, [x6, x13, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w10, [x6, x10, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	eor	w19, w19, w13, ror 24
+	ldp	x11, x12, [x22], #16
+	eor	w10, w10, w19, ror 24
+	eor	w10, w10, w20, ror 8
+	bfi	x8, x10, #32, #32
+	#   XOR in Key Schedule
+	eor	x7, x7, x11
+	eor	x8, x8, x12
+	subs	w21, w21, #2
+	bne	L_AES_GCMSIV_ctr_base_loop_nr
+	ubfx	x11, x7, #48, #8
+	ubfx	x14, x7, #24, #8
+	ubfx	x19, x8, #8, #8
+	ubfx	x20, x8, #32, #8
+	ldr	x9, [x6]
+	ldr	x9, [x6, #64]
+	ldr	x9, [x6, #128]
+	ldr	x9, [x6, #192]
+	ldr	x9, [x6, #256]
+	ldr	x9, [x6, #320]
+	ldr	x9, [x6, #384]
+	ldr	x9, [x6, #448]
+	ldr	x9, [x6, #512]
+	ldr	x9, [x6, #576]
+	ldr	x9, [x6, #640]
+	ldr	x9, [x6, #704]
+	ldr	x9, [x6, #768]
+	ldr	x9, [x6, #832]
+	ldr	x9, [x6, #896]
+	ldr	x9, [x6, #960]
+	ldr	w11, [x6, x11, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x12, x8, #16, #8
+	eor	w11, w11, w14, ror 24
+	ubfx	x14, x7, #56, #8
+	eor	w11, w11, w19, ror 8
+	ubfx	x19, x8, #40, #8
+	eor	w11, w11, w20, ror 16
+	ubfx	x20, x7, #0, #8
+	ldr	w12, [x6, x12, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x13, x8, #48, #8
+	eor	w12, w12, w14, ror 24
+	ubfx	x14, x8, #24, #8
+	eor	w12, w12, w19, ror 8
+	ubfx	x19, x7, #8, #8
+	eor	w12, w12, w20, ror 16
+	ubfx	x20, x7, #32, #8
+	bfi	x11, x12, #32, #32
+	ldr	w13, [x6, x13, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	ubfx	x9, x8, #0, #8
+	eor	w13, w13, w14, ror 24
+	ubfx	x14, x7, #16, #8
+	eor	w13, w13, w19, ror 8
+	ubfx	x19, x8, #56, #8
+	eor	w12, w13, w20, ror 16
+	ubfx	x20, x7, #40, #8
+	ldr	w9, [x6, x9, LSL 2]
+	ldr	w19, [x6, x19, LSL 2]
+	ldr	w14, [x6, x14, LSL 2]
+	ldr	w20, [x6, x20, LSL 2]
+	eor	w19, w19, w9, ror 24
+	ldp	x7, x8, [x22], #16
+	eor	w14, w14, w19, ror 24
+	eor	w14, w14, w20, ror 8
+	bfi	x12, x14, #32, #32
+	#   XOR in Key Schedule
+	eor	x11, x11, x7
+	eor	x12, x12, x8
+	ubfx	x7, x12, #32, #8
+	ubfx	x10, x12, #8, #8
+	ubfx	x19, x11, #48, #8
+	ubfx	x20, x11, #24, #8
+	lsl	w7, w7, #2
+	lsl	w10, w10, #2
+	lsl	w19, w19, #2
+	lsl	w20, w20, #2
+	ldr	x14, [x6]
+	ldr	x14, [x6, #64]
+	ldr	x14, [x6, #128]
+	ldr	x14, [x6, #192]
+	ldr	x14, [x6, #256]
+	ldr	x14, [x6, #320]
+	ldr	x14, [x6, #384]
+	ldr	x14, [x6, #448]
+	ldr	x14, [x6, #512]
+	ldr	x14, [x6, #576]
+	ldr	x14, [x6, #640]
+	ldr	x14, [x6, #704]
+	ldr	x14, [x6, #768]
+	ldr	x14, [x6, #832]
+	ldr	x14, [x6, #896]
+	ldr	x14, [x6, #960]
+	ldrb	w7, [x6, x7, LSL 0]
+	ldrb	w10, [x6, x10, LSL 0]
+	ldrb	w19, [x6, x19, LSL 0]
+	ldrb	w20, [x6, x20, LSL 0]
+	ubfx	x8, x11, #0, #8
+	eor	w7, w7, w10, lsl 8
+	ubfx	x10, x12, #40, #8
+	eor	w7, w7, w19, lsl 16
+	ubfx	x19, x12, #16, #8
+	eor	w7, w7, w20, lsl 24
+	ubfx	x20, x11, #56, #8
+	lsl	w8, w8, #2
+	lsl	w10, w10, #2
+	lsl	w19, w19, #2
+	lsl	w20, w20, #2
+	ldrb	w8, [x6, x8, LSL 0]
+	ldrb	w10, [x6, x10, LSL 0]
+	ldrb	w19, [x6, x19, LSL 0]
+	ldrb	w20, [x6, x20, LSL 0]
+	ubfx	x9, x11, #32, #8
+	eor	w8, w8, w10, lsl 8
+	ubfx	x10, x11, #8, #8
+	eor	w8, w8, w19, lsl 16
+	ubfx	x19, x12, #48, #8
+	eor	w8, w8, w20, lsl 24
+	ubfx	x20, x12, #24, #8
+	bfi	x7, x8, #32, #32
+	lsl	w9, w9, #2
+	lsl	w10, w10, #2
+	lsl	w19, w19, #2
+	lsl	w20, w20, #2
+	ldrb	w9, [x6, x9, LSL 0]
+	ldrb	w10, [x6, x10, LSL 0]
+	ldrb	w19, [x6, x19, LSL 0]
+	ldrb	w20, [x6, x20, LSL 0]
+	ubfx	x14, x12, #56, #8
+	eor	w9, w9, w10, lsl 8
+	ubfx	x10, x12, #0, #8
+	eor	w9, w9, w19, lsl 16
+	ubfx	x19, x11, #40, #8
+	eor	w8, w9, w20, lsl 24
+	ubfx	x20, x11, #16, #8
+	lsl	w14, w14, #2
+	lsl	w10, w10, #2
+	lsl	w19, w19, #2
+	lsl	w20, w20, #2
+	ldrb	w14, [x6, x14, LSL 0]
+	ldrb	w10, [x6, x10, LSL 0]
+	ldrb	w19, [x6, x19, LSL 0]
+	ldrb	w20, [x6, x20, LSL 0]
+	eor	w19, w19, w14, lsl 16
+	ldp	x11, x12, [x22]
+	eor	w10, w10, w19, lsl 8
+	eor	w10, w10, w20, lsl 16
+	bfi	x8, x10, #32, #32
+	#   XOR in Key Schedule
+	eor	x7, x7, x11
+	eor	x8, x8, x12
+	rev32	x7, x7
+	rev32	x8, x8
+	ldr	x11, [x0]
+	ldr	x12, [x0, #8]
+	eor	x7, x7, x11
+	eor	x8, x8, x12
+	str	x7, [x1]
+	str	x8, [x1, #8]
+	add	w17, w17, #1
+	subs	x2, x2, #16
+	add	x0, x0, #16
+	add	x1, x1, #16
+	bne	L_AES_GCMSIV_ctr_base_loop_block
+L_AES_GCMSIV_ctr_base_done:
+	bfi	x15, x17, #0, #32
+	stp	x15, x16, [x5]
+	ldp	x17, x19, [x29, #24]
+	ldp	x20, x21, [x29, #40]
+	ldr	x22, [x29, #56]
+	ldp	x29, x30, [sp], #0x40
+	ret
+#ifndef __APPLE__
+	.size	AES_GCMSIV_ctr_base,.-AES_GCMSIV_ctr_base
+#endif /* __APPLE__ */
+#endif /* WOLFSSL_AESGCM_SIV */
 #endif /* !WOLFSSL_ARMASM_NEON_NO_TABLE_LOOKUP */
 #endif /* !defined(NO_AES) && defined(WOLFSSL_ARMASM) */
 #endif /* __aarch64__ */

@@ -19,29 +19,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
-#include <wolfssl/wolfcrypt/error-crypt.h>
-
 /* Generated using (from wolfssl):
  *   cd ../scripts
  *   ruby ./chacha/chacha.rb arm64 \
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-chacha-asm.c
  */
+
+#define _WC_BUILDING_ARMV8_CHACHA_ASM_C
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+
 #ifdef WOLFSSL_ARMASM
 #ifdef __aarch64__
 #ifdef WOLFSSL_ARMASM_INLINE
 #ifdef HAVE_CHACHA
 #include <wolfssl/wolfcrypt/chacha.h>
 
-static const word32 L_chacha20_arm64_ctr[] = {
+#ifndef WOLFSSL_ARMASM_NO_NEON
+XALIGNED(8) static const word32 L_chacha20_arm64_ctr[] = {
     0x00000000, 0x00000001, 0x00000002, 0x00000003,
 };
 
-static const word32 L_chacha20_arm64_rol8[] = {
+XALIGNED(8) static const word32 L_chacha20_arm64_rol8[] = {
     0x02010003, 0x06050407, 0x0a09080b, 0x0e0d0c0f,
 };
 
-#ifndef WOLFSSL_ARMASM_NO_NEON
 void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
 {
     const word32* rol8 = L_chacha20_arm64_rol8;
@@ -62,7 +65,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "b.lt	L_chacha_crypt_bytes_arm64_lt_320_%=\n\t"
         "mov	w25, #4\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_loop_320_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_loop_320_%=:\n\t"
         /* Move state into regular register */
         "mov	x8, v16.d[0]\n\t"
         "mov	x10, v16.d[1]\n\t"
@@ -104,7 +107,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         /* Set number of odd+even rounds to perform */
         "mov	x26, #10\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_round_start_320_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_round_start_320_%=:\n\t"
         "subs	x26, x26, #1\n\t"
         /* Round odd */
         /* a += b; d ^= a; d <<<= 16; */
@@ -436,7 +439,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "b.ge	L_chacha_crypt_bytes_arm64_loop_320_%=\n\t"
         /* Done doing 320 bytes at a time */
         "\n"
-    "L_chacha_crypt_bytes_arm64_lt_320_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_lt_320_%=:\n\t"
         "cmp	%w[len], #0x100\n\t"
         "b.lt	L_chacha_crypt_bytes_arm64_lt_256_%=\n\t"
         /* Move state into vector registers */
@@ -461,7 +464,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         /* Set number of odd+even rounds to perform */
         "mov	x26, #10\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_round_start_256_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_round_start_256_%=:\n\t"
         "subs	x26, x26, #1\n\t"
         /* Round odd */
         /* a += b; d ^= a; d <<<= 16; */
@@ -669,7 +672,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "add	v19.4s, v19.4s, v29.4s\n\t"
         /* Done 256-byte block */
         "\n"
-    "L_chacha_crypt_bytes_arm64_lt_256_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_lt_256_%=:\n\t"
         "cmp	%w[len], #0x80\n\t"
         "b.lt	L_chacha_crypt_bytes_arm64_lt_128_%=\n\t"
         "ld1	{v24.16b, v25.16b, v26.16b, v27.16b}, [%x[m]], #0x40\n\t"
@@ -687,7 +690,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         /* Set number of odd+even rounds to perform */
         "mov	x26, #10\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_round_start_128_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_round_start_128_%=:\n\t"
         "subs	x26, x26, #1\n\t"
         /* Round odd */
         /* a += b; d ^= a; d <<<= 16; */
@@ -793,12 +796,12 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "sub	%w[len], %w[len], #0x80\n\t"
         /* Done 128-byte block */
         "\n"
-    "L_chacha_crypt_bytes_arm64_lt_128_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_lt_128_%=:\n\t"
         "cmp	%w[len], #0\n\t"
         "b.eq	L_chacha_crypt_bytes_arm64_done_all_%=\n\t"
         "mov	%w[rol8], #0x40\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_loop_64_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_loop_64_%=:\n\t"
         /* Move state into vector registers */
         "mov	v0.16b, v16.16b\n\t"
         "mov	v1.16b, v17.16b\n\t"
@@ -807,7 +810,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         /* Set number of odd+even rounds to perform */
         "mov	x26, #10\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_round_64_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_round_64_%=:\n\t"
         "subs	x26, x26, #1\n\t"
         /* Round odd */
         /* a += b; d ^= a; d <<<= 16; */
@@ -875,7 +878,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "b.ne	L_chacha_crypt_bytes_arm64_loop_64_%=\n\t"
         "b	L_chacha_crypt_bytes_arm64_done_%=\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_lt_64_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_lt_64_%=:\n\t"
         /* Calculate bytes left in block not used */
         "sub	%w[rol8], %w[rol8], %w[len]\n\t"
         /* Store encipher block in over for further operations and left */
@@ -893,7 +896,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "mov	v1.16b, v3.16b\n\t"
         "b.eq	L_chacha_crypt_bytes_arm64_done_%=\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_lt_32_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_lt_32_%=:\n\t"
         "cmp	%w[len], #16\n\t"
         "b.lt	L_chacha_crypt_bytes_arm64_lt_16_%=\n\t"
         /* Encipher 16 bytes */
@@ -904,7 +907,7 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "mov	v0.16b, v1.16b\n\t"
         "b.eq	L_chacha_crypt_bytes_arm64_done_%=\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_lt_16_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_lt_16_%=:\n\t"
         "cmp	%w[len], #8\n\t"
         "b.lt	L_chacha_crypt_bytes_arm64_lt_8_%=\n\t"
         /* Encipher 8 bytes */
@@ -915,10 +918,10 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "mov	v0.d[0], v0.d[1]\n\t"
         "b.eq	L_chacha_crypt_bytes_arm64_done_%=\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_lt_8_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_lt_8_%=:\n\t"
         "mov	%[rol8], v0.d[0]\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_loop_lt_8_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_loop_lt_8_%=:\n\t"
         /* Encipher 1 byte at a time */
         "ldrb	%w[ctr], [%x[m]], #1\n\t"
         "eor	%w[ctr], %w[ctr], %w[rol8]\n\t"
@@ -927,9 +930,9 @@ void wc_chacha_crypt_bytes(ChaCha* ctx, byte* c, const byte* m, word32 len)
         "lsr	%[rol8], %[rol8], #8\n\t"
         "b.gt	L_chacha_crypt_bytes_arm64_loop_lt_8_%=\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_done_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_done_%=:\n\t"
         "\n"
-    "L_chacha_crypt_bytes_arm64_done_all_%=: \n\t"
+    "L_chacha_crypt_bytes_arm64_done_all_%=:\n\t"
         "st1	{v16.4s, v17.4s, v18.4s, v19.4s}, [%x[ctx]]\n\t"
         : [ctx] "+r" (ctx), [c] "+r" (c), [len] "+r" (len)
         : [m] "r" (m), [rol8] "r" (rol8), [ctr] "r" (ctr)
@@ -956,7 +959,7 @@ void wc_chacha_setiv(word32* x, const byte* iv, word32 counter)
     );
 }
 
-static const word32 L_chacha_setkey_arm64_constant[] = {
+XALIGNED(8) static const word32 L_chacha_setkey_arm64_constant[] = {
     0x61707865, 0x3120646e, 0x79622d36, 0x6b206574,
     0x61707865, 0x3320646e, 0x79622d32, 0x6b206574,
 };
@@ -981,7 +984,7 @@ void wc_chacha_setkey(word32* x, const byte* key, word32 keySz)
         "rev32	v1.8h, v1.8h\n\t"
 #endif /* BIG_ENDIAN_ORDER */
         "\n"
-    "L_chacha_setkey_arm64_done_%=: \n\t"
+    "L_chacha_setkey_arm64_done_%=:\n\t"
         "st1	{v1.4s}, [%x[x]]\n\t"
         : [x] "+r" (x), [keySz] "+r" (keySz)
         : [key] "r" (key), [constant] "r" (constant)
@@ -993,7 +996,7 @@ void wc_chacha_use_over(byte* over, byte* output, const byte* input, word32 len)
 {
     __asm__ __volatile__ (
         "\n"
-    "L_chacha_use_over_arm64_16byte_loop_%=: \n\t"
+    "L_chacha_use_over_arm64_16byte_loop_%=:\n\t"
         "cmp	%w[len], #16\n\t"
         "b.lt	L_chacha_use_over_arm64_word_loop_%=\n\t"
         /* 16 bytes of state XORed into message. */
@@ -1005,7 +1008,7 @@ void wc_chacha_use_over(byte* over, byte* output, const byte* input, word32 len)
         "b.eq	L_chacha_use_over_arm64_done_%=\n\t"
         "b	L_chacha_use_over_arm64_16byte_loop_%=\n\t"
         "\n"
-    "L_chacha_use_over_arm64_word_loop_%=: \n\t"
+    "L_chacha_use_over_arm64_word_loop_%=:\n\t"
         "cmp	%w[len], #4\n\t"
         "b.lt	L_chacha_use_over_arm64_byte_loop_%=\n\t"
         /* 4 bytes of state XORed into message. */
@@ -1017,17 +1020,16 @@ void wc_chacha_use_over(byte* over, byte* output, const byte* input, word32 len)
         "b.eq	L_chacha_use_over_arm64_done_%=\n\t"
         "b	L_chacha_use_over_arm64_word_loop_%=\n\t"
         "\n"
-    "L_chacha_use_over_arm64_byte_loop_%=: \n\t"
+    "L_chacha_use_over_arm64_byte_loop_%=:\n\t"
         /* 1 bytes of state XORed into message. */
         "ldrb	w4, [%x[over]], #1\n\t"
         "ldrb	w5, [%x[input]], #1\n\t"
         "eor	w5, w5, w4\n\t"
         "subs	%w[len], %w[len], #1\n\t"
         "strb	w5, [%x[output]], #1\n\t"
-        "b.eq	L_chacha_use_over_arm64_done_%=\n\t"
-        "b	L_chacha_use_over_arm64_byte_loop_%=\n\t"
+        "b.ne	L_chacha_use_over_arm64_byte_loop_%=\n\t"
         "\n"
-    "L_chacha_use_over_arm64_done_%=: \n\t"
+    "L_chacha_use_over_arm64_done_%=:\n\t"
         : [over] "+r" (over), [output] "+r" (output), [len] "+r" (len)
         : [input] "r" (input)
         : "memory", "cc", "x4", "x5", "v0", "v1"

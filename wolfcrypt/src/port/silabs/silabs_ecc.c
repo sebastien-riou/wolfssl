@@ -40,7 +40,9 @@ static sl_se_key_descriptor_t private_device_key =
 
 #ifndef WOLFSSL_HAVE_ECC_KEY_GET_PRIV
     /* FIPS build has replaced ecc.h. */
-    #define wc_ecc_key_get_priv(key) (&((key)->k))
+    #define wc_ecc_key_get_priv(key)  (&((key)->k))
+    #define ecc_get_k_raw(key)        (&((key)->k))
+    #define ecc_blind_k_rng(key, rng) 0
     #define WOLFSSL_HAVE_ECC_KEY_GET_PRIV
 #endif
 
@@ -108,10 +110,10 @@ int silabs_ecc_sign_hash(const byte* in, word32 inlen, byte* out,
         return BAD_FUNC_ARG;
 
     slkey = &key->key;
-    siglen = *outlen;
+    siglen = key->dp->size * 2;
 
-    if ((int)siglen >= key->dp->size * 2) {
-        siglen = key->dp->size * 2;
+    if (*outlen < siglen) {
+        return BUFFER_E;
     }
 
 #if (_SILICON_LABS_SECURITY_FEATURE == _SILICON_LABS_SECURITY_FEATURE_VAULT)
@@ -138,7 +140,11 @@ int silabs_ecc_sign_hash(const byte* in, word32 inlen, byte* out,
             siglen
         );
     }
-    return (sl_stat == SL_STATUS_OK) ? 0 : WC_HW_E;
+    if (sl_stat == SL_STATUS_OK) {
+        *outlen = siglen;
+        return 0;
+    }
+    return WC_HW_E;
 }
 
 #ifdef HAVE_ECC_VERIFY
@@ -182,6 +188,15 @@ int silabs_ecc_make_key(ecc_key* key, int keysize)
     if (key == NULL || key->dp == NULL)
         return BAD_FUNC_ARG;
 
+    /* keysize is only a curve-selection hint here: wc_ecc_set_curve resolves
+     * the curve from curve_id and may leave keysize disagreeing with it (the
+     * TLS ECDHE path passes eccTempKeySz with a larger negotiated curve). The
+     * SE lays out, and we read back, X||Y||D at the curve's stride, so use
+     * key->dp->size and bound it against key_raw (3 * ECC_MAX_CRYPTO_HW_SIZE). */
+    keysize = key->dp->size;
+    if (keysize > ECC_MAX_CRYPTO_HW_SIZE)
+        return ECC_BAD_ARG_E;
+
     key->key.type = silabs_map_key_type(key->dp->id);
     if (key->key.type == SILABS_UNSUPPORTED_KEY_TYPE)
         return WC_HW_E;
@@ -205,12 +220,18 @@ int silabs_ecc_make_key(ecc_key* key, int keysize)
         key->type = ECC_PRIVATEKEY;
 
         /* copy key to mp components */
-        mp_read_unsigned_bin(key->pubkey.x,
-            key->key.storage.location.buffer.pointer, keysize);
-        mp_read_unsigned_bin(key->pubkey.y,
-            key->key.storage.location.buffer.pointer  + keysize, keysize);
-        mp_read_unsigned_bin(wc_ecc_key_get_priv(key),
-            key->key.storage.location.buffer.pointer + (2 * keysize), keysize);
+        if ((mp_read_unsigned_bin(key->pubkey.x,
+                key->key.storage.location.buffer.pointer,
+                keysize) != MP_OKAY) ||
+            (mp_read_unsigned_bin(key->pubkey.y,
+                key->key.storage.location.buffer.pointer + keysize,
+                keysize) != MP_OKAY) ||
+            (mp_read_unsigned_bin(ecc_get_k_raw(key),
+                key->key.storage.location.buffer.pointer + (2 * keysize),
+                keysize) != MP_OKAY) ||
+            (ecc_blind_k_rng(key, NULL) != 0)) {
+            return WC_HW_E;
+        }
     }
 
     return (sl_stat == SL_STATUS_OK) ? 0 : WC_HW_E;
@@ -225,8 +246,17 @@ int silabs_ecc_import(ecc_key* key, word32 keysize, int pub, int priv)
     if (key == NULL || key->dp == NULL)
         return BAD_FUNC_ARG;
 
+    /* keysize comes from the caller (the imported point width) while the key
+     * type comes from key->dp; a keysize that disagrees with the curve or
+     * exceeds ECC_MAX_CRYPTO_HW_SIZE would write 3 * keysize bytes past the
+     * 3 * ECC_MAX_CRYPTO_HW_SIZE key_raw field. Reject it before any write into
+     * key_raw. */
+    if (keysize == 0 || keysize > ECC_MAX_CRYPTO_HW_SIZE ||
+            keysize != (word32)key->dp->size)
+        return ECC_BAD_ARG_E;
+
     key->key.type = silabs_map_key_type(key->dp->id);
-    if (key->key.type == SILABS_UNSUPPORTED_KEY_TYPE || keysize == 0)
+    if (key->key.type == SILABS_UNSUPPORTED_KEY_TYPE)
         return WC_HW_E;
 
     key->key.size = keysize;
@@ -351,6 +381,11 @@ int silabs_ecc_export_public(ecc_key* key, sl_se_key_descriptor_t* seKey)
         ret = ECC_CURVE_OID_E;
     if (ret != 0)
         return ret;
+
+    /* the public X||Y export and readback use key->dp->size strides into
+     * key_raw (3 * ECC_MAX_CRYPTO_HW_SIZE); reject a curve too large to fit. */
+    if (key->dp->size > ECC_MAX_CRYPTO_HW_SIZE)
+        return ECC_BAD_ARG_E;
 
     sl_stat = sl_se_init_command_context(&cmd);
     if (sl_stat == SL_STATUS_OK) {

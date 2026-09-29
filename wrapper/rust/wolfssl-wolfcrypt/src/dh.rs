@@ -98,8 +98,8 @@ impl DH {
     /// }
     /// ```
     pub fn check_pub_value(prime: &[u8], public: &[u8]) -> Result<(), i32> {
-        let prime_size = prime.len() as u32;
-        let public_size = public.len() as u32;
+        let prime_size = crate::buffer_len_to_u32(prime.len())?;
+        let public_size = crate::buffer_len_to_u32(public.len())?;
         let rc = unsafe {
             sys::wc_DhCheckPubValue(prime.as_ptr(), prime_size,
                 public.as_ptr(), public_size)
@@ -144,6 +144,13 @@ impl DH {
     /// }
     /// ```
     pub fn compare_named_key(name: i32, p: &[u8], g: &[u8], q: Option<&[u8]>) -> bool {
+        if p.len() > u32::MAX as usize || g.len() > u32::MAX as usize {
+            return false;
+        }
+        if let Some(qv) = q
+            && qv.len() > u32::MAX as usize {
+            return false;
+        }
         let p_size = p.len() as u32;
         let g_size = g.len() as u32;
         let mut no_q = 1i32;
@@ -187,7 +194,7 @@ impl DH {
     /// }
     /// ```
     #[cfg(all(dh_keygen, random))]
-    pub fn generate(rng: &mut RNG, modulus_size: i32) -> Result<Self, i32> {
+    pub fn generate(rng: &RNG, modulus_size: i32) -> Result<Self, i32> {
         Self::generate_ex(rng, modulus_size, None, None)
     }
 
@@ -218,7 +225,7 @@ impl DH {
     /// }
     /// ```
     #[cfg(all(dh_keygen, random))]
-    pub fn generate_ex(rng: &mut RNG, modulus_size: i32, heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
+    pub fn generate_ex(rng: &RNG, modulus_size: i32, heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
         let mut wc_dhkey: MaybeUninit<sys::DhKey> = MaybeUninit::uninit();
         let heap = match heap {
             Some(heap) => heap,
@@ -235,7 +242,7 @@ impl DH {
         let wc_dhkey = unsafe { wc_dhkey.assume_init() };
         let mut dh = DH { wc_dhkey };
         let rc = unsafe {
-            sys::wc_DhGenerateParams(&mut rng.wc_rng, modulus_size, &mut dh.wc_dhkey)
+            sys::wc_DhGenerateParams(rng.wc_rng, modulus_size, &mut dh.wc_dhkey)
         };
         if rc != 0 {
             return Err(rc);
@@ -556,8 +563,8 @@ impl DH {
     /// }
     /// ```
     pub fn new_from_pg_ex(p: &[u8], g: &[u8], heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
-        let p_size = p.len() as u32;
-        let g_size = g.len() as u32;
+        let p_size = crate::buffer_len_to_u32(p.len())?;
+        let g_size = crate::buffer_len_to_u32(g.len())?;
         let mut wc_dhkey: MaybeUninit<sys::DhKey> = MaybeUninit::uninit();
         let heap = match heap {
             Some(heap) => heap,
@@ -784,9 +791,9 @@ impl DH {
     /// }
     /// ```
     pub fn new_from_pgq_ex(p: &[u8], g: &[u8], q: &[u8], heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
-        let p_size = p.len() as u32;
-        let g_size = g.len() as u32;
-        let q_size = q.len() as u32;
+        let p_size = crate::buffer_len_to_u32(p.len())?;
+        let g_size = crate::buffer_len_to_u32(g.len())?;
+        let q_size = crate::buffer_len_to_u32(q.len())?;
         let mut wc_dhkey: MaybeUninit<sys::DhKey> = MaybeUninit::uninit();
         let heap = match heap {
             Some(heap) => heap,
@@ -914,7 +921,7 @@ impl DH {
     /// }
     /// ```
     #[cfg(random)]
-    pub fn new_from_pgq_with_check(p: &[u8], g: &[u8], q: &[u8], trusted: i32, rng: &mut RNG) -> Result<Self, i32> {
+    pub fn new_from_pgq_with_check(p: &[u8], g: &[u8], q: &[u8], trusted: i32, rng: &RNG) -> Result<Self, i32> {
         Self::new_from_pgq_with_check_ex(p, g, q, trusted, rng, None, None)
     }
 
@@ -1023,10 +1030,10 @@ impl DH {
     /// }
     /// ```
     #[cfg(random)]
-    pub fn new_from_pgq_with_check_ex(p: &[u8], g: &[u8], q: &[u8], trusted: i32, rng: &mut RNG, heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
-        let p_size = p.len() as u32;
-        let g_size = g.len() as u32;
-        let q_size = q.len() as u32;
+    pub fn new_from_pgq_with_check_ex(p: &[u8], g: &[u8], q: &[u8], trusted: i32, rng: &RNG, heap: Option<*mut core::ffi::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
+        let p_size = crate::buffer_len_to_u32(p.len())?;
+        let g_size = crate::buffer_len_to_u32(g.len())?;
+        let q_size = crate::buffer_len_to_u32(q.len())?;
         let mut wc_dhkey: MaybeUninit<sys::DhKey> = MaybeUninit::uninit();
         let heap = match heap {
             Some(heap) => heap,
@@ -1043,7 +1050,7 @@ impl DH {
         let wc_dhkey = unsafe { wc_dhkey.assume_init() };
         let mut dh = DH { wc_dhkey };
         let rc = unsafe {
-            sys::wc_DhSetCheckKey(&mut dh.wc_dhkey, p.as_ptr(), p_size, g.as_ptr(), g_size, q.as_ptr(), q_size, trusted, &mut rng.wc_rng)
+            sys::wc_DhSetCheckKey(&mut dh.wc_dhkey, p.as_ptr(), p_size, g.as_ptr(), g_size, q.as_ptr(), q_size, trusted, rng.wc_rng)
         };
         if rc != 0 {
             return Err(rc);
@@ -1084,8 +1091,8 @@ impl DH {
     /// }
     /// ```
     pub fn check_key_pair(&mut self, public: &[u8], private: &[u8]) -> Result<(), i32> {
-        let public_size = public.len() as u32;
-        let private_size = private.len() as u32;
+        let public_size = crate::buffer_len_to_u32(public.len())?;
+        let private_size = crate::buffer_len_to_u32(private.len())?;
         let rc = unsafe {
             sys::wc_DhCheckKeyPair(&mut self.wc_dhkey,
                 public.as_ptr(), public_size,
@@ -1129,7 +1136,7 @@ impl DH {
     /// }
     /// ```
     pub fn check_priv_key(&mut self, private: &[u8]) -> Result<(), i32> {
-        let private_size = private.len() as u32;
+        let private_size = crate::buffer_len_to_u32(private.len())?;
         let rc = unsafe {
             sys::wc_DhCheckPrivKey(&mut self.wc_dhkey,
                 private.as_ptr(), private_size)
@@ -1249,12 +1256,12 @@ impl DH {
     /// }
     /// ```
     pub fn check_priv_key_ex(&mut self, private: &[u8], prime: Option<&[u8]>) -> Result<(), i32> {
-        let private_size = private.len() as u32;
+        let private_size = crate::buffer_len_to_u32(private.len())?;
         let mut prime_ptr: *const u8 = core::ptr::null();
         let mut prime_size = 0u32;
         if let Some(prime) = prime {
             prime_ptr = prime.as_ptr();
-            prime_size = prime.len() as u32;
+            prime_size = crate::buffer_len_to_u32(prime.len())?;
         }
         let rc = unsafe {
             sys::wc_DhCheckPrivKey_ex(&mut self.wc_dhkey,
@@ -1299,7 +1306,7 @@ impl DH {
     /// }
     /// ```
     pub fn check_pub_key(&mut self, public: &[u8]) -> Result<(), i32> {
-        let public_size = public.len() as u32;
+        let public_size = crate::buffer_len_to_u32(public.len())?;
         let rc = unsafe {
             sys::wc_DhCheckPubKey(&mut self.wc_dhkey, public.as_ptr(), public_size)
         };
@@ -1423,8 +1430,8 @@ impl DH {
     /// }
     /// ```
     pub fn check_pub_key_ex(&mut self, public: &[u8], prime: &[u8]) -> Result<(), i32> {
-        let public_size = public.len() as u32;
-        let prime_size = prime.len() as u32;
+        let public_size = crate::buffer_len_to_u32(public.len())?;
+        let prime_size = crate::buffer_len_to_u32(prime.len())?;
         let rc = unsafe {
             sys::wc_DhCheckPubKey_ex(&mut self.wc_dhkey,
                 public.as_ptr(), public_size,
@@ -1434,6 +1441,48 @@ impl DH {
             return Err(rc);
         }
         Ok(())
+    }
+
+    /// Get the size in bytes of the DH `p` parameter (the prime).
+    ///
+    /// This is the size of the DH prime `p` and the maximum length that
+    /// `shared_secret()` may write, and therefore the minimum length of the
+    /// output buffer.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the size in bytes of the DH prime or
+    /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// #[cfg(dh_ffdhe_2048)]
+    /// {
+    /// use wolfssl_wolfcrypt::dh::DH;
+    /// let mut dh = DH::new_named(DH::FFDHE_2048).expect("Error with new_named()");
+    /// let prime_size = dh.prime_size().expect("Error with prime_size()");
+    /// assert_eq!(prime_size, 256);
+    /// }
+    /// ```
+    pub fn prime_size(&mut self) -> Result<usize, i32> {
+        let mut p_size = 0u32;
+        let mut q_size = 0u32;
+        let mut g_size = 0u32;
+        /* Passing null buffers for p, q and g requests the parameter sizes
+         * only, which wc_DhExportParamsRaw() reports by returning
+         * LENGTH_ONLY_E. Any other return value, including success, means the
+         * sizes were not filled in. */
+        let rc = unsafe {
+            sys::wc_DhExportParamsRaw(&mut self.wc_dhkey,
+                core::ptr::null_mut(), &mut p_size,
+                core::ptr::null_mut(), &mut q_size,
+                core::ptr::null_mut(), &mut g_size)
+        };
+        if rc != sys::wolfCrypt_ErrorCodes_LENGTH_ONLY_E {
+            return Err(rc);
+        }
+        Ok(p_size as usize)
     }
 
     /// Export Diffie-Hellman context parameters.
@@ -1455,9 +1504,9 @@ impl DH {
             p: &mut [u8], p_size: &mut u32,
             q: &mut [u8], q_size: &mut u32,
             g: &mut [u8], g_size: &mut u32) -> Result<(), i32> {
-        *p_size = p.len() as u32;
-        *q_size = q.len() as u32;
-        *g_size = g.len() as u32;
+        *p_size = crate::buffer_len_to_u32(p.len())?;
+        *q_size = crate::buffer_len_to_u32(q.len())?;
+        *g_size = crate::buffer_len_to_u32(g.len())?;
         let rc = unsafe {
             sys::wc_DhExportParamsRaw(&mut self.wc_dhkey,
                 p.as_mut_ptr(), p_size,
@@ -1502,13 +1551,13 @@ impl DH {
     /// }
     /// ```
     #[cfg(random)]
-    pub fn generate_key_pair(&mut self, rng: &mut RNG,
+    pub fn generate_key_pair(&mut self, rng: &RNG,
             private: &mut [u8], private_size: &mut u32,
             public: &mut [u8], public_size: &mut u32) -> Result<(), i32> {
-        *private_size = private.len() as u32;
-        *public_size = public.len() as u32;
+        *private_size = crate::buffer_len_to_u32(private.len())?;
+        *public_size = crate::buffer_len_to_u32(public.len())?;
         let rc = unsafe {
-            sys::wc_DhGenerateKeyPair(&mut self.wc_dhkey, &mut rng.wc_rng,
+            sys::wc_DhGenerateKeyPair(&mut self.wc_dhkey, rng.wc_rng,
                 private.as_mut_ptr(), private_size,
                 public.as_mut_ptr(), public_size)
         };
@@ -1525,6 +1574,14 @@ impl DH {
     /// exchange, this function generates an agreed upon secret key for
     /// symmetric communication. On successfully generating a shared secret
     /// key, the size of the secret key written to `dout` will be returned.
+    ///
+    /// # Parameters
+    ///
+    /// * `dout`: Output buffer containing the generated shared secret value.
+    ///   The buffer must be at least as large as `self.prime_size()` or
+    ///   a `BUFFER_E` error code will be returned.
+    /// * `private`: Private key buffer.
+    /// * `other_pub`: Other side public key used to generate shared secret.
     ///
     /// # Returns
     ///
@@ -1556,9 +1613,14 @@ impl DH {
     /// }
     /// ```
     pub fn shared_secret(&mut self, dout: &mut [u8], private: &[u8], other_pub: &[u8]) -> Result<usize, i32> {
-        let mut dout_size = dout.len() as u32;
-        let private_size = private.len() as u32;
-        let other_pub_size = other_pub.len() as u32;
+        /* wc_DhAgree() does not check the buffer size, so reject a short
+         * buffer before the call to avoid a buffer overrun. */
+        if dout.len() < self.prime_size()? {
+            return Err(sys::wolfCrypt_ErrorCodes_BUFFER_E);
+        }
+        let mut dout_size = crate::buffer_len_to_u32(dout.len())?;
+        let private_size = crate::buffer_len_to_u32(private.len())?;
+        let other_pub_size = crate::buffer_len_to_u32(other_pub.len())?;
         let rc = unsafe {
             sys::wc_DhAgree(&mut self.wc_dhkey,
                 dout.as_mut_ptr(), &mut dout_size,
@@ -1572,6 +1634,12 @@ impl DH {
     }
 }
 
+impl DH {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_dhkey); }
+    }
+}
+
 impl Drop for DH {
     /// Safely free the underlying wolfSSL DhKey context.
     ///
@@ -1582,5 +1650,6 @@ impl Drop for DH {
     /// resources and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_FreeDhKey(&mut self.wc_dhkey); }
+        self.zeroize();
     }
 }

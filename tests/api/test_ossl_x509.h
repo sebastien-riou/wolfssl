@@ -33,12 +33,12 @@ int test_wolfSSL_i2d_X509_NAME_canon(void);
 int test_wolfSSL_X509_subject_name_hash(void);
 int test_wolfSSL_X509_issuer_name_hash(void);
 int test_wolfSSL_X509_check_host(void);
+int test_wolfSSL_X509_check_host_len(void);
 int test_wolfSSL_X509_check_email(void);
 int test_wolfSSL_X509(void);
 int test_wolfSSL_X509_get0_tbs_sigalg(void);
 int test_wolfSSL_X509_set_name(void);
-int test_wolfSSL_X509_set_notAfter(void);
-int test_wolfSSL_X509_set_notBefore(void);
+int test_wolfSSL_X509_set_notAfterBefore(void);
 int test_wolfSSL_X509_set_version(void);
 int test_wolfSSL_X509_get_serialNumber(void);
 int test_wolfSSL_get_tbs(void);
@@ -49,6 +49,10 @@ int test_wolfSSL_X509_bad_altname(void);
 int test_wolfSSL_X509_name_match1(void);
 int test_wolfSSL_X509_name_match2(void);
 int test_wolfSSL_X509_name_match3(void);
+int test_wolfssl_local_IsValidFQDN(void);
+int test_wolfSSL_MatchDomainName_idn(void);
+int test_wolfSSL_X509_check_host_embedded_nul_san(void);
+int test_wolfSSL_MatchDomainName_wildcard(void);
 int test_wolfSSL_X509_max_altnames(void);
 int test_wolfSSL_X509_max_name_constraints(void);
 int test_wolfSSL_X509_check_ca(void);
@@ -65,12 +69,12 @@ int test_wolfSSL_X509_cmp(void);
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_subject_name_hash),         \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_issuer_name_hash),          \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_check_host),                \
+    TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_check_host_len),            \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_check_email),               \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509),                           \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_get0_tbs_sigalg),           \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_set_name),                  \
-    TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_set_notAfter),              \
-    TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_set_notBefore),             \
+    TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_set_notAfterBefore),        \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_set_version),               \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_get_serialNumber),          \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_get_tbs),                        \
@@ -81,6 +85,10 @@ int test_wolfSSL_X509_cmp(void);
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_name_match1),               \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_name_match2),               \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_name_match3),               \
+    TEST_DECL_GROUP("ossl_x509", test_wolfssl_local_IsValidFQDN),              \
+    TEST_DECL_GROUP("ossl_x509", test_wolfSSL_MatchDomainName_idn),            \
+    TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_check_host_embedded_nul_san),\
+    TEST_DECL_GROUP("ossl_x509", test_wolfSSL_MatchDomainName_wildcard),       \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_max_altnames),              \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_max_name_constraints),      \
     TEST_DECL_GROUP("ossl_x509", test_wolfSSL_X509_check_ca),                  \

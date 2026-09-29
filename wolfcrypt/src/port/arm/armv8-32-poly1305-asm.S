@@ -25,6 +25,8 @@
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-32-poly1305-asm.S
  */
 
+#define _WC_BUILDING_ARMV8_32_POLY1305_ASM_S
+
 #include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
 
 #ifdef WOLFSSL_ARMASM
@@ -35,6 +37,7 @@
 	.text
 	.align	4
 	.globl	poly1305_arm32_blocks_16
+	WC_ASM_ATT_HIDDEN(poly1305_arm32_blocks_16)
 	.type	poly1305_arm32_blocks_16, %function
 poly1305_arm32_blocks_16:
 	push	{r4, r5, r6, r7, r8, r9, r10, r11, lr}
@@ -221,15 +224,15 @@ L_poly1305_arm32_16_loop:
 	adds	r4, r4, r3
 	lsr	r3, r3, #2
 	adcs	r5, r5, r9
-	orr	r3, r3, r9, LSL #30
+	orr	r3, r3, r9, lsl #30
 	adcs	r6, r6, r10
 	lsr	r9, r9, #2
 	adcs	r7, r7, r11
-	orr	r9, r9, r10, LSL #30
+	orr	r9, r9, r10, lsl #30
 	adc	r8, r8, r12
 	lsr	r10, r10, #2
 	adds	r4, r4, r3
-	orr	r10, r10, r11, LSL #30
+	orr	r10, r10, r11, lsl #30
 	adcs	r5, r5, r9
 	lsr	r11, r11, #2
 	adcs	r6, r6, r10
@@ -246,18 +249,25 @@ L_poly1305_arm32_16_done:
 	add	sp, sp, #28
 	pop	{r4, r5, r6, r7, r8, r9, r10, r11, pc}
 	.size	poly1305_arm32_blocks_16,.-poly1305_arm32_blocks_16
+#ifndef __APPLE__
 	.text
 	.type	L_poly1305_arm32_clamp, %object
 	.size	L_poly1305_arm32_clamp, 16
-	.align	4
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
 L_poly1305_arm32_clamp:
-	.word	0xfffffff
-	.word	0xffffffc
-	.word	0xffffffc
-	.word	0xffffffc
+	.long	0x0fffffff,0x0ffffffc,0x0ffffffc,0x0ffffffc
 	.text
 	.align	4
 	.globl	poly1305_set_key
+	WC_ASM_ATT_HIDDEN(poly1305_set_key)
 	.type	poly1305_set_key, %function
 poly1305_set_key:
 	push	{r4, r5, r6, r7, r8, lr}
@@ -297,6 +307,7 @@ poly1305_set_key:
 	.text
 	.align	4
 	.globl	poly1305_final
+	WC_ASM_ATT_HIDDEN(poly1305_final)
 	.type	poly1305_final, %function
 poly1305_final:
 	push	{r4, r5, r6, r7, r8, r9, lr}
@@ -349,6 +360,7 @@ poly1305_final:
 	.text
 	.align	4
 	.globl	poly1305_arm32_blocks_16
+	WC_ASM_ATT_HIDDEN(poly1305_arm32_blocks_16)
 	.type	poly1305_arm32_blocks_16, %function
 poly1305_arm32_blocks_16:
 	push	{r4, r5, r6, r7, r8, r9, r10, r11, lr}
@@ -535,15 +547,15 @@ L_poly1305_arm32_16_loop:
 	adds	r4, r4, r3
 	lsr	r3, r3, #2
 	adcs	r5, r5, r9
-	orr	r3, r3, r9, LSL #30
+	orr	r3, r3, r9, lsl #30
 	adcs	r6, r6, r10
 	lsr	r9, r9, #2
 	adcs	r7, r7, r11
-	orr	r9, r9, r10, LSL #30
+	orr	r9, r9, r10, lsl #30
 	adc	r8, r8, r12
 	lsr	r10, r10, #2
 	adds	r4, r4, r3
-	orr	r10, r10, r11, LSL #30
+	orr	r10, r10, r11, lsl #30
 	adcs	r5, r5, r9
 	lsr	r11, r11, #2
 	adcs	r6, r6, r10
@@ -563,6 +575,7 @@ L_poly1305_arm32_16_done:
 	.text
 	.align	4
 	.globl	poly1305_arm32_blocks
+	WC_ASM_ATT_HIDDEN(poly1305_arm32_blocks)
 	.type	poly1305_arm32_blocks, %function
 poly1305_arm32_blocks:
 	push	{r4, r5, r6, r7, r8, r9, r10, r11, lr}
@@ -822,7 +835,7 @@ L_poly1305_arm32_blocks_start_1:
 	adcs	r9, r9, r4
 	adcs	r10, r10, r5
 	adc	r11, r11, r12
-	push	{r0, r1}
+	push	{r0-r1}
 	add	r1, r0, #0
 	add	lr, r0, #16
 #if defined(WOLFSSL_ARM_ARCH) && (WOLFSSL_ARM_ARCH < 6)
@@ -982,21 +995,21 @@ L_poly1305_arm32_blocks_start_1:
 	adds	r7, r7, r3
 	lsr	r3, r3, #2
 	adcs	r8, r8, r4
-	orr	r3, r3, r4, LSL #30
+	orr	r3, r3, r4, lsl #30
 	adcs	r9, r9, r5
 	lsr	r4, r4, #2
 	adcs	r10, r10, r6
-	orr	r4, r4, r5, LSL #30
+	orr	r4, r4, r5, lsl #30
 	adc	r11, r11, r12
 	lsr	r5, r5, #2
 	adds	r7, r7, r3
-	orr	r5, r5, r6, LSL #30
+	orr	r5, r5, r6, lsl #30
 	adcs	r8, r8, r4
 	lsr	r6, r6, #2
 	adcs	r9, r9, r5
 	adcs	r10, r10, r6
 	adc	r11, r11, r12
-	pop	{r0, r1}
+	pop	{r0-r1}
 	pop	{r2}
 	add	r12, r0, #16
 	stm	r12, {r7, r8, r9, r10, r11}
@@ -1004,18 +1017,25 @@ L_poly1305_arm32_blocks_done:
 	vpop	{d8-d15}
 	pop	{r4, r5, r6, r7, r8, r9, r10, r11, pc}
 	.size	poly1305_arm32_blocks,.-poly1305_arm32_blocks
+#ifndef __APPLE__
 	.text
 	.type	L_poly1305_arm32_clamp, %object
 	.size	L_poly1305_arm32_clamp, 16
-	.align	4
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
 L_poly1305_arm32_clamp:
-	.word	0xfffffff
-	.word	0xffffffc
-	.word	0xffffffc
-	.word	0xffffffc
+	.long	0x0fffffff,0x0ffffffc,0x0ffffffc,0x0ffffffc
 	.text
 	.align	4
 	.globl	poly1305_set_key
+	WC_ASM_ATT_HIDDEN(poly1305_set_key)
 	.type	poly1305_set_key, %function
 poly1305_set_key:
 	push	{r4, r5, r6, r7, r8, r9, r10, r11, lr}
@@ -1059,7 +1079,7 @@ poly1305_set_key:
 	vmov.i32	s5, r9
 	vmov.i32	s7, r10
 	vmov.i32	s9, r11
-	push	{r0, r1}
+	push	{r0-r1}
 #if defined(WOLFSSL_ARM_ARCH) && (WOLFSSL_ARM_ARCH < 6)
 	# Square r
 	umull	r1, r6, r2, r3
@@ -1127,15 +1147,15 @@ poly1305_set_key:
 	adds	r0, r0, r2
 	lsr	r2, r2, #2
 	adcs	r1, r1, r9
-	orr	r2, r2, r9, LSL #30
+	orr	r2, r2, r9, lsl #30
 	adcs	r6, r6, r10
 	lsr	r9, r9, #2
 	adcs	r7, r7, r11
-	orr	r9, r9, r10, LSL #30
+	orr	r9, r9, r10, lsl #30
 	adc	r8, r8, r12
 	lsr	r10, r10, #2
 	adds	r0, r0, r2
-	orr	r10, r10, r11, LSL #30
+	orr	r10, r10, r11, lsl #30
 	adcs	r1, r1, r9
 	lsr	r11, r11, #2
 	adcs	r6, r6, r10
@@ -1158,7 +1178,7 @@ poly1305_set_key:
 	vmov.i32	s4, r4
 	vmov.i32	s6, r5
 	vmov.i32	s8, r10
-	pop	{r0, r1}
+	pop	{r0-r1}
 	add	lr, r0, #0x7c
 	vstm.32	lr, {d0-d4}
 	# Multiply r^2, r by r^2
@@ -1234,6 +1254,7 @@ poly1305_set_key:
 	.text
 	.align	4
 	.globl	poly1305_final
+	WC_ASM_ATT_HIDDEN(poly1305_final)
 	.type	poly1305_final, %function
 poly1305_final:
 	push	{r4, r5, r6, r7, r8, r9, lr}
@@ -1284,10 +1305,10 @@ poly1305_final:
 	.size	poly1305_final,.-poly1305_final
 #endif /* WOLFSSL_ARMASM_NO_NEON */
 #endif /* HAVE_POLY1305 */
-#endif /* !__aarch64__ && !WOLFSSL_ARMASM_THUMB2 */
-#endif /* WOLFSSL_ARMASM */
 
 #if defined(__linux__) && defined(__ELF__)
 .section	.note.GNU-stack,"",%progbits
 #endif
 #endif /* !WOLFSSL_ARMASM_INLINE */
+#endif /* !__aarch64__ && !WOLFSSL_ARMASM_THUMB2 */
+#endif /* WOLFSSL_ARMASM */

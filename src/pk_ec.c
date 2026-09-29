@@ -37,8 +37,15 @@
 #endif
 #ifndef WOLFSSL_HAVE_ECC_KEY_GET_PRIV
     /* FIPS build has replaced ecc.h. */
-    #define wc_ecc_key_get_priv(key) (&((key)->k))
+    #define wc_ecc_key_get_priv(key)  (&((key)->k))
+    #define ecc_get_k_raw(key)        (&((key)->k))
+    #define ecc_blind_k_rng(key, rng) 0
     #define WOLFSSL_HAVE_ECC_KEY_GET_PRIV
+#endif
+#ifndef ecc_get_k_raw
+    /* FIPS replacement of ecc.h predates ecc_get_k_raw but is new enough to
+     * define WOLFSSL_HAVE_ECC_KEY_GET_PRIV, so the block above was skipped. */
+    #define ecc_get_k_raw(key)        (key)->k
 #endif
 
 #if !defined(WOLFSSL_PK_EC_INCLUDED)
@@ -57,6 +64,15 @@
 
 /* Start EC_curve */
 
+/* kNistCurves also carries the finite field (FFDHE) groups, which are not EC
+ * curves. OpenSSL's EC_curve_nid2nist()/nist2nid() do not resolve them, so
+ * skip any row whose group is in the RFC 7919 code point range. */
+static int wolfssl_ec_nist_row_is_curve(const WOLF_EC_NIST_NAME* nist_name)
+{
+    return (nist_name->curve < WOLFSSL_FFDHE_START) ||
+           (nist_name->curve > WOLFSSL_FFDHE_END);
+}
+
 /* Get the NIST name for the numeric ID.
  *
  * @param [in] nid  Numeric ID of an EC curve.
@@ -70,7 +86,8 @@ const char* wolfSSL_EC_curve_nid2nist(int nid)
 
     /* Attempt to find the curve info matching the NID passed in. */
     for (nist_name = kNistCurves; nist_name->name != NULL; nist_name++) {
-        if (nist_name->nid == nid) {
+        if (wolfssl_ec_nist_row_is_curve(nist_name) &&
+                (nist_name->nid == nid)) {
             /* NID found - return name. */
             name = nist_name->name;
             break;
@@ -93,7 +110,8 @@ int wolfSSL_EC_curve_nist2nid(const char* name)
 
     /* Attempt to find the curve info matching the NIST name passed in. */
     for (nist_name = kNistCurves; nist_name->name != NULL; nist_name++) {
-        if (XSTRCMP(nist_name->name, name) == 0) {
+        if (wolfssl_ec_nist_row_is_curve(nist_name) &&
+                (XSTRCMP(nist_name->name, name) == 0)) {
             /* Name found - return NID. */
             nid = nist_name->nid;
             break;
@@ -426,7 +444,6 @@ void wolfSSL_EC_GROUP_free(WOLFSSL_EC_GROUP *group)
 #endif /* OPENSSL_EXTRA || OPENSSL_EXTRA_X509_SMALL */
 
 #ifdef OPENSSL_EXTRA
-#ifndef NO_BIO
 
 /* Creates an EC group from the DER encoding.
  *
@@ -449,6 +466,8 @@ static WOLFSSL_EC_GROUP* wolfssl_ec_group_d2i(WOLFSSL_EC_GROUP** group,
     const unsigned char* in;
 
     if (in_pp == NULL || *in_pp == NULL)
+        return NULL;
+    if (inSz <= 0)
         return NULL;
 
     in = *in_pp;
@@ -506,6 +525,7 @@ static WOLFSSL_EC_GROUP* wolfssl_ec_group_d2i(WOLFSSL_EC_GROUP** group,
     return ret;
 }
 
+#ifndef NO_BIO
 /* Creates a new EC group from the PEM encoding in the BIO.
  *
  * @param [in]  bio    BIO to read PEM encoding from.
@@ -545,6 +565,7 @@ WOLFSSL_EC_GROUP* wolfSSL_PEM_read_bio_ECPKParameters(WOLFSSL_BIO* bio,
     FreeDer(&der);
     return ret;
 }
+#endif /* !NO_BIO */
 
 WOLFSSL_EC_GROUP *wolfSSL_d2i_ECPKParameters(WOLFSSL_EC_GROUP **out,
         const unsigned char **in, long len)
@@ -592,7 +613,6 @@ int wolfSSL_i2d_ECPKParameters(const WOLFSSL_EC_GROUP* grp, unsigned char** pp)
 
     return len;
 }
-#endif /* !NO_BIO */
 
 #if defined(OPENSSL_ALL) && !defined(NO_CERTS)
 /* Copy an EC group.
@@ -1356,8 +1376,18 @@ WOLFSSL_EC_POINT* wolfSSL_EC_POINT_hex2point(const WOLFSSL_EC_GROUP *group,
     }
 
     key_sz = (wolfSSL_EC_GROUP_get_degree(group) + 7) / 8;
+    if (key_sz <= 0 || (size_t)key_sz > MAX_ECC_BYTES)
+        goto err;
+
     if (hex[0] ==  '0' && hex[1] == '4') { /* uncompressed mode */
         str_sz = (size_t)key_sz * 2;
+
+        /* The uncompressed encoding is exactly 2 + 4*key_sz hex chars
+         * ("04" prefix plus X and Y as 2*key_sz hex chars each). Reject
+         * any other length so XMEMCPY/BN_hex2bn cannot read past the end
+         * of the input and trailing garbage is not silently absorbed. */
+        if (XSTRLEN(hex + 2) != str_sz * 2)
+            goto err;
 
         XMEMSET(strGx, 0x0, str_sz + 1);
         XMEMCPY(strGx, hex + 2, str_sz);
@@ -1377,10 +1407,20 @@ WOLFSSL_EC_POINT* wolfSSL_EC_POINT_hex2point(const WOLFSSL_EC_GROUP *group,
         }
     }
     else if (hex[0] == '0' && (hex[1] == '2' || hex[1] == '3')) {
-        size_t sz = XSTRLEN(hex + 2) / 2;
-        /* compressed mode */
-        octGx[0] = ECC_POINT_COMP_ODD;
-        if (hex_to_bytes(hex + 2, octGx + 1, sz) != sz) {
+        /* The SEC 1 compressed encoding is exactly 1 + key_sz bytes, so
+         * the hex payload after the "02"/"03" prefix must be exactly
+         * 2*key_sz hex chars. Compare the input length directly (rather
+         * than XSTRLEN/2) so that odd-length inputs cannot slip past via
+         * integer truncation. The exact-match rejects oversized inputs
+         * (preventing a hex_to_bytes() write past strGx) and undersized
+         * inputs (preventing wolfSSL_ECPoint_d2i() from reading
+         * uninitialized stack bytes as the X coordinate). */
+        if (XSTRLEN(hex + 2) != (size_t)key_sz * 2)
+            goto err;
+        octGx[0] = (hex[1] == '2') ? ECC_POINT_COMP_EVEN
+                                   : ECC_POINT_COMP_ODD;
+        if (hex_to_bytes(hex + 2, octGx + 1, (size_t)key_sz)
+                                            != (size_t)key_sz) {
             goto err;
         }
         if (wolfSSL_ECPoint_d2i(octGx, (word32)key_sz + 1, group, p)
@@ -1532,7 +1572,7 @@ int wolfSSL_ECPoint_d2i(const unsigned char *in, unsigned int len,
             ret = 0;
         }
 
-        /* wolfSSL_EC_POINT_set_affine_coordinates_GFp check that the point is
+        /* wolfSSL_EC_POINT_set_affine_coordinates_GFp checks that the point is
          * on the curve. */
         if (ret == 1 && wolfSSL_EC_POINT_set_affine_coordinates_GFp(group,
                 point, x, y, NULL) != 1) {
@@ -1544,6 +1584,18 @@ int wolfSSL_ECPoint_d2i(const unsigned char *in, unsigned int len,
                     "operations later on.");
 #endif
     }
+#if !defined(HAVE_SELFTEST) && (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
+    /* Validate that the imported point lies on the curve.  The Z!=1 path
+     * above validates via set_affine_coordinates_GFp, but for affine
+     * imports (Z==1), the common case for uncompressed points, that
+     * block is skipped.  Check unconditionally so no import path can
+     * bypass validation. */
+    if (ret == 1 && wolfSSL_EC_POINT_is_on_curve(group,
+            (WOLFSSL_EC_POINT *)point, NULL) != 1) {
+        WOLFSSL_MSG("wolfSSL_ECPoint_d2i: point not on curve");
+        ret = 0;
+    }
+#endif
 
     if (ret == 1) {
         /* Dump new point. */
@@ -1750,8 +1802,7 @@ WOLFSSL_BIGNUM *wolfSSL_EC_POINT_point2bn(const WOLFSSL_EC_GROUP* group,
     return ret;
 }
 
-#if defined(USE_ECC_B_PARAM) && !defined(HAVE_SELFTEST) && \
-    (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
+#if !defined(HAVE_SELFTEST) && (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
 /* Check if EC point is on the the curve defined by the EC group.
  *
  * @param [in] group  EC group defining curve.
@@ -1792,7 +1843,7 @@ int wolfSSL_EC_POINT_is_on_curve(const WOLFSSL_EC_GROUP *group,
     /* Return boolean of on curve. No error means on curve. */
     return !err;
 }
-#endif /* USE_ECC_B_PARAM && !HAVE_SELFTEST && !(FIPS_VERSION <= 2) */
+#endif /* !HAVE_SELFTEST && !(HAVE_FIPS && FIPS_VERSION <= 2) */
 
 #if !defined(WOLFSSL_SP_MATH) && !defined(WOLF_CRYPTO_CB_ONLY_ECC)
 /* Convert Jacobian ordinates to affine.
@@ -1985,8 +2036,7 @@ int wolfSSL_EC_POINT_set_affine_coordinates_GFp(const WOLFSSL_EC_GROUP* group,
         ret = 0;
     }
 
-#if defined(USE_ECC_B_PARAM) && !defined(HAVE_SELFTEST) && \
-    (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
+#if !defined(HAVE_SELFTEST) && (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
     /* Check that the point is valid. */
     if ((ret == 1) && (wolfSSL_EC_POINT_is_on_curve(group,
             (WOLFSSL_EC_POINT *)point, ctx) != 1)) {
@@ -3129,9 +3179,15 @@ static int wolfssl_ec_key_int_copy(ecc_key* dst, const ecc_key* src)
     }
 
     if (ret == 0) {
-        /* Copy private key. */
-        ret = mp_copy(wc_ecc_key_get_priv((ecc_key*)src),
-            wc_ecc_key_get_priv(dst));
+        /* Copy the stored private scalar, and its blind where the build
+         * keeps one. The wc_ecc_key_get_priv() accessor cannot be used
+         * here: it is read-only, and reading needs dst->dp, not set yet. */
+        ret = mp_copy(ecc_get_k_raw((ecc_key*)src), ecc_get_k_raw(dst));
+    #ifdef WOLFSSL_ECC_BLIND_K
+        if (ret == MP_OKAY) {
+            ret = mp_copy(((ecc_key*)src)->kb, dst->kb);
+        }
+    #endif
         if (ret != MP_OKAY) {
             WOLFSSL_MSG("mp_copy error");
         }
@@ -3421,6 +3477,25 @@ WOLFSSL_EC_KEY* wolfSSL_d2i_ECPrivateKey(WOLFSSL_EC_KEY** key,
         /* Internal EC key setup. */
         ret->inSet = 1;
 
+        /* When the RFC 5915 DER encoding omits the optional publicKey field,
+         * wc_EccPrivateKeyDecode leaves type == ECC_PRIVATEKEY_ONLY with the
+         * public point uninitialised.  Derive the public point now so that
+         * all downstream operations (sign, ECDH, export) have a valid key,
+         * matching the behaviour of OpenSSL's d2i_ECPrivateKey.
+         * In builds without HAVE_ECC_MAKE_PUB (e.g. hardware/CB-only),
+         * keep the historical import behaviour and leave the key as
+         * private-only instead of failing import. */
+    #ifdef HAVE_ECC_MAKE_PUB
+        if (((ecc_key*)ret->internal)->type == ECC_PRIVATEKEY_ONLY) {
+            if (wc_ecc_make_pub((ecc_key*)ret->internal, NULL) != 0) {
+                WOLFSSL_MSG("wc_ecc_make_pub error deriving public key");
+                err = 1;
+            }
+        }
+    #endif
+    }
+
+    if (!err) {
         /* Set the EC key from the internal values. */
         if (SetECKeyExternal(ret) != 1) {
             WOLFSSL_MSG("SetECKeyExternal error");
@@ -3514,6 +3589,9 @@ int wolfSSL_i2d_ECPrivateKey(const WOLFSSL_EC_KEY *key, unsigned char **out)
 
         /* Dispose of any allocated buffer on error. */
         if (err && (*out == buf)) {
+            if (buf != NULL) {
+                ForceZero(buf, len);
+            }
             XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
             *out = NULL;
         }
@@ -4085,6 +4163,7 @@ int wolfSSL_PEM_write_mem_ECPrivateKey(WOLFSSL_EC_KEY* ec,
         derSz = wc_EccKeyToDer((ecc_key*)ec->internal, derBuf, der_max_len);
         if (derSz < 0) {
             WOLFSSL_MSG("wc_EccKeyToDer failed");
+            ForceZero(derBuf, der_max_len);
             XFREE(derBuf, NULL, DYNAMIC_TYPE_DER);
             ret = 0;
         }
@@ -4391,9 +4470,15 @@ int SetECKeyInternal(WOLFSSL_EC_KEY* eckey)
 
         /* set privkey */
         if ((ret == 1) && (eckey->priv_key != NULL)) {
+            /* Write the stored scalar, then install a fresh blind so any
+             * blind left from a previous use of this key is replaced. */
             if (wolfssl_bn_get_value(eckey->priv_key,
-                    wc_ecc_key_get_priv(key)) != 1) {
+                    ecc_get_k_raw(key)) != 1) {
                 WOLFSSL_MSG("ec key priv error");
+                ret = WOLFSSL_FATAL_ERROR;
+            }
+            if ((ret == 1) && (ecc_blind_k_rng(key, NULL) != 0)) {
+                WOLFSSL_MSG("ec key priv blind error");
                 ret = WOLFSSL_FATAL_ERROR;
             }
             /* private key */
@@ -4964,7 +5049,10 @@ WOLFSSL_ECDSA_SIG* wolfSSL_d2i_ECDSA_SIG(WOLFSSL_ECDSA_SIG** sig,
     WOLFSSL_ECDSA_SIG *s = NULL;
 
     /* Validate parameter. */
-    if (pp == NULL) {
+    if (pp == NULL || *pp == NULL) {
+        err = 1;
+    }
+    if ((!err) && (len <= 0)) {
         err = 1;
     }
     if (!err) {
@@ -5264,6 +5352,14 @@ int wolfSSL_ECDSA_do_verify(const unsigned char *dgst, int dLen,
         ret = WOLFSSL_FATAL_ERROR;
     }
 
+    /* Check hash length */
+    if ((ret == 1) &&
+        ((dLen > WC_MAX_DIGEST_SIZE) ||
+         (dLen < WC_MIN_DIGEST_SIZE_FOR_VERIFY))) {
+        WOLFSSL_MSG("wolfSSL_ECDSA_do_verify Bad digest size");
+        ret = WOLFSSL_FATAL_ERROR;
+    }
+
     /* Ensure internal EC key is set from external. */
     if ((ret == 1) && (key->inSet == 0)) {
         WOLFSSL_MSG("No EC key internal set, do it");
@@ -5301,6 +5397,10 @@ int wolfSSL_ECDSA_do_verify(const unsigned char *dgst, int dLen,
                 WOLFSSL_MSG("wc_ecc_verify_hash incorrect signature detected");
                 ret = 0;
             }
+        }
+        else {
+            WOLFSSL_MSG("i2d_ECDSA_SIG failed");
+            ret = WOLFSSL_FATAL_ERROR;
         }
 #endif /* WOLF_CRYPTO_CB_ONLY_ECC */
     }
@@ -5388,6 +5488,14 @@ int wolfSSL_ECDSA_verify(int type, const unsigned char *digest, int digestSz,
         ret = 0;
     }
 
+    /* Check hash length */
+    if ((ret == 1) &&
+        ((digestSz > WC_MAX_DIGEST_SIZE) ||
+         (digestSz < WC_MIN_DIGEST_SIZE_FOR_VERIFY))) {
+        WOLFSSL_MSG("wolfSSL_ECDSA_verify Bad digest size");
+        ret = 0;
+    }
+
     /* Verify signature using digest and key. */
     if ((ret == 1) && (wc_ecc_verify_hash(sig, (word32)sigSz, digest,
             (word32)digestSz, &verify, (ecc_key*)key->internal) != 0)) {
@@ -5430,7 +5538,10 @@ int wolfSSL_ECDH_compute_key(void *out, size_t outLen,
     ecc_key* key = NULL;
 #if defined(ECC_TIMING_RESISTANT) && !defined(HAVE_SELFTEST) && \
     (!defined(HAVE_FIPS) || FIPS_VERSION_GE(5,0))
-    int setGlobalRNG = 0;
+    WC_RNG* rng = NULL;
+    WC_DECLARE_VAR(tmpRng, WC_RNG, 1, 0);
+    int initTmpRng = 0;
+    int setKeyRng = 0;
 #endif
 
     /* TODO: support using the KDF. */
@@ -5465,30 +5576,45 @@ int wolfSSL_ECDH_compute_key(void *out, size_t outLen,
 
     #if defined(ECC_TIMING_RESISTANT) && !defined(HAVE_SELFTEST) && \
         (!defined(HAVE_FIPS) || FIPS_VERSION_GE(5,0))
-        /* An RNG is needed. */
+        /* An RNG is needed - create local or get global. */
         if (key->rng == NULL) {
-            key->rng = wolfssl_make_global_rng();
-            /* RNG set and needs to be unset. */
-            setGlobalRNG = 1;
+            rng = wolfssl_make_rng(tmpRng, &initTmpRng);
+            if (rng == NULL) {
+                WOLFSSL_MSG("wolfSSL_ECDH_compute_key failed to make RNG");
+                err = 1;
+            }
+            else {
+                key->rng = rng;
+                /* RNG set and needs to be unset. */
+                setKeyRng = 1;
+            }
         }
-    #endif
 
-        PRIVATE_KEY_UNLOCK();
-        /* Create secret using wolfSSL. */
-        ret = wc_ecc_shared_secret_ex(key, (ecc_point*)pubKey->internal,
-            (byte *)out, &len);
-        PRIVATE_KEY_LOCK();
-        if (ret != MP_OKAY) {
-            WOLFSSL_MSG("wc_ecc_shared_secret failed");
-            err = 1;
+        if (!err)
+    #endif
+        {
+            PRIVATE_KEY_UNLOCK();
+            /* Create secret using wolfSSL. */
+            ret = wc_ecc_shared_secret_ex(key, (ecc_point*)pubKey->internal,
+                (byte *)out, &len);
+            PRIVATE_KEY_LOCK();
+            if (ret != MP_OKAY) {
+                WOLFSSL_MSG("wc_ecc_shared_secret failed");
+                err = 1;
+            }
         }
     }
 
 #if defined(ECC_TIMING_RESISTANT) && !defined(HAVE_SELFTEST) && \
     (!defined(HAVE_FIPS) || FIPS_VERSION_GE(5,0))
-    /* Remove global from key. */
-    if (setGlobalRNG) {
+    /* Clear before the RNG is disposed of - key must not keep a dangling
+     * reference to a local RNG. */
+    if (setKeyRng) {
         key->rng = NULL;
+    }
+    if (initTmpRng) {
+        wc_FreeRng(rng);
+        WC_FREE_VAR_EX(rng, NULL, DYNAMIC_TYPE_RNG);
     }
 #endif
 

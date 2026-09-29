@@ -25,12 +25,13 @@
  *       ../wolfssl/wolfcrypt/src/port/ppc32/ppc32-sha256-asm.c
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_PPC32_SHA256_ASM_C
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
 #include <wolfssl/wolfcrypt/error-crypt.h>
 
 #ifdef WOLFSSL_PPC32_ASM
-#include <stdint.h>
-#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
 #ifdef WOLFSSL_PPC32_ASM_INLINE
 
 #ifdef __IAR_SYSTEMS_ICC__
@@ -47,11 +48,12 @@
 #define __volatile__
 #define WOLFSSL_NO_VAR_ASSIGN_REG
 #endif /* __ghs__ */
+
 #ifndef NO_SHA256
 #include <wolfssl/wolfcrypt/sha256.h>
 
 #ifdef WOLFSSL_PPC32_ASM_SPE
-static const word32 L_SHA256_transform_spe_len_k[] = {
+XALIGNED(8) static const word32 L_SHA256_transform_spe_len_k[] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -73,21 +75,22 @@ static const word32 L_SHA256_transform_spe_len_k[] = {
 void Transform_Sha256_Len(wc_Sha256* sha256_p, const byte* data_p,
     word32 len_p);
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-void Transform_Sha256_Len(wc_Sha256* sha256_p, const byte* data_p, word32 len_p)
+WC_OMIT_FRAME_POINTER void Transform_Sha256_Len(wc_Sha256* sha256_p,
+    const byte* data_p, word32 len_p)
 #else
-void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
-#endif /* WOLFSSL_NO_VAR_ASSIGN_REG */
+WC_OMIT_FRAME_POINTER void Transform_Sha256_Len(wc_Sha256* sha256,
+    const byte* data, word32 len)
+#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 {
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    register wc_Sha256* sha256 asm ("3") = (wc_Sha256*)sha256_p;
-    register const byte* data asm ("4") = (const byte*)data_p;
-    register word32 len asm ("5") = (word32)len_p;
-    register word32* L_SHA256_transform_spe_len_k_c asm ("6") =
+    register wc_Sha256* sha256 __asm__ ("3") = (wc_Sha256*)sha256_p;
+    register const byte* data __asm__ ("4") = (const byte*)data_p;
+    register word32 len __asm__ ("5") = (word32)len_p;
+    register word32* L_SHA256_transform_spe_len_k_c __asm__ ("6") =
         (word32*)&L_SHA256_transform_spe_len_k;
 #else
     register word32* L_SHA256_transform_spe_len_k_c =
         (word32*)&L_SHA256_transform_spe_len_k;
-
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 
     __asm__ __volatile__ (
@@ -104,7 +107,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "lwz     21, 28(%[sha256])\n\t"
         /* Start of loop processing a block */
         "\n"
-    "L_SHA256_transform_spe_len_begin_%=: \n\t"
+    "L_SHA256_transform_spe_len_begin_%=:\n\t"
         /* Load W */
         "lwz     22, 0(%[data])\n\t"
         "lwz     0, 4(%[data])\n\t"
@@ -134,7 +137,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "mtctr   0\n\t"
         /* Start of 16 rounds */
         "\n"
-    "L_SHA256_transform_spe_len_start_%=: \n\t"
+    "L_SHA256_transform_spe_len_start_%=:\n\t"
         /* Round 0 */
         "mr      9, 22\n\t"
         "rotlwi  6, 18, 26\n\t"
@@ -1178,7 +1181,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
 #ifndef WOLFSSL_PPC32_ASM_SPE
 #include <wolfssl/wolfcrypt/sha256.h>
 
-static const word32 L_SHA256_transform_len_k[] = {
+XALIGNED(8) static const word32 L_SHA256_transform_len_k[] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -1201,21 +1204,22 @@ static const word32 L_SHA256_transform_len_k[] = {
 void Transform_Sha256_Len(wc_Sha256* sha256_p, const byte* data_p,
     word32 len_p);
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-void Transform_Sha256_Len(wc_Sha256* sha256_p, const byte* data_p, word32 len_p)
+WC_OMIT_FRAME_POINTER void Transform_Sha256_Len(wc_Sha256* sha256_p,
+    const byte* data_p, word32 len_p)
 #else
-void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
-#endif /* WOLFSSL_NO_VAR_ASSIGN_REG */
+WC_OMIT_FRAME_POINTER void Transform_Sha256_Len(wc_Sha256* sha256,
+    const byte* data, word32 len)
+#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 {
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    register wc_Sha256* sha256 asm ("3") = (wc_Sha256*)sha256_p;
-    register const byte* data asm ("4") = (const byte*)data_p;
-    register word32 len asm ("5") = (word32)len_p;
-    register word32* L_SHA256_transform_len_k_c asm ("6") =
+    register wc_Sha256* sha256 __asm__ ("3") = (wc_Sha256*)sha256_p;
+    register const byte* data __asm__ ("4") = (const byte*)data_p;
+    register word32 len __asm__ ("5") = (word32)len_p;
+    register word32* L_SHA256_transform_len_k_c __asm__ ("6") =
         (word32*)&L_SHA256_transform_len_k;
 #else
     register word32* L_SHA256_transform_len_k_c =
         (word32*)&L_SHA256_transform_len_k;
-
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 
     __asm__ __volatile__ (
@@ -1234,7 +1238,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "mtctr   %[len]\n\t"
         /* Start of loop processing a block */
         "\n"
-    "L_SHA256_transform_len_begin_%=: \n\t"
+    "L_SHA256_transform_len_begin_%=:\n\t"
         /* Load W - 64 bytes */
         "lwz     16, 0(%[data])\n\t"
         "lwz     17, 4(%[data])\n\t"
@@ -3625,7 +3629,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "stw     %[len], 0(1)\n\t"
         /* Start of loop processing a block */
         "\n"
-    "L_SHA256_transform_len_begin_%=: \n\t"
+    "L_SHA256_transform_len_begin_%=:\n\t"
         /* Load W - 64 bytes */
         "lwz     16, 0(%[data])\n\t"
         "lwz     17, 4(%[data])\n\t"
@@ -3647,7 +3651,9 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "mtctr   0\n\t"
         /* Start of 16 rounds */
         "\n"
-    "L_SHA256_transform_len_start_%=: \n\t"
+    "L_SHA256_transform_len_start_%=:\n\t"
+        "mfctr   %[len]\n\t"
+        "cmpwi   7, %[len], 1\n\t"
         /* Round 0 */
         "rotlwi  0, 11, 26\n\t"
         "rotlwi  %[len], 11, 21\n\t"
@@ -3674,9 +3680,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 8\n\t"
         "add     15, 15, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_0_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_0_%=\n\t"
         /* Calc new W[0] */
         "rotlwi  0, 17, 25\n\t"
         "rotlwi  %[len], 17, 14\n\t"
@@ -3692,7 +3696,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     16, 16, 0\n\t"
         "add     16, 16, 25\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_0_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_0_%=:\n\t"
         /* Round 1 */
         "rotlwi  0, 10, 26\n\t"
         "rotlwi  %[len], 10, 21\n\t"
@@ -3719,9 +3723,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 7\n\t"
         "add     14, 14, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_1_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_1_%=\n\t"
         /* Calc new W[1] */
         "rotlwi  0, 18, 25\n\t"
         "rotlwi  %[len], 18, 14\n\t"
@@ -3737,7 +3739,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     17, 17, 0\n\t"
         "add     17, 17, 26\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_1_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_1_%=:\n\t"
         /* Round 2 */
         "rotlwi  0, 9, 26\n\t"
         "rotlwi  %[len], 9, 21\n\t"
@@ -3764,9 +3766,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 15\n\t"
         "add     12, 12, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_2_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_2_%=\n\t"
         /* Calc new W[2] */
         "rotlwi  0, 19, 25\n\t"
         "rotlwi  %[len], 19, 14\n\t"
@@ -3782,7 +3782,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     18, 18, 0\n\t"
         "add     18, 18, 27\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_2_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_2_%=:\n\t"
         /* Round 3 */
         "rotlwi  0, 8, 26\n\t"
         "rotlwi  %[len], 8, 21\n\t"
@@ -3809,9 +3809,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 14\n\t"
         "add     11, 11, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_3_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_3_%=\n\t"
         /* Calc new W[3] */
         "rotlwi  0, 20, 25\n\t"
         "rotlwi  %[len], 20, 14\n\t"
@@ -3827,7 +3825,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     19, 19, 0\n\t"
         "add     19, 19, 28\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_3_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_3_%=:\n\t"
         /* Round 4 */
         "rotlwi  0, 7, 26\n\t"
         "rotlwi  %[len], 7, 21\n\t"
@@ -3854,9 +3852,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 12\n\t"
         "add     10, 10, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_4_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_4_%=\n\t"
         /* Calc new W[4] */
         "rotlwi  0, 21, 25\n\t"
         "rotlwi  %[len], 21, 14\n\t"
@@ -3872,7 +3868,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     20, 20, 0\n\t"
         "add     20, 20, 29\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_4_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_4_%=:\n\t"
         /* Round 5 */
         "rotlwi  0, 15, 26\n\t"
         "rotlwi  %[len], 15, 21\n\t"
@@ -3899,9 +3895,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 11\n\t"
         "add     9, 9, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_5_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_5_%=\n\t"
         /* Calc new W[5] */
         "rotlwi  0, 22, 25\n\t"
         "rotlwi  %[len], 22, 14\n\t"
@@ -3917,7 +3911,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     21, 21, 0\n\t"
         "add     21, 21, 30\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_5_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_5_%=:\n\t"
         /* Round 6 */
         "rotlwi  0, 14, 26\n\t"
         "rotlwi  %[len], 14, 21\n\t"
@@ -3944,9 +3938,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 10\n\t"
         "add     8, 8, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_6_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_6_%=\n\t"
         /* Calc new W[6] */
         "rotlwi  0, 23, 25\n\t"
         "rotlwi  %[len], 23, 14\n\t"
@@ -3962,7 +3954,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     22, 22, 0\n\t"
         "add     22, 22, 31\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_6_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_6_%=:\n\t"
         /* Round 7 */
         "rotlwi  0, 12, 26\n\t"
         "rotlwi  %[len], 12, 21\n\t"
@@ -3989,9 +3981,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 9\n\t"
         "add     7, 7, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_7_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_7_%=\n\t"
         /* Calc new W[7] */
         "rotlwi  0, 24, 25\n\t"
         "rotlwi  %[len], 24, 14\n\t"
@@ -4007,7 +3997,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     23, 23, 0\n\t"
         "add     23, 23, 16\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_7_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_7_%=:\n\t"
         /* Round 8 */
         "rotlwi  0, 11, 26\n\t"
         "rotlwi  %[len], 11, 21\n\t"
@@ -4034,9 +4024,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 8\n\t"
         "add     15, 15, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_8_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_8_%=\n\t"
         /* Calc new W[8] */
         "rotlwi  0, 25, 25\n\t"
         "rotlwi  %[len], 25, 14\n\t"
@@ -4052,7 +4040,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     24, 24, 0\n\t"
         "add     24, 24, 17\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_8_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_8_%=:\n\t"
         /* Round 9 */
         "rotlwi  0, 10, 26\n\t"
         "rotlwi  %[len], 10, 21\n\t"
@@ -4079,9 +4067,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 7\n\t"
         "add     14, 14, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_9_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_9_%=\n\t"
         /* Calc new W[9] */
         "rotlwi  0, 26, 25\n\t"
         "rotlwi  %[len], 26, 14\n\t"
@@ -4097,7 +4083,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     25, 25, 0\n\t"
         "add     25, 25, 18\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_9_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_9_%=:\n\t"
         /* Round 10 */
         "rotlwi  0, 9, 26\n\t"
         "rotlwi  %[len], 9, 21\n\t"
@@ -4124,9 +4110,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 15\n\t"
         "add     12, 12, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_10_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_10_%=\n\t"
         /* Calc new W[10] */
         "rotlwi  0, 27, 25\n\t"
         "rotlwi  %[len], 27, 14\n\t"
@@ -4142,7 +4126,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     26, 26, 0\n\t"
         "add     26, 26, 19\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_10_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_10_%=:\n\t"
         /* Round 11 */
         "rotlwi  0, 8, 26\n\t"
         "rotlwi  %[len], 8, 21\n\t"
@@ -4169,9 +4153,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 14\n\t"
         "add     11, 11, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_11_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_11_%=\n\t"
         /* Calc new W[11] */
         "rotlwi  0, 28, 25\n\t"
         "rotlwi  %[len], 28, 14\n\t"
@@ -4187,7 +4169,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     27, 27, 0\n\t"
         "add     27, 27, 20\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_11_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_11_%=:\n\t"
         /* Round 12 */
         "rotlwi  0, 7, 26\n\t"
         "rotlwi  %[len], 7, 21\n\t"
@@ -4214,9 +4196,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 12\n\t"
         "add     10, 10, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_12_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_12_%=\n\t"
         /* Calc new W[12] */
         "rotlwi  0, 29, 25\n\t"
         "rotlwi  %[len], 29, 14\n\t"
@@ -4232,7 +4212,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     28, 28, 0\n\t"
         "add     28, 28, 21\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_12_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_12_%=:\n\t"
         /* Round 13 */
         "rotlwi  0, 15, 26\n\t"
         "rotlwi  %[len], 15, 21\n\t"
@@ -4259,9 +4239,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 11\n\t"
         "add     9, 9, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_13_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_13_%=\n\t"
         /* Calc new W[13] */
         "rotlwi  0, 30, 25\n\t"
         "rotlwi  %[len], 30, 14\n\t"
@@ -4277,7 +4255,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     29, 29, 0\n\t"
         "add     29, 29, 22\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_13_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_13_%=:\n\t"
         /* Round 14 */
         "rotlwi  0, 14, 26\n\t"
         "rotlwi  %[len], 14, 21\n\t"
@@ -4304,9 +4282,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 10\n\t"
         "add     8, 8, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_14_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_14_%=\n\t"
         /* Calc new W[14] */
         "rotlwi  0, 31, 25\n\t"
         "rotlwi  %[len], 31, 14\n\t"
@@ -4322,7 +4298,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     30, 30, 0\n\t"
         "add     30, 30, 23\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_14_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_14_%=:\n\t"
         /* Round 15 */
         "rotlwi  0, 12, 26\n\t"
         "rotlwi  %[len], 12, 21\n\t"
@@ -4349,9 +4325,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     0, 0, %[len]\n\t"
         "xor     0, 0, 9\n\t"
         "add     7, 7, 0\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   0, %[len], 1\n\t"
-        "beq     0, L_SHA256_transform_len_after_blk_15_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_15_%=\n\t"
         /* Calc new W[15] */
         "rotlwi  0, 16, 25\n\t"
         "rotlwi  %[len], 16, 14\n\t"
@@ -4367,7 +4341,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     31, 31, 0\n\t"
         "add     31, 31, 24\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_15_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_15_%=:\n\t"
         "addi    6, 6, 0x40\n\t"
         "bdnz    L_SHA256_transform_len_start_%=\n\t"
         "subi    6, 6, 0x100\n\t"
@@ -4424,21 +4398,22 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
 void Transform_Sha256_Len(wc_Sha256* sha256_p, const byte* data_p,
     word32 len_p);
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-void Transform_Sha256_Len(wc_Sha256* sha256_p, const byte* data_p, word32 len_p)
+WC_OMIT_FRAME_POINTER void Transform_Sha256_Len(wc_Sha256* sha256_p,
+    const byte* data_p, word32 len_p)
 #else
-void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
-#endif /* WOLFSSL_NO_VAR_ASSIGN_REG */
+WC_OMIT_FRAME_POINTER void Transform_Sha256_Len(wc_Sha256* sha256,
+    const byte* data, word32 len)
+#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 {
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    register wc_Sha256* sha256 asm ("3") = (wc_Sha256*)sha256_p;
-    register const byte* data asm ("4") = (const byte*)data_p;
-    register word32 len asm ("5") = (word32)len_p;
-    register word32* L_SHA256_transform_len_k_c asm ("6") =
+    register wc_Sha256* sha256 __asm__ ("3") = (wc_Sha256*)sha256_p;
+    register const byte* data __asm__ ("4") = (const byte*)data_p;
+    register word32 len __asm__ ("5") = (word32)len_p;
+    register word32* L_SHA256_transform_len_k_c __asm__ ("6") =
         (word32*)&L_SHA256_transform_len_k;
 #else
     register word32* L_SHA256_transform_len_k_c =
         (word32*)&L_SHA256_transform_len_k;
-
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 
     __asm__ __volatile__ (
@@ -4461,7 +4436,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "lwz     %[sha256], 4(1)\n\t"
         /* Start of loop processing a block */
         "\n"
-    "L_SHA256_transform_len_begin_%=: \n\t"
+    "L_SHA256_transform_len_begin_%=:\n\t"
         /* Load W - 64 bytes */
         "lwz     14, 0(%[sha256])\n\t"
         "lwz     15, 4(%[sha256])\n\t"
@@ -6868,7 +6843,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "lwz     %[sha256], 4(1)\n\t"
         /* Start of loop processing a block */
         "\n"
-    "L_SHA256_transform_len_begin_%=: \n\t"
+    "L_SHA256_transform_len_begin_%=:\n\t"
         /* Load W - 64 bytes */
         "lwz     14, 0(%[sha256])\n\t"
         "lwz     15, 4(%[sha256])\n\t"
@@ -6890,7 +6865,9 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "mtctr   %[sha256]\n\t"
         /* Start of 16 rounds */
         "\n"
-    "L_SHA256_transform_len_start_%=: \n\t"
+    "L_SHA256_transform_len_start_%=:\n\t"
+        "mfctr   %[len]\n\t"
+        "cmpwi   7, %[len], 1\n\t"
         /* Round 0 */
         "rotlwi  %[sha256], 9, 26\n\t"
         "rotlwi  %[len], 9, 21\n\t"
@@ -6917,9 +6894,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], %[data]\n\t"
         "add     12, 12, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_0_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_0_%=\n\t"
         /* Calc new W[0] */
         "rotlwi  %[sha256], 15, 25\n\t"
         "rotlwi  %[len], 15, 14\n\t"
@@ -6935,7 +6910,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     14, 14, %[sha256]\n\t"
         "add     14, 14, 23\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_0_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_0_%=:\n\t"
         /* Round 1 */
         "rotlwi  %[sha256], 8, 26\n\t"
         "rotlwi  %[len], 8, 21\n\t"
@@ -6962,9 +6937,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 0\n\t"
         "add     11, 11, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_1_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_1_%=\n\t"
         /* Calc new W[1] */
         "rotlwi  %[sha256], 16, 25\n\t"
         "rotlwi  %[len], 16, 14\n\t"
@@ -6980,7 +6953,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     15, 15, %[sha256]\n\t"
         "add     15, 15, 24\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_1_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_1_%=:\n\t"
         /* Round 2 */
         "rotlwi  %[sha256], 7, 26\n\t"
         "rotlwi  %[len], 7, 21\n\t"
@@ -7007,9 +6980,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 12\n\t"
         "add     10, 10, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_2_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_2_%=\n\t"
         /* Calc new W[2] */
         "rotlwi  %[sha256], 17, 25\n\t"
         "rotlwi  %[len], 17, 14\n\t"
@@ -7025,7 +6996,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     16, 16, %[sha256]\n\t"
         "add     16, 16, 25\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_2_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_2_%=:\n\t"
         /* Round 3 */
         "rotlwi  %[sha256], %[data], 26\n\t"
         "rotlwi  %[len], %[data], 21\n\t"
@@ -7052,9 +7023,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 11\n\t"
         "add     9, 9, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_3_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_3_%=\n\t"
         /* Calc new W[3] */
         "rotlwi  %[sha256], 18, 25\n\t"
         "rotlwi  %[len], 18, 14\n\t"
@@ -7070,7 +7039,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     17, 17, %[sha256]\n\t"
         "add     17, 17, 26\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_3_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_3_%=:\n\t"
         /* Round 4 */
         "rotlwi  %[sha256], 0, 26\n\t"
         "rotlwi  %[len], 0, 21\n\t"
@@ -7097,9 +7066,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 10\n\t"
         "add     8, 8, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_4_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_4_%=\n\t"
         /* Calc new W[4] */
         "rotlwi  %[sha256], 19, 25\n\t"
         "rotlwi  %[len], 19, 14\n\t"
@@ -7115,7 +7082,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     18, 18, %[sha256]\n\t"
         "add     18, 18, 27\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_4_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_4_%=:\n\t"
         /* Round 5 */
         "rotlwi  %[sha256], 12, 26\n\t"
         "rotlwi  %[len], 12, 21\n\t"
@@ -7142,9 +7109,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 9\n\t"
         "add     7, 7, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_5_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_5_%=\n\t"
         /* Calc new W[5] */
         "rotlwi  %[sha256], 20, 25\n\t"
         "rotlwi  %[len], 20, 14\n\t"
@@ -7160,7 +7125,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     19, 19, %[sha256]\n\t"
         "add     19, 19, 28\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_5_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_5_%=:\n\t"
         /* Round 6 */
         "rotlwi  %[sha256], 11, 26\n\t"
         "rotlwi  %[len], 11, 21\n\t"
@@ -7187,9 +7152,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 8\n\t"
         "add     %[data], %[data], %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_6_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_6_%=\n\t"
         /* Calc new W[6] */
         "rotlwi  %[sha256], 21, 25\n\t"
         "rotlwi  %[len], 21, 14\n\t"
@@ -7205,7 +7168,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     20, 20, %[sha256]\n\t"
         "add     20, 20, 29\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_6_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_6_%=:\n\t"
         /* Round 7 */
         "rotlwi  %[sha256], 10, 26\n\t"
         "rotlwi  %[len], 10, 21\n\t"
@@ -7232,9 +7195,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 7\n\t"
         "add     0, 0, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_7_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_7_%=\n\t"
         /* Calc new W[7] */
         "rotlwi  %[sha256], 22, 25\n\t"
         "rotlwi  %[len], 22, 14\n\t"
@@ -7250,7 +7211,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     21, 21, %[sha256]\n\t"
         "add     21, 21, 14\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_7_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_7_%=:\n\t"
         /* Round 8 */
         "rotlwi  %[sha256], 9, 26\n\t"
         "rotlwi  %[len], 9, 21\n\t"
@@ -7277,9 +7238,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], %[data]\n\t"
         "add     12, 12, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_8_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_8_%=\n\t"
         /* Calc new W[8] */
         "rotlwi  %[sha256], 23, 25\n\t"
         "rotlwi  %[len], 23, 14\n\t"
@@ -7295,7 +7254,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     22, 22, %[sha256]\n\t"
         "add     22, 22, 15\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_8_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_8_%=:\n\t"
         /* Round 9 */
         "rotlwi  %[sha256], 8, 26\n\t"
         "rotlwi  %[len], 8, 21\n\t"
@@ -7322,9 +7281,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 0\n\t"
         "add     11, 11, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_9_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_9_%=\n\t"
         /* Calc new W[9] */
         "rotlwi  %[sha256], 24, 25\n\t"
         "rotlwi  %[len], 24, 14\n\t"
@@ -7340,7 +7297,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     23, 23, %[sha256]\n\t"
         "add     23, 23, 16\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_9_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_9_%=:\n\t"
         /* Round 10 */
         "rotlwi  %[sha256], 7, 26\n\t"
         "rotlwi  %[len], 7, 21\n\t"
@@ -7367,9 +7324,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 12\n\t"
         "add     10, 10, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_10_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_10_%=\n\t"
         /* Calc new W[10] */
         "rotlwi  %[sha256], 25, 25\n\t"
         "rotlwi  %[len], 25, 14\n\t"
@@ -7385,7 +7340,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     24, 24, %[sha256]\n\t"
         "add     24, 24, 17\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_10_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_10_%=:\n\t"
         /* Round 11 */
         "rotlwi  %[sha256], %[data], 26\n\t"
         "rotlwi  %[len], %[data], 21\n\t"
@@ -7412,9 +7367,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 11\n\t"
         "add     9, 9, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_11_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_11_%=\n\t"
         /* Calc new W[11] */
         "rotlwi  %[sha256], 26, 25\n\t"
         "rotlwi  %[len], 26, 14\n\t"
@@ -7430,7 +7383,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     25, 25, %[sha256]\n\t"
         "add     25, 25, 18\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_11_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_11_%=:\n\t"
         /* Round 12 */
         "rotlwi  %[sha256], 0, 26\n\t"
         "rotlwi  %[len], 0, 21\n\t"
@@ -7457,9 +7410,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 10\n\t"
         "add     8, 8, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_12_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_12_%=\n\t"
         /* Calc new W[12] */
         "rotlwi  %[sha256], 27, 25\n\t"
         "rotlwi  %[len], 27, 14\n\t"
@@ -7475,7 +7426,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     26, 26, %[sha256]\n\t"
         "add     26, 26, 19\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_12_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_12_%=:\n\t"
         /* Round 13 */
         "rotlwi  %[sha256], 12, 26\n\t"
         "rotlwi  %[len], 12, 21\n\t"
@@ -7502,9 +7453,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 9\n\t"
         "add     7, 7, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_13_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_13_%=\n\t"
         /* Calc new W[13] */
         "rotlwi  %[sha256], 28, 25\n\t"
         "rotlwi  %[len], 28, 14\n\t"
@@ -7520,7 +7469,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     27, 27, %[sha256]\n\t"
         "add     27, 27, 20\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_13_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_13_%=:\n\t"
         /* Round 14 */
         "rotlwi  %[sha256], 11, 26\n\t"
         "rotlwi  %[len], 11, 21\n\t"
@@ -7547,9 +7496,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 8\n\t"
         "add     %[data], %[data], %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_14_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_14_%=\n\t"
         /* Calc new W[14] */
         "rotlwi  %[sha256], 29, 25\n\t"
         "rotlwi  %[len], 29, 14\n\t"
@@ -7565,7 +7512,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     28, 28, %[sha256]\n\t"
         "add     28, 28, 21\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_14_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_14_%=:\n\t"
         /* Round 15 */
         "rotlwi  %[sha256], 10, 26\n\t"
         "rotlwi  %[len], 10, 21\n\t"
@@ -7592,9 +7539,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "and     %[sha256], %[sha256], %[len]\n\t"
         "xor     %[sha256], %[sha256], 7\n\t"
         "add     0, 0, %[sha256]\n\t"
-        "mfctr   %[len]\n\t"
-        "cmpwi   %[sha256], %[len], 1\n\t"
-        "beq     %[sha256], L_SHA256_transform_len_after_blk_15_%=\n\t"
+        "beq     7, L_SHA256_transform_len_after_blk_15_%=\n\t"
         /* Calc new W[15] */
         "rotlwi  %[sha256], 14, 25\n\t"
         "rotlwi  %[len], 14, 14\n\t"
@@ -7610,7 +7555,7 @@ void Transform_Sha256_Len(wc_Sha256* sha256, const byte* data, word32 len)
         "add     29, 29, %[sha256]\n\t"
         "add     29, 29, 22\n\t"
         "\n"
-    "L_SHA256_transform_len_after_blk_15_%=: \n\t"
+    "L_SHA256_transform_len_after_blk_15_%=:\n\t"
         "addi    6, 6, 0x40\n\t"
         "bdnz    L_SHA256_transform_len_start_%=\n\t"
         "subi    6, 6, 0x100\n\t"

@@ -249,15 +249,14 @@ static int wolfkmod_load(void)
 
     error = wolfkmod_init();
     if (error != 0) {
-        return (ECANCELED);
+        goto wolfkmod_load_out;
     }
 
     #ifndef NO_CRYPT_TEST
     error = wolfcrypt_test(NULL);
     if (error != 0) {
         printf("error: wolfcrypt test failed: %d\n", error);
-        (void)wolfkmod_cleanup();
-        return (ECANCELED);
+        goto wolfkmod_load_out;
     }
     printf("info: wolfCrypt self-test passed.\n");
     #endif /* NO_CRYPT_TEST */
@@ -266,15 +265,19 @@ static int wolfkmod_load(void)
     error = benchmark_test(NULL);
     if (error != 0) {
         printf("error: wolfcrypt benchmark failed: %d\n", error);
-        (void)wolfkmod_cleanup();
-        return (ECANCELED);
+        goto wolfkmod_load_out;
     }
     printf("info: wolfCrypt benchmark passed.\n");
     #endif /* WOLFSSL_KERNEL_BENCHMARKS */
-
     printf("info: libwolfssl loaded\n");
 
-    return (0);
+wolfkmod_load_out:
+    if (error != 0) {
+        (void)wolfkmod_cleanup();
+        error = ECANCELED;
+    }
+
+    return (error);
 }
 
 static int wolfkmod_unload(void)
@@ -380,16 +383,19 @@ static void km_AesFree(Aes * aes) {
     #endif
 }
 
-static void wolfkdriv_aes_ctx_clear(km_aes_ctx * ctx)
+/* clean up allocated km_aes_ctx struct.
+ *   - cbc allocates both encrypt and decrypt, and frees both.
+ *   - gcm uses only aes_encrypt.
+ * */
+static void wolfkdriv_aes_ctx_clear(km_aes_ctx * ctx, int free_decrypt)
 {
     if (ctx != NULL) {
         km_AesFree(&ctx->aes_encrypt);
-        km_AesFree(&ctx->aes_decrypt);
-    }
 
-    #ifdef WOLFKM_DEBUG_AES
-    printf("info: exiting km_AesExitCommon\n");
-    #endif /* WOLFKM_DEBUG_AES */
+        if (free_decrypt) {
+            km_AesFree(&ctx->aes_decrypt);
+        }
+    }
 }
 
 static void wolfkdriv_identify(driver_t * driver, device_t parent)
@@ -435,7 +441,8 @@ static int wolfkdriv_attach(device_t dev)
 
     ret = wolfkmod_init();
     if (ret != 0) {
-        return (ECANCELED);
+        error = ECANCELED;
+        goto attach_out;
     }
 
     /**
@@ -452,7 +459,8 @@ static int wolfkdriv_attach(device_t dev)
     if (softc->crid < 0) {
         device_printf(dev, "error: crypto_get_driverid failed: %d\n",
                softc->crid);
-        return (ENXIO);
+        error = ENXIO;
+        goto attach_out;
     }
 
     /*
@@ -486,8 +494,9 @@ static int wolfkdriv_attach(device_t dev)
 
 attach_out:
     if (error) {
+        device_printf(dev, "error: attach_out: %d\n", error);
         wolfkdriv_unregister(softc);
-        error = ENXIO;
+        (void)wolfkmod_cleanup();
     }
 
     return (error);
@@ -498,16 +507,14 @@ static int wolfkdriv_detach(device_t dev)
     struct wolfkdriv_softc * softc = NULL;
     int ret = 0;
 
+    /* unregister wolfcrypt algs */
+    softc = device_get_softc(dev);
+    wolfkdriv_unregister(softc);
     ret = wolfkmod_cleanup();
-
-    if (ret == 0) {
-        /* unregister wolfcrypt algs */
-        softc = device_get_softc(dev);
-        wolfkdriv_unregister(softc);
-    }
-
     #if defined(WOLFSSL_BSDKM_VERBOSE_DEBUG)
-    device_printf(dev, "info: exiting detach\n");
+    device_printf(dev, "info: exiting detach: %d\n", ret);
+    #else
+    (void)ret;
     #endif /* WOLFSSL_BSDKM_VERBOSE_DEBUG */
 
     return (0);
@@ -521,10 +528,14 @@ static int wolfkdriv_probesession(device_t dev,
 
     softc = device_get_softc(dev);
 
+    /* sanitize csp values */
     switch (csp->csp_mode) {
     case CSP_MODE_CIPHER:
         switch (csp->csp_cipher_alg) {
         case CRYPTO_AES_CBC:
+            if (csp->csp_ivlen != AES_BLOCK_LEN) {
+                error = EINVAL;
+            }
             break;
         default:
             error = EINVAL;
@@ -535,6 +546,16 @@ static int wolfkdriv_probesession(device_t dev,
     case CSP_MODE_AEAD:
         switch (csp->csp_cipher_alg) {
         case CRYPTO_AES_NIST_GCM_16:
+            if (csp->csp_ivlen != GCM_NONCE_MIN_SZ &&
+                csp->csp_ivlen != GCM_NONCE_MID_SZ &&
+                csp->csp_ivlen != GCM_NONCE_MAX_SZ) {
+                error = EINVAL;
+            }
+
+            if (csp->csp_auth_mlen != 0 &&
+                csp->csp_auth_mlen != WC_AES_BLOCK_SIZE) {
+                error = EINVAL;
+            }
             break;
         default:
             error = EINVAL;
@@ -549,7 +570,6 @@ static int wolfkdriv_probesession(device_t dev,
     }
 
     (void)softc;
-    (void)csp;
 
     #if defined(WOLFSSL_BSDKM_VERBOSE_DEBUG)
     device_printf(dev, "info: probesession: mode=%d, cipher_alg=%d, error=%d\n",
@@ -565,24 +585,41 @@ static int wolfkdriv_newsession_aes(device_t dev,
     int error = 0;
     int klen = csp->csp_cipher_klen; /* key len in bytes */
 
-    switch (csp->csp_cipher_alg) {
-    case CRYPTO_AES_NIST_GCM_16:
-        session->type = CRYPTO_AES_NIST_GCM_16;
-        break;
-    case CRYPTO_AES_CBC:
-        session->type = CRYPTO_AES_CBC;
-        break;
-    default:
-        return (EOPNOTSUPP);
-    }
-
+    /* sanitize csp values */
     if (klen != 16 && klen != 24 && klen != 32) {
         device_printf(dev, "info: newsession_cipher: invalid klen: %d\n", klen);
         return (EINVAL);
     }
 
+    if (csp->csp_cipher_alg == CRYPTO_AES_CBC) {
+        if (csp->csp_ivlen != AES_BLOCK_LEN) {
+            return (EINVAL);
+        }
+    }
+    else if (csp->csp_cipher_alg == CRYPTO_AES_NIST_GCM_16) {
+        if (csp->csp_ivlen != GCM_NONCE_MIN_SZ &&
+            csp->csp_ivlen != GCM_NONCE_MID_SZ &&
+            csp->csp_ivlen != GCM_NONCE_MAX_SZ) {
+            return (EINVAL);
+        }
+
+        if (csp->csp_auth_mlen != 0 &&
+            csp->csp_auth_mlen != WC_AES_BLOCK_SIZE) {
+            return (EINVAL);
+        }
+    }
+    else {
+        /* shouldn't happen, but just in case. */
+        device_printf(dev, "error: newsession_cipher: unsupported alg: %d\n",
+                      csp->csp_cipher_alg);
+        return (EINVAL);
+    }
+
     session->klen = klen;
     session->ivlen = csp->csp_ivlen;
+
+    memset(&session->aes_ctx.aes_encrypt, 0, sizeof(Aes));
+    memset(&session->aes_ctx.aes_decrypt, 0, sizeof(Aes));
 
     /* encrypt */
     error = wc_AesInit(&session->aes_ctx.aes_encrypt, NULL, INVALID_DEVID);
@@ -591,7 +628,20 @@ static int wolfkdriv_newsession_aes(device_t dev,
         goto newsession_cipher_out;
     }
 
-    if (session->type == CRYPTO_AES_CBC) {
+    switch (csp->csp_cipher_alg) {
+    case CRYPTO_AES_NIST_GCM_16:
+        session->type = CRYPTO_AES_NIST_GCM_16;
+        error = wc_AesGcmSetKey(&session->aes_ctx.aes_encrypt,
+                                csp->csp_cipher_key,
+                                csp->csp_cipher_klen);
+        if (error) {
+            device_printf(dev, "error: wc_AesGcmSetKey: %d\n", error);
+            goto newsession_cipher_out;
+        }
+
+        break;
+    case CRYPTO_AES_CBC:
+        session->type = CRYPTO_AES_CBC;
         /* Need a separate decrypt structure for aes-cbc. */
         error = wc_AesInit(&session->aes_ctx.aes_decrypt, NULL, INVALID_DEVID);
         if (error) {
@@ -599,12 +649,41 @@ static int wolfkdriv_newsession_aes(device_t dev,
                           error);
             goto newsession_cipher_out;
         }
+
+        error = wc_AesSetKey(&session->aes_ctx.aes_encrypt,
+                             csp->csp_cipher_key,
+                             csp->csp_cipher_klen, NULL, AES_ENCRYPTION);
+        if (error) {
+            device_printf(dev, "error: wc_AesSetKey: %d\n", error);
+            goto newsession_cipher_out;
+        }
+
+        error = wc_AesSetKey(&session->aes_ctx.aes_decrypt,
+                             csp->csp_cipher_key,
+                             csp->csp_cipher_klen, NULL, AES_DECRYPTION);
+        if (error) {
+            device_printf(dev, "error: wc_AesSetKey: %d\n", error);
+            goto newsession_cipher_out;
+        }
+
+        break;
+    default:
+        error = (EINVAL);
+        break;
     }
 
 newsession_cipher_out:
-
     if (error != 0) {
-        wolfkdriv_aes_ctx_clear(&session->aes_ctx);
+        switch (csp->csp_cipher_alg) {
+        case CRYPTO_AES_NIST_GCM_16:
+            wolfkdriv_aes_ctx_clear(&session->aes_ctx, 0);
+            break;
+        case CRYPTO_AES_CBC:
+            wolfkdriv_aes_ctx_clear(&session->aes_ctx, 1);
+        default:
+            break;
+        }
+
         return (EINVAL);
     }
 
@@ -646,13 +725,27 @@ static void
 wolfkdriv_freesession(device_t dev, crypto_session_t cses)
 {
     wolfkdriv_session_t * session = NULL;
+    const struct crypto_session_params * csp = NULL;
     (void)dev;
 
     /* get the wolfkdriv_session_t context */
     session = crypto_get_driver_session(cses);
+    csp = crypto_get_params(cses);
 
     /* clean it up */
-    wolfkdriv_aes_ctx_clear(&session->aes_ctx);
+    switch (csp->csp_mode) {
+    case CSP_MODE_CIPHER:
+        wolfkdriv_aes_ctx_clear(&session->aes_ctx, 1);
+        break;
+    case CSP_MODE_DIGEST:
+    case CSP_MODE_ETA:
+        break;
+    case CSP_MODE_AEAD:
+        wolfkdriv_aes_ctx_clear(&session->aes_ctx, 0);
+        break;
+    default:
+        __assert_unreachable();
+    }
 
     #if defined(WOLFSSL_BSDKM_VERBOSE_DEBUG)
     device_printf(dev, "info: exiting freesession\n");
@@ -679,7 +772,8 @@ static int wolfkdriv_cbc_work(device_t dev, wolfkdriv_session_t * session,
     size_t  out_len = 0;
     int     error = 0;
     int     is_encrypt = 0;
-    int     type = AES_ENCRYPTION;
+
+    memset(&aes, 0, sizeof(aes));
 
     if (csp->csp_cipher_alg != CRYPTO_AES_CBC) {
         error = EINVAL;
@@ -689,14 +783,25 @@ static int wolfkdriv_cbc_work(device_t dev, wolfkdriv_session_t * session,
     data_len = crp->crp_payload_length;
     if (CRYPTO_OP_IS_ENCRYPT(crp->crp_op)) {
         is_encrypt = 1;
-        type = AES_ENCRYPTION;
         memcpy(&aes, &session->aes_ctx.aes_encrypt, sizeof(aes));
     }
     else {
         is_encrypt = 0;
-        type = AES_DECRYPTION;
         memcpy(&aes, &session->aes_ctx.aes_decrypt, sizeof(aes));
     }
+#if defined(WOLFSSL_AESGCM_STREAM) && defined(WOLFSSL_SMALL_STACK) && \
+   !defined(WOLFSSL_AESNI)
+    aes.streamData = NULL;
+#endif
+#ifdef WC_DEBUG_CIPHER_LIFECYCLE
+    {
+        error = wc_debug_CipherLifecycleInit(&aes.CipherLifecycleTag, NULL);
+        if (error) {
+            error = EINVAL;
+            goto cbc_work_out;
+        }
+    }
+#endif
 
     /* must be multiple of block size */
     if (data_len % WC_AES_BLOCK_SIZE) {
@@ -705,10 +810,9 @@ static int wolfkdriv_cbc_work(device_t dev, wolfkdriv_session_t * session,
     }
 
     crypto_read_iv(crp, iv);
-    error = wc_AesSetKey(&aes, csp->csp_cipher_key,
-                         csp->csp_cipher_klen, iv, type);
+    error = wc_AesSetIV(&aes, iv);
     if (error) {
-        device_printf(dev, "error: wc_AesSetKey: %d\n", error);
+        device_printf(dev, "error: wc_AesSetIV: %d\n", error);
         goto cbc_work_out;
     }
 
@@ -765,7 +869,7 @@ static int wolfkdriv_cbc_work(device_t dev, wolfkdriv_session_t * session,
         else {
             error = wc_AesCbcDecrypt(&aes, out_block, in_block, seg_len);
             if (error) {
-                device_printf(dev, "error: wc_AesCbcEncrypt: %d\n", error);
+                device_printf(dev, "error: wc_AesCbcDecrypt: %d\n", error);
                 goto cbc_work_out;
             }
         }
@@ -797,6 +901,7 @@ static int wolfkdriv_cbc_work(device_t dev, wolfkdriv_session_t * session,
 
 cbc_work_out:
     /* cleanup. */
+    km_AesFree(&aes);
     wc_ForceZero(iv, sizeof(iv));
     wc_ForceZero(block, sizeof(block));
 
@@ -806,6 +911,11 @@ cbc_work_out:
                   csp->csp_mode, csp->csp_cipher_alg, crp->crp_payload_length,
                   error);
     #endif /* WOLFSSL_BSDKM_VERBOSE_DEBUG */
+
+    if (error < 0) {
+        /* convert wolfcrypt errors to EINVAL. */
+        error = EINVAL;
+    }
 
     return (error);
 }
@@ -828,12 +938,27 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
     int     error = 0;
     int     is_encrypt = 0;
 
-    memcpy(&aes, &session->aes_ctx.aes_encrypt, sizeof(aes));
+    memset(&aes, 0, sizeof(aes));
 
     if (csp->csp_cipher_alg != CRYPTO_AES_NIST_GCM_16) {
         error = EINVAL;
         goto gcm_work_out;
     }
+
+    memcpy(&aes, &session->aes_ctx.aes_encrypt, sizeof(aes));
+#if defined(WOLFSSL_AESGCM_STREAM) && defined(WOLFSSL_SMALL_STACK) && \
+   !defined(WOLFSSL_AESNI)
+    aes.streamData = NULL;
+#endif
+#ifdef WC_DEBUG_CIPHER_LIFECYCLE
+    {
+        error = wc_debug_CipherLifecycleInit(&aes.CipherLifecycleTag, NULL);
+        if (error) {
+            error = EINVAL;
+            goto gcm_work_out;
+        }
+    }
+#endif
 
     data_len = crp->crp_payload_length;
     if (CRYPTO_OP_IS_ENCRYPT(crp->crp_op)) {
@@ -841,13 +966,6 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
     }
     else {
         is_encrypt = 0;
-    }
-
-    error = wc_AesGcmSetKey(&aes, csp->csp_cipher_key,
-                            csp->csp_cipher_klen);
-    if (error) {
-        device_printf(dev, "error: wc_AesGcmSetKey: %d\n", error);
-        goto gcm_work_out;
     }
 
     crypto_read_iv(crp, iv);
@@ -860,7 +978,7 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
 
     /* process aad first */
     if (crp->crp_aad != NULL) {
-        /* they passed aad in separate buffer. */
+        /* they passed aad in separate buffer. process it in one go. */
         if (is_encrypt) {
             error = wc_AesGcmEncryptUpdate(&aes, NULL, NULL, 0,
                                            crp->crp_aad, crp->crp_aad_length);
@@ -885,6 +1003,13 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
         for (aad_len = crp->crp_aad_length; aad_len > 0; aad_len -= seg_len) {
             in_seg = crypto_cursor_segment(&cc_in, &in_len);
             seg_len = MIN(aad_len, in_len);
+
+            if (seg_len == 0) {
+                /* the crypto_cursor logic should prevent this from happening,
+                 * but just in case. */
+                error = EINVAL;
+                goto gcm_work_out;
+            }
 
             if (is_encrypt) {
                 error = wc_AesGcmEncryptUpdate(&aes, NULL, NULL, 0,
@@ -912,8 +1037,6 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
     crypto_cursor_init(&cc_in, &crp->crp_buf);
     crypto_cursor_advance(&cc_in, crp->crp_payload_start);
 
-    in_seg = crypto_cursor_segment(&cc_in, &in_len);
-
     /* handle if the user supplied a separate out buffer. */
     if (CRYPTO_HAS_OUTPUT_BUFFER(crp)) {
         crypto_cursor_init(&cc_out, &crp->crp_obuf);
@@ -923,19 +1046,25 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
         cc_out = cc_in;
     }
 
-    out_seg = crypto_cursor_segment(&cc_out, &out_len);
-
     while (data_len) {
         /* process through the available segments. */
         in_seg = crypto_cursor_segment(&cc_in, &in_len);
         out_seg = crypto_cursor_segment(&cc_out, &out_len);
         seg_len = MIN(data_len, MIN(in_len, out_len));
 
+        if (seg_len == 0) {
+            /* the crypto_cursor logic should prevent this from happening,
+             * but just in case. */
+            error = EINVAL;
+            goto gcm_work_out;
+        }
+
         if (is_encrypt) {
             error = wc_AesGcmEncryptUpdate(&aes, out_seg, in_seg, seg_len,
                                            NULL, 0);
             if (error) {
-                device_printf(dev, "error: wc_AesGcmEncrypt: %d\n", error);
+                device_printf(dev, "error: wc_AesGcmEncryptUpdate: %d\n",
+                              error);
                 goto gcm_work_out;
             }
         }
@@ -943,7 +1072,8 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
             error = wc_AesGcmDecryptUpdate(&aes, out_seg, in_seg, seg_len,
                                            NULL, 0);
             if (error) {
-                device_printf(dev, "error: wc_AesGcmDecrypt: %d\n", error);
+                device_printf(dev, "error: wc_AesGcmDecryptUpdate: %d\n",
+                              error);
                 goto gcm_work_out;
             }
         }
@@ -974,6 +1104,7 @@ static int wolfkdriv_gcm_work(device_t dev, wolfkdriv_session_t * session,
 
 gcm_work_out:
     /* cleanup. */
+    km_AesFree(&aes);
     wc_ForceZero(iv, sizeof(iv));
     wc_ForceZero(auth_tag, sizeof(auth_tag));
 
@@ -983,6 +1114,11 @@ gcm_work_out:
                   csp->csp_mode, csp->csp_cipher_alg, crp->crp_payload_length,
                   error);
     #endif /* WOLFSSL_BSDKM_VERBOSE_DEBUG */
+
+    if (error < 0) {
+        /* convert wolfcrypt errors to EINVAL. */
+        error = EINVAL;
+    }
 
     return (error);
 }
@@ -1020,7 +1156,8 @@ static int wolfkdriv_process(device_t dev, struct cryptop * crp, int hint)
                   csp->csp_mode, csp->csp_cipher_alg, error);
     #endif /* WOLFSSL_BSDKM_VERBOSE_DEBUG */
 
-    return (error);
+    /* opencrypto(9) contract: return 0 after crypto_done(); error is in crp_etype. */
+    return (0);
 }
 
 /*

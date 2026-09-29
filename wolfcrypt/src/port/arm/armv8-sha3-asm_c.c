@@ -19,14 +19,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
-#include <wolfssl/wolfcrypt/error-crypt.h>
-
 /* Generated using (from wolfssl):
  *   cd ../scripts
  *   ruby ./sha3/sha3.rb arm64 \
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-sha3-asm.c
  */
+
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_ARMV8_SHA3_ASM_C
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+
 #ifdef WOLFSSL_ARMASM
 #ifdef __aarch64__
 #ifdef WOLFSSL_ARMASM_INLINE
@@ -34,28 +38,26 @@
 
 #ifdef WOLFSSL_SHA3
 #ifdef WOLFSSL_ARMASM_CRYPTO_SHA3
-static const word64 L_SHA3_transform_crypto_r[] = {
-    0x0000000000000001, 0x0000000000008082,
-    0x800000000000808a, 0x8000000080008000,
-    0x000000000000808b, 0x0000000080000001,
-    0x8000000080008081, 0x8000000000008009,
-    0x000000000000008a, 0x0000000000000088,
-    0x0000000080008009, 0x000000008000000a,
-    0x000000008000808b, 0x800000000000008b,
-    0x8000000000008089, 0x8000000000008003,
-    0x8000000000008002, 0x8000000000000080,
-    0x000000000000800a, 0x800000008000000a,
-    0x8000000080008081, 0x8000000000008080,
-    0x0000000080000001, 0x8000000080008008,
+XALIGNED(16) static const word64 L_SHA3_transform_crypto_r[] = {
+    0x0000000000000001UL, 0x0000000000008082UL,
+    0x800000000000808aUL, 0x8000000080008000UL,
+    0x000000000000808bUL, 0x0000000080000001UL,
+    0x8000000080008081UL, 0x8000000000008009UL,
+    0x000000000000008aUL, 0x0000000000000088UL,
+    0x0000000080008009UL, 0x000000008000000aUL,
+    0x000000008000808bUL, 0x800000000000008bUL,
+    0x8000000000008089UL, 0x8000000000008003UL,
+    0x8000000000008002UL, 0x8000000000000080UL,
+    0x000000000000800aUL, 0x800000008000000aUL,
+    0x8000000080008081UL, 0x8000000000008080UL,
+    0x0000000080000001UL, 0x8000000080008008UL,
 };
 
 void BlockSha3_crypto(word64* state)
 {
     const word64* r = L_SHA3_transform_crypto_r;
     __asm__ __volatile__ (
-#ifdef __APPLE__
     ".arch_extension sha3\n\t"
-#endif /* __APPLE__ */
         "ld4	{v0.d, v1.d, v2.d, v3.d}[0], [%x[state]], #32\n\t"
         "ld4	{v4.d, v5.d, v6.d, v7.d}[0], [%x[state]], #32\n\t"
         "ld4	{v8.d, v9.d, v10.d, v11.d}[0], [%x[state]], #32\n\t"
@@ -67,7 +69,7 @@ void BlockSha3_crypto(word64* state)
         "mov	x2, #24\n\t"
         /* Start of 24 rounds */
         "\n"
-    "L_sha3_crypto_begin_%=: \n\t"
+    "L_sha3_crypto_begin_%=:\n\t"
         /* Col Mix */
         "eor3	v31.16b, v0.16b, v5.16b, v10.16b\n\t"
         "eor3	v27.16b, v1.16b, v6.16b, v11.16b\n\t"
@@ -165,19 +167,19 @@ void BlockSha3_crypto(word64* state)
 }
 
 #endif /* WOLFSSL_ARMASM_CRYPTO_SHA3 */
-static const word64 L_SHA3_transform_base_r[] = {
-    0x0000000000000001, 0x0000000000008082,
-    0x800000000000808a, 0x8000000080008000,
-    0x000000000000808b, 0x0000000080000001,
-    0x8000000080008081, 0x8000000000008009,
-    0x000000000000008a, 0x0000000000000088,
-    0x0000000080008009, 0x000000008000000a,
-    0x000000008000808b, 0x800000000000008b,
-    0x8000000000008089, 0x8000000000008003,
-    0x8000000000008002, 0x8000000000000080,
-    0x000000000000800a, 0x800000008000000a,
-    0x8000000080008081, 0x8000000000008080,
-    0x0000000080000001, 0x8000000080008008,
+XALIGNED(16) static const word64 L_SHA3_transform_base_r[] = {
+    0x0000000000000001UL, 0x0000000000008082UL,
+    0x800000000000808aUL, 0x8000000080008000UL,
+    0x000000000000808bUL, 0x0000000080000001UL,
+    0x8000000080008081UL, 0x8000000000008009UL,
+    0x000000000000008aUL, 0x0000000000000088UL,
+    0x0000000080008009UL, 0x000000008000000aUL,
+    0x000000008000808bUL, 0x800000000000008bUL,
+    0x8000000000008089UL, 0x8000000000008003UL,
+    0x8000000000008002UL, 0x8000000000000080UL,
+    0x000000000000800aUL, 0x800000008000000aUL,
+    0x8000000080008081UL, 0x8000000000008080UL,
+    0x0000000080000001UL, 0x8000000080008008UL,
 };
 
 void BlockSha3_base(word64* state)
@@ -203,7 +205,7 @@ void BlockSha3_base(word64* state)
         "mov	x28, #24\n\t"
         /* Start of 24 rounds */
         "\n"
-    "L_SHA3_transform_base_begin_%=: \n\t"
+    "L_SHA3_transform_base_begin_%=:\n\t"
         "stp	%[r], x28, [x29, #48]\n\t"
         "eor	%x[state], x5, x10\n\t"
         "eor	x30, x1, x6\n\t"

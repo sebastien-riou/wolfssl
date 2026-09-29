@@ -96,6 +96,9 @@ typedef struct {
     word16 aead;
     byte kem_suite_id[KEM_SUITE_ID_LEN];
     byte hpke_suite_id[HPKE_SUITE_ID_LEN];
+#if defined(HAVE_SECRET_CALLBACK) && defined(HAVE_ECH)
+    byte* echSecret;
+#endif
 } Hpke;
 
 typedef struct {
@@ -116,6 +119,12 @@ WOLFSSL_API void wc_HpkeFreeKey(Hpke* hpke, word16 kem, void* keypair,
     void* heap);
 WOLFSSL_API int wc_HpkeInitSealContext(Hpke* hpke, HpkeBaseContext* context,
     void* ephemeralKey, void* receiverKey, byte* info, word32 infoSz);
+/* Seal produces ptSz bytes of ciphertext followed in-line by an hpke->Nt byte
+ * AEAD tag, so the caller MUST provide an output buffer ("out"/"ciphertext")
+ * of at least ptSz + hpke->Nt bytes. hpke->Nt is HPKE_Nt_MAX (16) for the
+ * currently supported AES-GCM AEADs. These functions take no output length and
+ * do not bounds check "out"; sizing it to ptSz alone overflows it by hpke->Nt
+ * bytes. */
 WOLFSSL_API int wc_HpkeContextSealBase(Hpke* hpke, HpkeBaseContext* context,
     byte* aad, word32 aadSz, byte* plaintext, word32 ptSz, byte* out);
 WOLFSSL_API int wc_HpkeSealBase(Hpke* hpke, void* ephemeralKey,
@@ -134,6 +143,11 @@ WOLFSSL_LOCAL word16 wc_HpkeKemGetEncLen(word16 kemId);
 WOLFSSL_LOCAL int wc_HpkeKemIsSupported(word16 kemId);
 WOLFSSL_LOCAL int wc_HpkeKdfIsSupported(word16 kdfId);
 WOLFSSL_LOCAL int wc_HpkeAeadIsSupported(word16 aeadId);
+
+#if defined(HAVE_SECRET_CALLBACK) && defined(HAVE_ECH)
+WOLFSSL_LOCAL int wc_HpkeInitEchSecret(Hpke* hpke);
+WOLFSSL_LOCAL void wc_HpkeFreeEchSecret(Hpke* hpke);
+#endif
 
 #endif
 

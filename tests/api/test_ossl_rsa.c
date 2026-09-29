@@ -65,7 +65,11 @@ int test_wolfSSL_RSA(void)
 
     RSA_free(rsa);
     rsa = NULL;
+#ifdef HAVE_FIPS
+    ExpectNotNull(rsa = RSA_generate_key(2048, WC_RSA_EXPONENT, NULL, NULL));
+#else
     ExpectNotNull(rsa = RSA_generate_key(2048, 3, NULL, NULL));
+#endif
     ExpectIntEQ(RSA_size(rsa), 256);
 
 #if (!defined(HAVE_FIPS) || FIPS_VERSION3_GT(6,0,0)) && !defined(HAVE_SELFTEST)
@@ -306,7 +310,11 @@ int test_wolfSSL_RSA(void)
     rsa = NULL;
 
 #if !defined(USE_FAST_MATH) || (FP_MAX_BITS >= (3072*2))
+#ifdef HAVE_FIPS
+    ExpectNotNull(rsa = RSA_generate_key(3072, WC_RSA_EXPONENT, NULL, NULL));
+#else
     ExpectNotNull(rsa = RSA_generate_key(3072, 17, NULL, NULL));
+#endif
     ExpectIntEQ(RSA_size(rsa), 384);
     ExpectIntEQ(RSA_bits(rsa), 3072);
     RSA_free(rsa);
@@ -461,7 +469,11 @@ int test_wolfSSL_RSA_print(void)
 
     RSA_free(rsa);
     rsa = NULL;
+#ifdef HAVE_FIPS
+    ExpectNotNull(rsa = RSA_generate_key(2048, WC_RSA_EXPONENT, NULL, NULL));
+#else
     ExpectNotNull(rsa = RSA_generate_key(2048, 3, NULL, NULL));
+#endif
 
     ExpectIntEQ(RSA_print(bio, rsa, 0), 1);
     ExpectIntEQ(RSA_print(bio, rsa, 4), 1);
@@ -476,12 +488,23 @@ int test_wolfSSL_RSA_print(void)
     return EXPECT_RESULT();
 }
 
+
 int test_wolfSSL_RSA_padding_add_PKCS1_PSS(void)
 {
     EXPECT_DECLS;
 #ifndef NO_RSA
 #if defined(OPENSSL_ALL) && defined(WC_RSA_PSS) && !defined(WC_NO_RNG)
 #if !defined(HAVE_FIPS) || (defined(HAVE_FIPS_VERSION) && (HAVE_FIPS_VERSION>2))
+/* These ask for the longest salt the modulus allows: 222 bytes here, once
+ * long salts are compiled in.  FIPS 186-5 sec 5.4(g) caps the salt at the
+ * hash length, so a v7 module must refuse it and a success is the defect.
+ * Both halves of the test matter: without long salts the same request
+ * resolves to the hash length and is accepted on any version. */
+#if defined(WOLFSSL_PSS_LONG_SALT) && FIPS_VERSION3_GE(7,0,0)
+    #define TEST_PSS_MAX_SALT_RESULT 0
+#else
+    #define TEST_PSS_MAX_SALT_RESULT 1
+#endif
     RSA *rsa = NULL;
     const unsigned char *derBuf = client_key_der_2048;
     unsigned char em[256] = {0}; /* len = 2048/8 */
@@ -520,15 +543,34 @@ int test_wolfSSL_RSA_padding_add_PKCS1_PSS(void)
     ExpectIntEQ(RSA_verify_PKCS1_PSS(rsa, mHash, EVP_sha256(), em,
         RSA_PSS_SALTLEN_DIGEST), 1);
 
-    ExpectIntEQ(RSA_padding_add_PKCS1_PSS(rsa, em, mHash, EVP_sha256(),
-        RSA_PSS_SALTLEN_MAX_SIGN), 1);
+    /* Negative test: a tampered PSS encoding must be rejected. Flip a byte in
+     * the encoded message, confirm failure, then restore and re-verify. */
+    em[0] ^= 0xFFU;
     ExpectIntEQ(RSA_verify_PKCS1_PSS(rsa, mHash, EVP_sha256(), em,
-        RSA_PSS_SALTLEN_MAX_SIGN), 1);
+        RSA_PSS_SALTLEN_DIGEST), 0);
+    em[0] ^= 0xFFU;
+    ExpectIntEQ(RSA_verify_PKCS1_PSS(rsa, mHash, EVP_sha256(), em,
+        RSA_PSS_SALTLEN_DIGEST), 1);
+
+    /* Negative test: a tampered hash must be rejected by PSS verification. */
+    {
+        unsigned char badHash[WC_SHA256_DIGEST_SIZE];
+        XMEMCPY(badHash, mHash, sizeof(badHash));
+        badHash[0] ^= 0xFFU;
+        ExpectIntEQ(RSA_verify_PKCS1_PSS(rsa, badHash, EVP_sha256(), em,
+            RSA_PSS_SALTLEN_DIGEST), 0);
+    }
 
     ExpectIntEQ(RSA_padding_add_PKCS1_PSS(rsa, em, mHash, EVP_sha256(),
-        RSA_PSS_SALTLEN_MAX), 1);
+        RSA_PSS_SALTLEN_MAX_SIGN), TEST_PSS_MAX_SALT_RESULT);
     ExpectIntEQ(RSA_verify_PKCS1_PSS(rsa, mHash, EVP_sha256(), em,
-        RSA_PSS_SALTLEN_MAX), 1);
+        RSA_PSS_SALTLEN_MAX_SIGN), TEST_PSS_MAX_SALT_RESULT);
+
+    ExpectIntEQ(RSA_padding_add_PKCS1_PSS(rsa, em, mHash, EVP_sha256(),
+        RSA_PSS_SALTLEN_MAX), TEST_PSS_MAX_SALT_RESULT);
+    ExpectIntEQ(RSA_verify_PKCS1_PSS(rsa, mHash, EVP_sha256(), em,
+        RSA_PSS_SALTLEN_MAX), TEST_PSS_MAX_SALT_RESULT);
+#undef TEST_PSS_MAX_SALT_RESULT
 
     ExpectIntEQ(RSA_padding_add_PKCS1_PSS(rsa, em, mHash, EVP_sha256(), 10), 1);
     ExpectIntEQ(RSA_verify_PKCS1_PSS(rsa, mHash, EVP_sha256(), em, 10), 1);
@@ -626,7 +668,11 @@ int test_wolfSSL_RSA_meth(void)
     RSA_METHOD *rsa_meth = NULL;
 
 #ifdef WOLFSSL_KEY_GEN
+#ifdef HAVE_FIPS
+    ExpectNotNull(rsa = RSA_generate_key(2048, WC_RSA_EXPONENT, NULL, NULL));
+#else
     ExpectNotNull(rsa = RSA_generate_key(2048, 3, NULL, NULL));
+#endif
     RSA_free(rsa);
     rsa = NULL;
 #else
@@ -696,8 +742,8 @@ int test_wolfSSL_RSA_verify(void)
     RSA *pubKey = NULL;
     X509 *cert = NULL;
     const char *text = "Hello wolfSSL !";
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    unsigned char signature[2048/8];
+    unsigned char hash[SHA256_DIGEST_LENGTH] = {0};
+    unsigned char signature[2048/8] = {0};
     unsigned int signatureLength;
     byte *buf = NULL;
     BIO *bio = NULL;
@@ -746,6 +792,24 @@ int test_wolfSSL_RSA_verify(void)
     ExpectNotNull(pubKey = EVP_PKEY_get1_RSA(evpPubkey));
     ExpectIntEQ(RSA_verify(NID_sha256, hash, SHA256_DIGEST_LENGTH, signature,
         signatureLength, pubKey), SSL_SUCCESS);
+
+    /* Negative test: a tampered signature must be rejected. Flip a byte in the
+     * signature, confirm verification fails, then restore it. */
+    signature[0] ^= 0xFFU;
+    ExpectIntEQ(RSA_verify(NID_sha256, hash, SHA256_DIGEST_LENGTH, signature,
+        signatureLength, pubKey), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    signature[0] ^= 0xFFU;
+    /* Sanity: the restored signature verifies again. */
+    ExpectIntEQ(RSA_verify(NID_sha256, hash, SHA256_DIGEST_LENGTH, signature,
+        signatureLength, pubKey), SSL_SUCCESS);
+
+    /* Negative test: a tampered hash must be rejected (the encoded comparison
+     * string differs). Flip a byte in the hash, confirm failure, then
+     * restore it. */
+    hash[0] ^= 0xFFU;
+    ExpectIntEQ(RSA_verify(NID_sha256, hash, SHA256_DIGEST_LENGTH, signature,
+        signatureLength, pubKey), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    hash[0] ^= 0xFFU;
 
     ExpectIntEQ(RSA_verify(NID_sha256, NULL, SHA256_DIGEST_LENGTH, NULL,
         signatureLength, NULL), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));

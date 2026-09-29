@@ -19,21 +19,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
-#include <wolfssl/wolfcrypt/error-crypt.h>
-
 /* Generated using (from wolfssl):
  *   cd ../scripts
  *   ruby ./sha2/sha256.rb arm64 \
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-sha256-asm.c
  */
+
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_ARMV8_SHA256_ASM_C
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+
 #ifdef WOLFSSL_ARMASM
 #ifdef __aarch64__
 #ifdef WOLFSSL_ARMASM_INLINE
 #include <wolfssl/wolfcrypt/sha256.h>
 
 #if  !defined(NO_SHA256) || defined(WOLFSSL_SHA224)
-static const word32 L_SHA256_transform_neon_len_k[] = {
+XALIGNED(8) static const word32 L_SHA256_transform_neon_len_k[] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -67,7 +71,7 @@ void Transform_Sha256_Len_neon(wc_Sha256* sha256, const byte* data, word32 len)
         "ldr	w11, [%x[sha256], #28]\n\t"
         /* Start of loop processing a block */
         "\n"
-    "L_sha256_len_neon_begin_%=: \n\t"
+    "L_sha256_len_neon_begin_%=:\n\t"
         /* Load W */
         /* Copy digest to add in at end */
         "ld1	{v0.8b, v1.8b, v2.8b, v3.8b}, [%x[data]], #32\n\t"
@@ -91,7 +95,7 @@ void Transform_Sha256_Len_neon(wc_Sha256* sha256, const byte* data, word32 len)
         "mov	x24, #3\n\t"
         /* Start of 16 rounds */
         "\n"
-    "L_sha256_len_neon_start_%=: \n\t"
+    "L_sha256_len_neon_start_%=:\n\t"
         /* Round 0 */
         "mov	w14, v0.s[0]\n\t"
         "ror	w12, w8, #6\n\t"
@@ -1020,7 +1024,7 @@ void Transform_Sha256_Len_neon(wc_Sha256* sha256, const byte* data, word32 len)
 }
 
 #ifndef WOLFSSL_ARMASM_NO_HW_CRYPTO
-static const word32 L_SHA256_trans_crypto_len_k[] = {
+XALIGNED(8) static const word32 L_SHA256_trans_crypto_len_k[] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -1046,6 +1050,7 @@ void Transform_Sha256_Len_crypto(wc_Sha256* sha256, const byte* data,
 {
     const word32* k = L_SHA256_trans_crypto_len_k;
     __asm__ __volatile__ (
+    ".arch_extension crypto\n\t"
         /* Load K into vector registers */
         "ld1	{v8.4s, v9.4s, v10.4s, v11.4s}, [%[k]], #0x40\n\t"
         "ld1	{v12.4s, v13.4s, v14.4s, v15.4s}, [%[k]], #0x40\n\t"
@@ -1055,7 +1060,7 @@ void Transform_Sha256_Len_crypto(wc_Sha256* sha256, const byte* data,
         "ld1	{v0.4s, v1.4s}, [%x[sha256]]\n\t"
         /* Start of loop processing a block */
         "\n"
-    "L_sha256_len_crypto_begin_%=: \n\t"
+    "L_sha256_len_crypto_begin_%=:\n\t"
         /* Load W */
         "ld1	{v4.4s, v5.4s, v6.4s, v7.4s}, [%x[data]], #0x40\n\t"
         "rev32	v4.16b, v4.16b\n\t"

@@ -969,9 +969,7 @@ static int IntelQaSymCipher(IntelQaDev* dev, byte* out, const byte* in,
     flatBuffer = &dev->op.cipher.flatBuffer;
     metaBuf = XMALLOC(metaSize, dev->heap, DYNAMIC_TYPE_ASYNC_NUMA);
     dataBuf = XMALLOC(dataLen, dev->heap, DYNAMIC_TYPE_ASYNC_NUMA);
-    XMEMCPY(dataBuf, in, inOutSz);
     ivBuf = XMALLOC(WC_AES_BLOCK_SIZE, dev->heap, DYNAMIC_TYPE_ASYNC_NUMA);
-    XMEMCPY(ivBuf, iv, ivSz);
     authTagBuf = XMALLOC(authTagSz, dev->heap, DYNAMIC_TYPE_ASYNC_NUMA);
 
     /* check allocations */
@@ -979,6 +977,9 @@ static int IntelQaSymCipher(IntelQaDev* dev, byte* out, const byte* in,
         authTagBuf == NULL) {
         ret = MEMORY_E; goto exit;
     }
+
+    XMEMCPY(dataBuf, in, inOutSz);
+    XMEMCPY(ivBuf, iv, ivSz);
 
     /* AAD */
     if (authIn && authInSz > 0) {
@@ -990,10 +991,10 @@ static int IntelQaSymCipher(IntelQaDev* dev, byte* out, const byte* in,
 
         authInBuf = XMALLOC(authInSzAligned, dev->heap,
                 DYNAMIC_TYPE_ASYNC_NUMA);
-        XMEMCPY(authInBuf, authIn, authInSz);
         if (authInBuf == NULL) {
             ret = MEMORY_E; goto exit;
         }
+        XMEMCPY(authInBuf, authIn, authInSz);
         /* clear remainder */
         XMEMSET(authInBuf + authInSz, 0, authInSzAligned - authInSz);
     }
@@ -1084,10 +1085,13 @@ static int IntelQaSymCipher(IntelQaDev* dev, byte* out, const byte* in,
     status = cpaCySymPerformOp(dev->handle, dev, opData,
             bufferList, bufferList, &verifyResult);
 
-    if (symOperation == CPA_CY_SYM_OP_ALGORITHM_CHAINING &&
-        cipherAlgorithm == CPA_CY_SYM_CIPHER_AES_GCM &&
-        cipherDirection == CPA_CY_SYM_CIPHER_DIRECTION_DECRYPT &&
-        hashAlgorithm == CPA_CY_SYM_HASH_AES_GCM) {
+    if (status != CPA_STATUS_SUCCESS) {
+        ret = ASYNC_OP_E;
+    }
+    else if (symOperation == CPA_CY_SYM_OP_ALGORITHM_CHAINING &&
+             cipherAlgorithm == CPA_CY_SYM_CIPHER_AES_GCM &&
+             cipherDirection == CPA_CY_SYM_CIPHER_DIRECTION_DECRYPT &&
+             hashAlgorithm == CPA_CY_SYM_HASH_AES_GCM) {
         if (verifyResult == CPA_FALSE) {
             ret = AES_GCM_AUTH_E;
         }
@@ -1100,9 +1104,12 @@ exit:
     }
 
     /* Capture the inline decrypt into the output. */
-    XMEMCPY(out, dataBuf, inOutSz);
-    if (cipherDirection == CPA_CY_SYM_CIPHER_DIRECTION_ENCRYPT) {
-        if (authTag != NULL && authTagSz > 0) {
+    if (ret == 0 && dataBuf != NULL) {
+        XMEMCPY(out, dataBuf, inOutSz);
+    }
+    if (ret == 0 &&
+            cipherDirection == CPA_CY_SYM_CIPHER_DIRECTION_ENCRYPT) {
+        if (authTag != NULL && authTagSz > 0 && authTagBuf != NULL) {
             XMEMCPY(authTag, authTagBuf, authTagSz);
         }
     }

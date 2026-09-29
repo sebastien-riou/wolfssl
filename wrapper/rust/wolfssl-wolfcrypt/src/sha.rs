@@ -170,7 +170,7 @@ impl SHA {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_ShaUpdate(&mut self.wc_sha, data.as_ptr(), data_size)
         };
@@ -216,6 +216,13 @@ impl SHA {
 }
 
 #[cfg(sha)]
+impl SHA {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha); }
+    }
+}
+
+#[cfg(sha)]
 impl Drop for SHA {
     /// Safely free the underlying wolfSSL SHA context.
     ///
@@ -226,6 +233,7 @@ impl Drop for SHA {
     /// preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_ShaFree(&mut self.wc_sha); }
+        self.zeroize();
     }
 }
 
@@ -373,7 +381,7 @@ impl SHA224 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha224Update(&mut self.wc_sha224, data.as_ptr(), data_size)
         };
@@ -419,6 +427,13 @@ impl SHA224 {
 }
 
 #[cfg(sha224)]
+impl SHA224 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha224); }
+    }
+}
+
+#[cfg(sha224)]
 impl Drop for SHA224 {
     /// Safely free the underlying wolfSSL SHA224 context.
     ///
@@ -429,6 +444,7 @@ impl Drop for SHA224 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha224Free(&mut self.wc_sha224); }
+        self.zeroize();
     }
 }
 
@@ -576,7 +592,7 @@ impl SHA256 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha256Update(&mut self.wc_sha256, data.as_ptr(), data_size)
         };
@@ -619,6 +635,35 @@ impl SHA256 {
         }
         Ok(())
     }
+
+}
+
+#[cfg(sha256)]
+impl SHA256 {
+    /// Copy the SHA-256 state into a new independent instance via `wc_Sha256Copy`.
+    ///
+    /// Allows the same in-progress computation to be continued independently
+    /// from the same point, e.g. for transcript snapshotting in TLS.
+    ///
+    /// Takes `&mut self` because `wc_Sha256Copy` may mutate `src` on some
+    /// platforms (e.g. MAXQ10XX).
+    pub fn copy(&mut self) -> Result<Self, i32> {
+        let mut dst = Self::new()?;
+        let rc = unsafe {
+            sys::wc_Sha256Copy(&mut self.wc_sha256, &mut dst.wc_sha256)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(dst)
+    }
+}
+
+#[cfg(sha256)]
+impl SHA256 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha256); }
+    }
 }
 
 #[cfg(sha256)]
@@ -632,6 +677,7 @@ impl Drop for SHA256 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha256Free(&mut self.wc_sha256); }
+        self.zeroize();
     }
 }
 
@@ -779,7 +825,7 @@ impl SHA384 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha384Update(&mut self.wc_sha384, data.as_ptr(), data_size)
         };
@@ -822,6 +868,35 @@ impl SHA384 {
         }
         Ok(())
     }
+
+}
+
+#[cfg(sha384)]
+impl SHA384 {
+    /// Copy the SHA-384 state into a new independent instance via `wc_Sha384Copy`.
+    ///
+    /// Allows the same in-progress computation to be continued independently
+    /// from the same point, e.g. for transcript snapshotting in TLS.
+    ///
+    /// Takes `&mut self` because `wc_Sha384Copy` may mutate `src` on some
+    /// platforms (e.g. MAXQ10XX).
+    pub fn copy(&mut self) -> Result<Self, i32> {
+        let mut dst = Self::new()?;
+        let rc = unsafe {
+            sys::wc_Sha384Copy(&mut self.wc_sha384, &mut dst.wc_sha384)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(dst)
+    }
+}
+
+#[cfg(sha384)]
+impl SHA384 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha384); }
+    }
 }
 
 #[cfg(sha384)]
@@ -835,6 +910,7 @@ impl Drop for SHA384 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha384Free(&mut self.wc_sha384); }
+        self.zeroize();
     }
 }
 
@@ -982,7 +1058,7 @@ impl SHA512 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha512Update(&mut self.wc_sha512, data.as_ptr(), data_size)
         };
@@ -1028,6 +1104,13 @@ impl SHA512 {
 }
 
 #[cfg(sha512)]
+impl SHA512 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha512); }
+    }
+}
+
+#[cfg(sha512)]
 impl Drop for SHA512 {
     /// Safely free the underlying wolfSSL SHA512 context.
     ///
@@ -1038,16 +1121,17 @@ impl Drop for SHA512 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha512Free(&mut self.wc_sha512); }
+        self.zeroize();
     }
 }
 
 /// Context for SHA3-224 computation.
-#[cfg(sha3)]
+#[cfg(sha3_224)]
 pub struct SHA3_224 {
     wc_sha3: sys::wc_Sha3,
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_224)]
 impl SHA3_224 {
     /// SHA3-224 digest size in bytes.
     pub const DIGEST_SIZE: usize = sys::WC_SHA3_224_DIGEST_SIZE as usize;
@@ -1185,7 +1269,7 @@ impl SHA3_224 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha3_224_Update(&mut self.wc_sha3, data.as_ptr(), data_size)
         };
@@ -1230,7 +1314,14 @@ impl SHA3_224 {
     }
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_224)]
+impl SHA3_224 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha3); }
+    }
+}
+
+#[cfg(sha3_224)]
 impl Drop for SHA3_224 {
     /// Safely free the underlying wolfSSL SHA3_224 context.
     ///
@@ -1241,16 +1332,17 @@ impl Drop for SHA3_224 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha3_224_Free(&mut self.wc_sha3); }
+        self.zeroize();
     }
 }
 
 /// Context for SHA3-256 computation.
-#[cfg(sha3)]
+#[cfg(sha3_256)]
 pub struct SHA3_256 {
     wc_sha3: sys::wc_Sha3,
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_256)]
 impl SHA3_256 {
     /// SHA3-256 digest size in bytes.
     pub const DIGEST_SIZE: usize = sys::WC_SHA3_256_DIGEST_SIZE as usize;
@@ -1388,7 +1480,7 @@ impl SHA3_256 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha3_256_Update(&mut self.wc_sha3, data.as_ptr(), data_size)
         };
@@ -1433,7 +1525,14 @@ impl SHA3_256 {
     }
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_256)]
+impl SHA3_256 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha3); }
+    }
+}
+
+#[cfg(sha3_256)]
 impl Drop for SHA3_256 {
     /// Safely free the underlying wolfSSL SHA3_256 context.
     ///
@@ -1444,16 +1543,17 @@ impl Drop for SHA3_256 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha3_256_Free(&mut self.wc_sha3); }
+        self.zeroize();
     }
 }
 
 /// Context for SHA3-384 computation.
-#[cfg(sha3)]
+#[cfg(sha3_384)]
 pub struct SHA3_384 {
     wc_sha3: sys::wc_Sha3,
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_384)]
 impl SHA3_384 {
     /// SHA3-384 digest size in bytes.
     pub const DIGEST_SIZE: usize = sys::WC_SHA3_384_DIGEST_SIZE as usize;
@@ -1591,7 +1691,7 @@ impl SHA3_384 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha3_384_Update(&mut self.wc_sha3, data.as_ptr(), data_size)
         };
@@ -1636,7 +1736,14 @@ impl SHA3_384 {
     }
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_384)]
+impl SHA3_384 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha3); }
+    }
+}
+
+#[cfg(sha3_384)]
 impl Drop for SHA3_384 {
     /// Safely free the underlying wolfSSL SHA3_384 context.
     ///
@@ -1647,16 +1754,17 @@ impl Drop for SHA3_384 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha3_384_Free(&mut self.wc_sha3); }
+        self.zeroize();
     }
 }
 
 /// Context for SHA3-512 computation.
-#[cfg(sha3)]
+#[cfg(sha3_512)]
 pub struct SHA3_512 {
     wc_sha3: sys::wc_Sha3,
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_512)]
 impl SHA3_512 {
     /// SHA3-512 digest size in bytes.
     pub const DIGEST_SIZE: usize = sys::WC_SHA3_512_DIGEST_SIZE as usize;
@@ -1794,7 +1902,7 @@ impl SHA3_512 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Sha3_512_Update(&mut self.wc_sha3, data.as_ptr(), data_size)
         };
@@ -1839,7 +1947,14 @@ impl SHA3_512 {
     }
 }
 
-#[cfg(sha3)]
+#[cfg(sha3_512)]
+impl SHA3_512 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_sha3); }
+    }
+}
+
+#[cfg(sha3_512)]
 impl Drop for SHA3_512 {
     /// Safely free the underlying wolfSSL SHA3_512 context.
     ///
@@ -1850,6 +1965,7 @@ impl Drop for SHA3_512 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Sha3_512_Free(&mut self.wc_sha3); }
+        self.zeroize();
     }
 }
 
@@ -2001,7 +2117,7 @@ impl SHAKE128 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Shake128_Update(&mut self.wc_shake, data.as_ptr(), data_size)
         };
@@ -2032,7 +2148,7 @@ impl SHAKE128 {
     /// sha.finalize(&mut hash).expect("Error with finalize()");
     /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        let hash_size = hash.len() as u32;
+        let hash_size = crate::buffer_len_to_u32(hash.len())?;
         let rc = unsafe {
             sys::wc_Shake128_Final(&mut self.wc_shake, hash.as_mut_ptr(), hash_size)
         };
@@ -2061,7 +2177,7 @@ impl SHAKE128 {
     /// sha.absorb(b"input").expect("Error with absorb()");
     /// ```
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Shake128_Absorb(&mut self.wc_shake, data.as_ptr(), data_size)
         };
@@ -2094,7 +2210,7 @@ impl SHAKE128 {
     /// sha.squeeze_blocks(&mut buffer).expect("Error with squeeze_blocks()");
     /// ```
     pub fn squeeze_blocks(&mut self, dout: &mut [u8]) -> Result<(), i32> {
-        let dout_size = dout.len() as u32;
+        let dout_size = crate::buffer_len_to_u32(dout.len())?;
         if dout_size % (Self::SQUEEZE_BLOCK_SIZE as u32) != 0 {
             return Err(sys::wolfCrypt_ErrorCodes_BUFFER_E);
         }
@@ -2110,6 +2226,13 @@ impl SHAKE128 {
 }
 
 #[cfg(shake128)]
+impl SHAKE128 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_shake); }
+    }
+}
+
+#[cfg(shake128)]
 impl Drop for SHAKE128 {
     /// Safely free the underlying wolfSSL SHAKE128 context.
     ///
@@ -2120,6 +2243,7 @@ impl Drop for SHAKE128 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Shake128_Free(&mut self.wc_shake); }
+        self.zeroize();
     }
 }
 
@@ -2271,7 +2395,7 @@ impl SHAKE256 {
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Shake256_Update(&mut self.wc_shake, data.as_ptr(), data_size)
         };
@@ -2302,7 +2426,7 @@ impl SHAKE256 {
     /// sha.finalize(&mut hash).expect("Error with finalize()");
     /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        let hash_size = hash.len() as u32;
+        let hash_size = crate::buffer_len_to_u32(hash.len())?;
         let rc = unsafe {
             sys::wc_Shake256_Final(&mut self.wc_shake, hash.as_mut_ptr(), hash_size)
         };
@@ -2331,7 +2455,7 @@ impl SHAKE256 {
     /// sha.absorb(b"input").expect("Error with absorb()");
     /// ```
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), i32> {
-        let data_size = data.len() as u32;
+        let data_size = crate::buffer_len_to_u32(data.len())?;
         let rc = unsafe {
             sys::wc_Shake256_Absorb(&mut self.wc_shake, data.as_ptr(), data_size)
         };
@@ -2364,7 +2488,7 @@ impl SHAKE256 {
     /// sha.squeeze_blocks(&mut buffer).expect("Error with squeeze_blocks()");
     /// ```
     pub fn squeeze_blocks(&mut self, dout: &mut [u8]) -> Result<(), i32> {
-        let dout_size = dout.len() as u32;
+        let dout_size = crate::buffer_len_to_u32(dout.len())?;
         if dout_size % (Self::SQUEEZE_BLOCK_SIZE as u32) != 0 {
             return Err(sys::wolfCrypt_ErrorCodes_BUFFER_E);
         }
@@ -2380,6 +2504,13 @@ impl SHAKE256 {
 }
 
 #[cfg(shake256)]
+impl SHAKE256 {
+    fn zeroize(&mut self) {
+        unsafe { crate::zeroize_raw(&mut self.wc_shake); }
+    }
+}
+
+#[cfg(shake256)]
 impl Drop for SHAKE256 {
     /// Safely free the underlying wolfSSL SHAKE256 context.
     ///
@@ -2390,5 +2521,6 @@ impl Drop for SHAKE256 {
     /// and preventing memory leaks.
     fn drop(&mut self) {
         unsafe { sys::wc_Shake256_Free(&mut self.wc_shake); }
+        self.zeroize();
     }
 }

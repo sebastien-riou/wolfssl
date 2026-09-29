@@ -120,6 +120,7 @@ int KcapiEcc_LoadKey(ecc_key* key, byte* pubkey_raw, word32* pubkey_sz,
             if (ret == 0) {
                 ret = kcapi_kpp_setkey(key->handle, priv, keySz);
             }
+            ForceZero(priv, sizeof(priv));
         }
         else {
             /* generate new ephemeral key */
@@ -241,6 +242,7 @@ int KcapiEcc_SharedSecret(ecc_key* private_key, ecc_key* public_key, byte* out,
                 ret = 0;
             }
         }
+        ForceZero(priv, sizeof(priv));
     }
     if (ret == 0) {
     #ifdef KCAPI_USE_XMALLOC
@@ -270,6 +272,7 @@ int KcapiEcc_SharedSecret(ecc_key* private_key, ecc_key* public_key, byte* out,
     }
 
     if (buf_aligned != NULL) {
+        ForceZero(buf_aligned, keySz * 2);
     #ifdef KCAPI_USE_XMALLOC
         XFREE(buf_aligned, private_key->heap, DYNAMIC_TYPE_TMP_BUFFER);
     #else
@@ -317,6 +320,7 @@ static int KcapiEcc_SetPrivKey(ecc_key* key)
         }
     }
 
+    ForceZero(priv, sizeof(priv));
     return ret;
 }
 

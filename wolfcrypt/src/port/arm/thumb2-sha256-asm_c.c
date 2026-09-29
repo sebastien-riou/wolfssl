@@ -25,7 +25,10 @@
  *       thumb2 ../wolfssl/wolfcrypt/src/port/arm/thumb2-sha256-asm.c
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_THUMB2_SHA256_ASM_C
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
 #include <wolfssl/wolfcrypt/error-crypt.h>
 
 #ifdef WOLFSSL_ARMASM
@@ -41,12 +44,17 @@
 #define __asm__        __asm
 #define __volatile__   volatile
 #endif /* __KEIL__ */
+#ifdef __ghs__
+#define __asm__        __asm
+#define __volatile__
+#define WOLFSSL_NO_VAR_ASSIGN_REG
+#endif /* __ghs__ */
 
 #ifndef NO_SHA256
 #include <wolfssl/wolfcrypt/sha256.h>
 
 #ifdef WOLFSSL_ARMASM_NO_NEON
-XALIGNED(16) static const word32 L_SHA256_transform_len_k[] = {
+XALIGNED(8) static const word32 L_SHA256_transform_len_k[] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -65,7 +73,8 @@ XALIGNED(16) static const word32 L_SHA256_transform_len_k[] = {
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 };
 
-void Transform_Sha256_Len_base(wc_Sha256* sha256, const byte* data, word32 len);
+void Transform_Sha256_Len_base(wc_Sha256* sha256_p, const byte* data_p,
+    word32 len_p);
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
 WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256_p,
     const byte* data_p, word32 len_p)
@@ -80,11 +89,9 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
     register word32 len __asm__ ("r2") = (word32)len_p;
     register word32* L_SHA256_transform_len_k_c __asm__ ("r3") =
         (word32*)&L_SHA256_transform_len_k;
-
 #else
     register word32* L_SHA256_transform_len_k_c =
         (word32*)&L_SHA256_transform_len_k;
-
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 
     __asm__ __volatile__ (
@@ -151,7 +158,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "LDR	r4, [%[sha256], #8]\n\t"
         "EOR	r11, r11, r4\n\t"
 #ifndef WOLFSSL_ARMASM_SHA256_SMALL
-        "MOV	r3, #0x3\n\t"
+        "MOV	r3, #3\n\t"
         /* Start of 16 rounds */
         "\n"
 #if defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -912,7 +919,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r4\n\t"
         "STR	r9, [sp, #60]\n\t"
         "ADD	r12, r12, #0x40\n\t"
-        "SUBS	r3, r3, #0x1\n\t"
+        "SUBS	r3, r3, #1\n\t"
 #if defined(__GNUC__)
         "BNE	L_SHA256_transform_len_start_fast_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1433,7 +1440,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "STR	r8, [%[sha256], #16]\n\t"
         "STR	r9, [%[sha256]]\n\t"
 #else
-        "MOV	r3, #0x4\n\t"
+        "MOV	r3, #4\n\t"
         /* Start of 16 rounds */
         "\n"
 #if defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1441,7 +1448,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
 #else
     "L_SHA256_transform_len_start_small_%=:\n\t"
 #endif
-        "SUB	r3, r3, #0x1\n\t"
+        "SUB	r3, r3, #1\n\t"
         /* Round 0 */
         "LDR	r5, [%[sha256], #16]\n\t"
         "LDR	r6, [%[sha256], #20]\n\t"
@@ -1474,7 +1481,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #12]\n\t"
         "STR	r9, [%[sha256], #28]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_0_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1535,7 +1542,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256], #8]\n\t"
         "STR	r9, [%[sha256], #24]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_1_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1596,7 +1603,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #4]\n\t"
         "STR	r9, [%[sha256], #20]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_2_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1657,7 +1664,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256]]\n\t"
         "STR	r9, [%[sha256], #16]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_3_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1718,7 +1725,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #28]\n\t"
         "STR	r9, [%[sha256], #12]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_4_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1779,7 +1786,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256], #24]\n\t"
         "STR	r9, [%[sha256], #8]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_5_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1840,7 +1847,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #20]\n\t"
         "STR	r9, [%[sha256], #4]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_6_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1901,7 +1908,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256], #16]\n\t"
         "STR	r9, [%[sha256]]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_7_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -1962,7 +1969,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #12]\n\t"
         "STR	r9, [%[sha256], #28]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_8_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2023,7 +2030,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256], #8]\n\t"
         "STR	r9, [%[sha256], #24]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_9_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2084,7 +2091,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #4]\n\t"
         "STR	r9, [%[sha256], #20]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_10_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2145,7 +2152,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256]]\n\t"
         "STR	r9, [%[sha256], #16]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_11_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2206,7 +2213,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #28]\n\t"
         "STR	r9, [%[sha256], #12]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_12_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2267,7 +2274,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256], #24]\n\t"
         "STR	r9, [%[sha256], #8]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_13_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2328,7 +2335,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r11\n\t"
         "STR	r8, [%[sha256], #20]\n\t"
         "STR	r9, [%[sha256], #4]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_14_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2389,7 +2396,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "ADD	r9, r9, r10\n\t"
         "STR	r8, [%[sha256], #16]\n\t"
         "STR	r9, [%[sha256]]\n\t"
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
 #if defined(__GNUC__)
         "BEQ	L_SHA256_transform_len_blk_end_15_%=\n\t"
 #elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
@@ -2418,7 +2425,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
 #else
     "L_SHA256_transform_len_blk_end_15_%=:\n\t"
 #endif
-        "CMP	r3, #0x0\n\t"
+        "CMP	r3, #0\n\t"
         "ADD	r12, r12, #0x40\n\t"
 #if defined(__GNUC__)
         "BNE	L_SHA256_transform_len_start_small_%=\n\t"
@@ -2468,9 +2475,15 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
         "BNE.W	L_SHA256_transform_len_begin_%=\n\t"
 #endif
         "ADD	sp, sp, #0xc0\n\t"
+#ifndef WOLFSSL_NO_VAR_ASSIGN_REG
         : [sha256] "+r" (sha256), [data] "+r" (data), [len] "+r" (len),
           [L_SHA256_transform_len_k] "+r" (L_SHA256_transform_len_k_c)
         :
+#else
+        :
+        : [sha256] "r" (sha256), [data] "r" (data), [len] "r" (len),
+          [L_SHA256_transform_len_k] "r" (L_SHA256_transform_len_k_c)
+#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
         : "memory", "cc", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
             "r12"
     );
@@ -2478,7 +2491,7 @@ WC_OMIT_FRAME_POINTER void Transform_Sha256_Len_base(wc_Sha256* sha256,
 
 #endif /* WOLFSSL_ARMASM_NO_NEON */
 #endif /* !NO_SHA256 */
-#endif /* WOLFSSL_ARMASM_THUMB2 */
-#endif /* WOLFSSL_ARMASM */
 
 #endif /* WOLFSSL_ARMASM_INLINE */
+#endif /* WOLFSSL_ARMASM_THUMB2 */
+#endif /* WOLFSSL_ARMASM */

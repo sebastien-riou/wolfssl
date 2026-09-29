@@ -19,13 +19,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
-
 /* Generated using (from wolfssl):
  *   cd ../scripts
  *   ruby ./sha3/sha3.rb arm64 \
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-sha3-asm.S
  */
+
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_ARMV8_SHA3_ASM_S
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
+
 #ifdef WOLFSSL_ARMASM
 #ifdef __aarch64__
 #ifndef WOLFSSL_ARMASM_INLINE
@@ -33,51 +37,42 @@
 #ifdef WOLFSSL_ARMASM_CRYPTO_SHA3
 #ifndef __APPLE__
 	.text
-	.type	L_SHA3_transform_crypto_r, %object
 	.section	.rodata
+	.type	L_SHA3_transform_crypto_r, %object
 	.size	L_SHA3_transform_crypto_r, 192
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 16-byte aligned, 128-bit aligned
 #ifndef __APPLE__
-	.align	3
+	.align	4
 #else
-	.p2align	3
+	.p2align	4
 #endif /* __APPLE__ */
 L_SHA3_transform_crypto_r:
-	.xword	0x0000000000000001
-	.xword	0x0000000000008082
-	.xword	0x800000000000808a
-	.xword	0x8000000080008000
-	.xword	0x000000000000808b
-	.xword	0x0000000080000001
-	.xword	0x8000000080008081
-	.xword	0x8000000000008009
-	.xword	0x000000000000008a
-	.xword	0x0000000000000088
-	.xword	0x0000000080008009
-	.xword	0x000000008000000a
-	.xword	0x000000008000808b
-	.xword	0x800000000000008b
-	.xword	0x8000000000008089
-	.xword	0x8000000000008003
-	.xword	0x8000000000008002
-	.xword	0x8000000000000080
-	.xword	0x000000000000800a
-	.xword	0x800000008000000a
-	.xword	0x8000000080008081
-	.xword	0x8000000000008080
-	.xword	0x0000000080000001
-	.xword	0x8000000080008008
+	.quad	0x0000000000000001,0x0000000000008082
+	.quad	0x800000000000808a,0x8000000080008000
+	.quad	0x000000000000808b,0x0000000080000001
+	.quad	0x8000000080008081,0x8000000000008009
+	.quad	0x000000000000008a,0x0000000000000088
+	.quad	0x0000000080008009,0x000000008000000a
+	.quad	0x000000008000808b,0x800000000000008b
+	.quad	0x8000000000008089,0x8000000000008003
+	.quad	0x8000000000008002,0x8000000000000080
+	.quad	0x000000000000800a,0x800000008000000a
+	.quad	0x8000000080008081,0x8000000000008080
+	.quad	0x0000000080000001,0x8000000080008008
 #ifndef __APPLE__
 .text
 .globl	BlockSha3_crypto
+WC_ASM_ATT_HIDDEN(BlockSha3_crypto)
 .type	BlockSha3_crypto,@function
 .align	2
 BlockSha3_crypto:
 #else
 .section	__TEXT,__text
 .globl	_BlockSha3_crypto
+WC_ASM_ATT_HIDDEN(_BlockSha3_crypto)
 .p2align	2
 _BlockSha3_crypto:
 #endif /* __APPLE__ */
@@ -94,9 +89,7 @@ _BlockSha3_crypto:
 	adrp x1, L_SHA3_transform_crypto_r@PAGE
 	add  x1, x1, L_SHA3_transform_crypto_r@PAGEOFF
 #endif /* __APPLE__ */
-#ifdef __APPLE__
 .arch_extension sha3
-#endif /* __APPLE__ */
 	ld4	{v0.d, v1.d, v2.d, v3.d}[0], [x0], #32
 	ld4	{v4.d, v5.d, v6.d, v7.d}[0], [x0], #32
 	ld4	{v8.d, v9.d, v10.d, v11.d}[0], [x0], #32
@@ -207,51 +200,42 @@ L_sha3_crypto_begin:
 #endif /* WOLFSSL_ARMASM_CRYPTO_SHA3 */
 #ifndef __APPLE__
 	.text
-	.type	L_SHA3_transform_base_r, %object
 	.section	.rodata
+	.type	L_SHA3_transform_base_r, %object
 	.size	L_SHA3_transform_base_r, 192
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 16-byte aligned, 128-bit aligned
 #ifndef __APPLE__
-	.align	3
+	.align	4
 #else
-	.p2align	3
+	.p2align	4
 #endif /* __APPLE__ */
 L_SHA3_transform_base_r:
-	.xword	0x0000000000000001
-	.xword	0x0000000000008082
-	.xword	0x800000000000808a
-	.xword	0x8000000080008000
-	.xword	0x000000000000808b
-	.xword	0x0000000080000001
-	.xword	0x8000000080008081
-	.xword	0x8000000000008009
-	.xword	0x000000000000008a
-	.xword	0x0000000000000088
-	.xword	0x0000000080008009
-	.xword	0x000000008000000a
-	.xword	0x000000008000808b
-	.xword	0x800000000000008b
-	.xword	0x8000000000008089
-	.xword	0x8000000000008003
-	.xword	0x8000000000008002
-	.xword	0x8000000000000080
-	.xword	0x000000000000800a
-	.xword	0x800000008000000a
-	.xword	0x8000000080008081
-	.xword	0x8000000000008080
-	.xword	0x0000000080000001
-	.xword	0x8000000080008008
+	.quad	0x0000000000000001,0x0000000000008082
+	.quad	0x800000000000808a,0x8000000080008000
+	.quad	0x000000000000808b,0x0000000080000001
+	.quad	0x8000000080008081,0x8000000000008009
+	.quad	0x000000000000008a,0x0000000000000088
+	.quad	0x0000000080008009,0x000000008000000a
+	.quad	0x000000008000808b,0x800000000000008b
+	.quad	0x8000000000008089,0x8000000000008003
+	.quad	0x8000000000008002,0x8000000000000080
+	.quad	0x000000000000800a,0x800000008000000a
+	.quad	0x8000000080008081,0x8000000000008080
+	.quad	0x0000000080000001,0x8000000080008008
 #ifndef __APPLE__
 .text
 .globl	BlockSha3_base
+WC_ASM_ATT_HIDDEN(BlockSha3_base)
 .type	BlockSha3_base,@function
 .align	2
 BlockSha3_base:
 #else
 .section	__TEXT,__text
 .globl	_BlockSha3_base
+WC_ASM_ATT_HIDDEN(_BlockSha3_base)
 .p2align	2
 _BlockSha3_base:
 #endif /* __APPLE__ */

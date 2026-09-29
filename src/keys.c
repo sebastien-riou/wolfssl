@@ -90,6 +90,14 @@ int SetCipherSpecs(WOLFSSL* ssl)
            ssl->options.encThenMac = 0;
     #endif
 
+    #ifdef HAVE_LIBZ
+        /* TLS 1.3 removed record layer compression (RFC 8446 5.2).  A client
+         * that asked for it may still land on 1.3, so drop the request rather
+         * than compress records the peer will not decompress. */
+        if (IsAtLeastTLSv1_3(ssl->version))
+            ssl->options.usingCompression = 0;
+    #endif
+
     #if defined(WOLFSSL_DTLS)
         if (ssl->options.dtls && ssl->version.major == DTLS_MAJOR) {
         #ifndef WOLFSSL_AEAD_ONLY
@@ -525,8 +533,6 @@ int GetCipherSpec(word16 side, byte cipherSuite0, byte cipherSuite,
         specs->block_size            = WC_AES_BLOCK_SIZE;
         specs->iv_size               = AES_IV_SIZE;
 
-        if (opts != NULL)
-            opts->usingPSK_cipher    = 1;
         if (opts != NULL)
             opts->usingPSK_cipher    = 1;
         break;
@@ -1374,7 +1380,8 @@ int GetCipherSpec(word16 side, byte cipherSuite0, byte cipherSuite,
     #endif
 #endif /* WOLFSSL_TLS13 */
         default:
-            break;
+            WOLFSSL_MSG("Unsupported cipher suite, SetCipherSpecs TLS 1.3");
+            return UNSUPPORTED_SUITE;
         }
     }
 
@@ -1405,7 +1412,8 @@ int GetCipherSpec(word16 side, byte cipherSuite0, byte cipherSuite,
 #endif
 
     default:
-        break;
+        WOLFSSL_MSG("Unsupported cipher suite, SetCipherSpecs ECDHE_PSK");
+        return UNSUPPORTED_SUITE;
     }
     }
 
@@ -1466,7 +1474,8 @@ int GetCipherSpec(word16 side, byte cipherSuite0, byte cipherSuite,
 #endif
 
     default:
-        break;
+        WOLFSSL_MSG("Unsupported cipher suite, SetCipherSpecs SM");
+        return UNSUPPORTED_SUITE;
     }
     }
 
@@ -2799,7 +2808,7 @@ int SetKeys(Ciphers* enc, Ciphers* dec, Keys* keys, CipherSpecs* specs,
             if (dec->aes == NULL) {
                 dec->aes = (Aes*)XMALLOC(sizeof(Aes), heap, DYNAMIC_TYPE_CIPHER);
                 if (dec->aes == NULL)
-                return MEMORY_E;
+                    return MEMORY_E;
             } else {
                 wc_AesFree(dec->aes);
             }
@@ -3247,7 +3256,7 @@ int SetKeys(Ciphers* enc, Ciphers* dec, Keys* keys, CipherSpecs* specs,
                 dec->sm4 = (wc_Sm4*)XMALLOC(sizeof(wc_Sm4), heap,
                                             DYNAMIC_TYPE_CIPHER);
                 if (dec->sm4 == NULL)
-                return MEMORY_E;
+                    return MEMORY_E;
             } else {
                 wc_Sm4Free(dec->sm4);
             }
@@ -3498,6 +3507,12 @@ int SetKeysSide(WOLFSSL* ssl, enum encrypt_side side)
 
     (void)copy;
 
+    /* Cipher activation invalidates the cached AEAD record overhead. Covers
+     * TLS 1.2 / TLS 1.3 handshake completion, secure renegotiation, early
+     * data flips, and DTLS 1.3 epoch transitions (Dtls13SetEpochKeys() calls
+     * SetKeysSide() at the bottom). */
+    ssl->recordSzOverhead = 0;
+
 #ifdef HAVE_SECURE_RENEGOTIATION
     if (ssl->secure_renegotiation &&
             ssl->secure_renegotiation->cache_status != SCR_CACHE_NULL) {
@@ -3590,6 +3605,75 @@ int SetKeysSide(WOLFSSL* ssl, enum encrypt_side side)
         ret = SetKeys(wc_encrypt, wc_decrypt, keys, &ssl->specs, ssl->options.side,
                       ssl->heap, ssl->devId, ssl->rng, ssl->options.tls1_3);
     }
+
+    /* Zero the TLS-layer staging key buffers once the CryptoCB callback
+     * has imported the key into a Secure Element.
+     *
+     * Convention: after a successful wc_AesSetKey / wc_AesGcmSetKey where
+     * the CryptoCB handled the key import, the callback leaves
+     * aes->devCtx != NULL and the software key schedule (aes->key,
+     * aes->devKey, aes->gcm.H / aes->gcm.M0) is NOT populated.  The TLS
+     * layer may therefore destroy its staging copy of the traffic key.
+     *
+     * Only the key buffers (client_write_key / server_write_key) are
+     * zeroed.  The static IVs (client_write_IV / server_write_IV) and
+     * the AEAD implicit-IV copies (aead_{enc,dec}_imp_IV) are NOT
+     * zeroed: BuildTls13Nonce() in tls13.c reads keys->aead_*_imp_IV on
+     * every AEAD record to construct the per-record nonce
+     * (nonce = static_iv XOR seq_num, RFC 8446 Section 5.3).  Zeroing
+     * them would break the record path or, if applied symmetrically on
+     * both peers, silently degenerate the nonce to the bare sequence
+     * number and break interop with any unpatched peer.  The static_iv
+     * is not a confidentiality-critical secret in the same sense as
+     * the traffic key; losing it does not compromise plaintext.
+     *
+     * Scope:
+     *   - TLS 1.3 only.  TLS 1.2 additionally reads
+     *     keys->{client,server}_write_key for rehandshake/secure
+     *     renegotiation flows.
+     *   - Non-DTLS.  Dtls13EpochCopyKeys (called from Dtls13NewEpoch)
+     *     references keys->*_write_key for epoch switching; DTLS 1.3
+     *     needs separate analysis.
+     *   - Non-QUIC.  QUIC traffic secrets live outside these buffers
+     *     but the interaction with stack-installed QUIC handlers has
+     *     not been audited; exclude until it is.
+     *
+     * When called with ENCRYPT_SIDE_ONLY or DECRYPT_SIDE_ONLY, only the
+     * buffer consumed by this call is zeroed; the complementary buffer
+     * is written in a later SetKeysSide() from its own DeriveTls13Keys()
+     * and StoreKeys() pair (StoreKeys gates on PROVISION_CLIENT /
+     * PROVISION_SERVER so only the provisioned side is written).
+     *
+     * Ordering: this block must run AFTER SetKeys() (so offload has
+     * happened) and BEFORE Dtls13SetRecordNumberKeys() /
+     * wolfSSL_quic_keys_active() below, in case a future refactor in
+     * either starts reading keys->*_write_key.  The DTLS and QUIC gates
+     * in this block mean neither currently executes on the same ssl,
+     * but keep the order explicit. */
+#if defined(WOLF_CRYPTO_CB) && defined(WOLF_CRYPTO_CB_AES_SETKEY)
+    if (ret == 0 && ssl->options.tls1_3 && !ssl->options.dtls
+            && !WOLFSSL_IS_QUIC(ssl)) {
+        int encOffloaded = (wc_encrypt != NULL && wc_encrypt->aes != NULL &&
+                            wc_encrypt->aes->devCtx != NULL);
+        int decOffloaded = (wc_decrypt != NULL && wc_decrypt->aes != NULL &&
+                            wc_decrypt->aes->devCtx != NULL);
+
+        if (encOffloaded || decOffloaded) {
+            if (ssl->options.side == WOLFSSL_CLIENT_END) {
+                if (encOffloaded)
+                    ForceZero(keys->client_write_key, ssl->specs.key_size);
+                if (decOffloaded)
+                    ForceZero(keys->server_write_key, ssl->specs.key_size);
+            }
+            else {
+                if (encOffloaded)
+                    ForceZero(keys->server_write_key, ssl->specs.key_size);
+                if (decOffloaded)
+                    ForceZero(keys->client_write_key, ssl->specs.key_size);
+            }
+        }
+    }
+#endif /* WOLF_CRYPTO_CB && WOLF_CRYPTO_CB_AES_SETKEY */
 
 #ifdef WOLFSSL_DTLS13
     if (ret == 0 && ssl->options.dtls && IsAtLeastTLSv1_3(ssl->version))
@@ -3859,6 +3943,28 @@ int StoreKeys(WOLFSSL* ssl, const byte* keyData, int side)
     return 0;
 }
 
+#if !defined(NO_OLD_TLS) || defined(HAVE_EXTENDED_MASTER)
+static void CleanPreMaster(WOLFSSL* ssl)
+{
+    int sz = (int)(ssl->arrays->preMasterSz);
+
+#ifdef WOLFSSL_CHECK_MEM_ZERO
+    wc_MemZero_Add("CleanPreMaster preMasterSecret",
+                   ssl->arrays->preMasterSecret, sz);
+#endif
+
+    ForceZero(ssl->arrays->preMasterSecret, sz);
+
+#ifdef WOLFSSL_CHECK_MEM_ZERO
+    wc_MemZero_Check(ssl->arrays->preMasterSecret, sz);
+#endif
+
+    XFREE(ssl->arrays->preMasterSecret, ssl->heap, DYNAMIC_TYPE_SECRET);
+    ssl->arrays->preMasterSecret = NULL;
+    ssl->arrays->preMasterSz = 0;
+}
+#endif /* !NO_OLD_TLS || HAVE_EXTENDED_MASTER */
+
 #ifndef NO_OLD_TLS
 int DeriveKeys(WOLFSSL* ssl)
 {
@@ -3986,27 +4092,6 @@ int DeriveKeys(WOLFSSL* ssl)
 }
 
 
-static void CleanPreMaster(WOLFSSL* ssl)
-{
-    int sz = (int)(ssl->arrays->preMasterSz);
-
-#ifdef WOLFSSL_CHECK_MEM_ZERO
-    wc_MemZero_Add("CleanPreMaster preMasterSecret",
-                   ssl->arrays->preMasterSecret, sz);
-#endif
-
-    ForceZero(ssl->arrays->preMasterSecret, sz);
-
-#ifdef WOLFSSL_CHECK_MEM_ZERO
-    wc_MemZero_Check(ssl->arrays->preMasterSecret, sz);
-#endif
-
-    XFREE(ssl->arrays->preMasterSecret, ssl->heap, DYNAMIC_TYPE_SECRET);
-    ssl->arrays->preMasterSecret = NULL;
-    ssl->arrays->preMasterSz = 0;
-}
-
-
 /* Create and store the master secret see page 32, 6.1 */
 static int MakeSslMasterSecret(WOLFSSL* ssl)
 {
@@ -4068,6 +4153,8 @@ static int MakeSslMasterSecret(WOLFSSL* ssl)
                    ENCRYPT_LEN + WC_SHA_DIGEST_SIZE);
     wc_MemZero_Add("MakeSslMasterSecret shaInput", shaInput,
                    PREFIX + ENCRYPT_LEN + 2 * RAN_LEN);
+    wc_MemZero_Add("MakeSslMasterSecret shaOutput", shaOutput,
+                   WC_SHA_DIGEST_SIZE);
 #endif
 
     XMEMSET(shaOutput, 0, WC_SHA_DIGEST_SIZE);
@@ -4130,9 +4217,11 @@ static int MakeSslMasterSecret(WOLFSSL* ssl)
 
     ForceZero(md5Input, ENCRYPT_LEN + WC_SHA_DIGEST_SIZE);
     ForceZero(shaInput, PREFIX + ENCRYPT_LEN + 2 * RAN_LEN);
+    ForceZero(shaOutput, WC_SHA_DIGEST_SIZE);
 #ifdef WOLFSSL_CHECK_MEM_ZERO
     wc_MemZero_Check(md5Input, ENCRYPT_LEN + WC_SHA_DIGEST_SIZE);
     wc_MemZero_Check(shaInput, PREFIX + ENCRYPT_LEN + 2 * RAN_LEN);
+    wc_MemZero_Check(shaOutput, WC_SHA_DIGEST_SIZE);
 #endif
 
     WC_FREE_VAR_EX(shaOutput, NULL, DYNAMIC_TYPE_TMP_BUFFER);
@@ -4151,6 +4240,18 @@ static int MakeSslMasterSecret(WOLFSSL* ssl)
 /* Master wrapper, doesn't use SSL stack space in TLS mode */
 int MakeMasterSecret(WOLFSSL* ssl)
 {
+#ifdef HAVE_EXTENDED_MASTER
+    /* User requires EMS but it was not negotiated: abort rather than derive
+     * a standard master secret (RFC 7627). */
+    if (ssl->options.requireEMS && !ssl->options.haveEMS) {
+        WOLFSSL_MSG("EMS required but not negotiated with peer");
+        SendAlert(ssl, alert_fatal, handshake_failure);
+        WOLFSSL_ERROR_VERBOSE(EXT_MASTER_SECRET_NEEDED_E);
+        if (ssl->arrays->preMasterSecret != NULL)
+            CleanPreMaster(ssl);
+        return EXT_MASTER_SECRET_NEEDED_E;
+    }
+#endif
     /* append secret to premaster : premaster | SerSi | CliSi */
 #ifndef NO_OLD_TLS
     if (ssl->options.tls) return MakeTlsMasterSecret(ssl);

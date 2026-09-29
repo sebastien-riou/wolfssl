@@ -39,6 +39,8 @@
 
 #if defined(WOLFSSL_PEM_TO_DER) && !defined(NO_FILESYSTEM)
 
+static const char *progname;
+
 /* Increment allocated data by this much. */
 #define DATA_INC_LEN        256
 /* Maximum block size of a cipher. */
@@ -110,13 +112,20 @@ static int pemApp_ReadFile(FILE* fp, unsigned char** pdata, word32* plen)
             /* Add read data amount to length. */
             len += (word32)read_len;
 
+            /* Stop before the length or reallocation size can wrap word32. */
+            if (len > (word32)(0xFFFFFFFFU - DATA_INC_LEN - BLOCK_SIZE_MAX)) {
+                XFREE(data, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+                data = NULL;
+                break;
+            }
+
             /* Stop if we are at end-of-file. */
             if (feof(fp)) {
                 break;
             }
 
             /* Make space for more data to be added to buffer. */
-            p = (unsigned char*)XREALLOC(data, len + DATA_INC_LEN +
+            p = (unsigned char*)XREALLOC(data, (size_t)len + DATA_INC_LEN +
                 BLOCK_SIZE_MAX, NULL, DYNAMIC_TYPE_TMP_BUFFER);
             if (p == NULL) {
                 /* Reallocation failed - free current buffer. */
@@ -554,15 +563,20 @@ static int EncryptDer(unsigned char* in, word32 in_len, char* password,
         if (ret == WC_NO_ERR_TRACE(LENGTH_ONLY_E)) {
             ret = 0;
         }
-        else if (ret == 0) {
-            ret = 1;
+        else {
+            fprintf(stderr,
+                    "%s: wc_CreateEncryptedPKCS8Key() with enc_alg_id %d: "
+                    "unexpected retval: %s.\n",
+                    progname, enc_alg_id, wc_GetErrorString(ret));
+            if (ret == 0)
+                ret = 1;
         }
     }
     if (ret == 0) {
         /* Allocate memory for encrypted DER data. */
         *enc = (unsigned char*)XMALLOC(*enc_len, NULL, DYNAMIC_TYPE_TMP_BUFFER);
         if (*enc == NULL) {
-            ret = 1;
+            ret = MEMORY_E;
         }
     }
     if (ret == 0) {
@@ -650,11 +664,11 @@ const char* usage[] = {
     "  -o --offset      offset into file where data to convert starts",
 #if defined(WOLFSSL_ENCRYPTED_KEYS) && !defined(NO_PWDBASED)
     "  -p --pass        password to use with encrypted keys",
+    "  --padding        Remove padding on decrypted data",
 #endif
 #ifdef WOLFSSL_DER_TO_PEM
     "  -d --der         input is DER and output is PEM",
 #if defined(WOLFSSL_ENCRYPTED_KEYS) && !defined(NO_PWDBASED)
-    "  --padding        Remove padding on decrypted data",
     "  -e --encrypt     DER key is to be encrypted",
     "  -v --pbe-ver     PBE version to use when encrypting key (see below)",
     "  -p --pbe         PBE to use when encrypting key (see below)",
@@ -748,6 +762,13 @@ int main(int argc, char* argv[])
 #ifdef DEBUG_WOLFSSL
     int log = 0;
 #endif
+    int wolfcrypt_inited = 0;
+
+    progname = strrchr(argv[0], '/');
+    if (progname)
+        ++progname;
+    else
+        progname = argv[0];
 
     memset(&info, 0, sizeof(info));
 
@@ -825,7 +846,11 @@ int main(int argc, char* argv[])
             info.passwd_cb = password_from_userdata;
             info.passwd_userdata = argv[0];
         }
-#endif
+        /* Remove padding leftover from decryption. */
+        else if (strcmp(argv[0], "--padding") == 0) {
+            padding = 1;
+        }
+#endif /* WOLFSSL_ENCRYPTED_KEYS && !NO_PWDBASED */
 #ifdef WOLFSSL_DER_TO_PEM
         /* Input is DER and we are converting to PEM. */
         else if ((strcmp(argv[0], "-d") == 0) ||
@@ -833,10 +858,6 @@ int main(int argc, char* argv[])
             pem = 0;
         }
 #if defined(WOLFSSL_ENCRYPTED_KEYS) && !defined(NO_PWDBASED)
-        /* Remove padding leftover from decryption. */
-        else if (strcmp(argv[0], "--padding") == 0) {
-            padding = 1;
-        }
         /* Encrypting the DER data. */
         else if ((strcmp(argv[0], "-e") == 0) ||
                  (strcmp(argv[0], "--encrypt") == 0)) {
@@ -951,6 +972,23 @@ int main(int argc, char* argv[])
     }
 #endif
 
+#ifdef WC_RNG_SEED_CB
+    ret = wc_SetSeed_Cb(WC_GENERATE_SEED_DEFAULT);
+    if (ret != 0) {
+        fprintf(stderr, "%s: wc_SetSeed_Cb() failed: %s.\n",
+                progname, wc_GetErrorString(ret));
+        exit(1);
+    }
+#endif
+
+    ret = wolfCrypt_Init();
+    if (ret != 0) {
+        fprintf(stderr, "%s: wolfCrypt_Init() failed: %s.\n",
+                progname, wc_GetErrorString(ret));
+        exit(1);
+    }
+    wolfcrypt_inited = 1;
+
     /* Convert PEM type string to value. */
     if (type_str != NULL) {
         ret = StringToType(type_str, &type);
@@ -1037,7 +1075,7 @@ out:
         XFREE(in, NULL, DYNAMIC_TYPE_TMP_BUFFER);
     }
     if (ret < 0) {
-        fprintf(stderr, "%s\n", wc_GetErrorString(ret));
+        fprintf(stderr, "%s: %s\n", progname, wc_GetErrorString(ret));
     }
 
     if ((in_file != stdin) && (in_file != NULL))
@@ -1045,6 +1083,14 @@ out:
 
     if ((out_file != stdout) && (out_file != NULL))
         (void)fclose(out_file);
+
+    if (wolfcrypt_inited) {
+        ret = wolfCrypt_Cleanup();
+        if (ret != 0) {
+            fprintf(stderr, "%s: wolfCrypt_Cleanup() failed: %s.\n",
+                    progname, wc_GetErrorString(ret));
+        }
+    }
 
     return (ret == 0) ? 0 : 1;
 }

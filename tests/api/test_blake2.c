@@ -40,7 +40,7 @@
 int test_wc_InitBlake2b(void)
 {
     EXPECT_DECLS;
-#ifdef HAVE_BLAKE2
+#ifdef HAVE_BLAKE2B
     Blake2b blake;
 
     /* Test bad arg. */
@@ -49,6 +49,12 @@ int test_wc_InitBlake2b(void)
     ExpectIntEQ(wc_InitBlake2b(&blake, 0), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
     ExpectIntEQ(wc_InitBlake2b(&blake, 128), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
     ExpectIntEQ(wc_InitBlake2b(NULL, WC_BLAKE2B_DIGEST_SIZE),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    /* digestSz values that truncate via (byte) cast to a valid size must be
+     * rejected: 257 mod 256 = 1, 320 mod 256 = 64 - both within BLAKE2B range */
+    ExpectIntEQ(wc_InitBlake2b(&blake, 257),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2b(&blake, 256 + BLAKE2B_OUTBYTES),
         WC_NO_ERR_TRACE(BAD_FUNC_ARG));
 
     /* Test good arg. */
@@ -60,7 +66,7 @@ int test_wc_InitBlake2b(void)
 int test_wc_InitBlake2b_WithKey(void)
 {
     EXPECT_DECLS;
-#ifdef HAVE_BLAKE2
+#ifdef HAVE_BLAKE2B
     Blake2b     blake;
     word32      digestSz = BLAKE2B_KEYBYTES;
     byte        key[BLAKE2B_KEYBYTES];
@@ -82,6 +88,12 @@ int test_wc_InitBlake2b_WithKey(void)
     ExpectIntEQ(wc_InitBlake2b_WithKey(NULL, digestSz, key, keylen),
         WC_NO_ERR_TRACE(BAD_FUNC_ARG));
 
+    /* digestSz that truncates to a valid byte-sized value must be rejected */
+    ExpectIntEQ(wc_InitBlake2b_WithKey(&blake, 257, NULL, keylen),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2b_WithKey(&blake, 256 + BLAKE2B_OUTBYTES, NULL, keylen),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+
     /* Test good arg. */
     ExpectIntEQ(wc_InitBlake2b_WithKey(&blake, digestSz, NULL, keylen), 0);
     ExpectIntEQ(wc_InitBlake2b_WithKey(&blake, digestSz, key, keylen), 0);
@@ -92,7 +104,7 @@ int test_wc_InitBlake2b_WithKey(void)
 int test_wc_Blake2bUpdate(void)
 {
     EXPECT_DECLS;
-#ifdef HAVE_BLAKE2
+#ifdef HAVE_BLAKE2B
     Blake2b blake;
 
     ExpectIntEQ(wc_InitBlake2b(&blake, WC_BLAKE2B_DIGEST_SIZE), 0);
@@ -115,7 +127,7 @@ int test_wc_Blake2bUpdate(void)
 int test_wc_Blake2bFinal(void)
 {
     EXPECT_DECLS;
-#ifdef HAVE_BLAKE2
+#ifdef HAVE_BLAKE2B
     Blake2b blake;
     byte hash[WC_BLAKE2B_DIGEST_SIZE];
 
@@ -127,8 +139,14 @@ int test_wc_Blake2bFinal(void)
     ExpectIntEQ(wc_Blake2bFinal(&blake, NULL, 0),
         WC_NO_ERR_TRACE(BAD_FUNC_ARG));
     ExpectIntEQ(wc_Blake2bFinal(NULL, hash, 0), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    /* requestSz that truncates to valid byte must be rejected */
+    ExpectIntEQ(wc_Blake2bFinal(&blake, hash, 257),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_Blake2bFinal(&blake, hash, 256 + BLAKE2B_OUTBYTES),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
 
     /* Test good args. */
+    ExpectIntEQ(wc_InitBlake2b(&blake, WC_BLAKE2B_DIGEST_SIZE), 0);
     ExpectIntEQ(wc_Blake2bFinal(&blake, hash, WC_BLAKE2B_DIGEST_SIZE), 0);
 #endif
     return EXPECT_RESULT();
@@ -138,7 +156,7 @@ int test_wc_Blake2bFinal(void)
 int test_wc_Blake2b_KATs(void)
 {
     EXPECT_DECLS;
-#ifdef HAVE_BLAKE2
+#ifdef HAVE_BLAKE2B
     Blake2b blake;
 
     testVector blake2b_kat[BLAKE2B_KAT_CNT];
@@ -254,7 +272,7 @@ int test_wc_Blake2b_KATs(void)
 int test_wc_Blake2b_other(void)
 {
     EXPECT_DECLS;
-#ifdef HAVE_BLAKE2
+#ifdef HAVE_BLAKE2B
     Blake2b blake;
     byte hash[WC_BLAKE2B_DIGEST_SIZE + 1];
     byte data[WC_BLAKE2B_DIGEST_SIZE * 8 + 1];
@@ -305,6 +323,53 @@ int test_wc_Blake2b_other(void)
     return EXPECT_RESULT();
 }
 
+/* MC/DC decision coverage for the argument-validation bound checks that the
+ * public wc_* wrappers cannot reach with a bad value on every operand:
+ *  - blake2b_init()/blake2b_init_key() are called directly (bypassing the
+ *    wc_* pre-checks) so the internal outlen and key/keylen guards can be
+ *    exercised with values that a wc_* wrapper would already have rejected.
+ *  - wc_InitBlake2b_WithKey()'s own digestSz bound is exercised by varying
+ *    digestSz while keeping keylen valid (the existing bad-arg test only
+ *    ever calls it with a fixed, valid digestSz).
+ *  - wc_Blake2bFinal()'s sz > BLAKE2B_OUTBYTES side is already covered by
+ *    test_wc_Blake2bFinal(); the sz == 0 side is exercised here by forcing
+ *    digestSz to 0, as if Init had never (successfully) been called. */
+int test_wc_blake2b_decision_coverage(void)
+{
+    EXPECT_DECLS;
+#ifdef HAVE_BLAKE2B
+    Blake2b       blake;
+    byte          key[BLAKE2B_KEYBYTES];
+    byte          hash[WC_BLAKE2B_DIGEST_SIZE];
+
+    XMEMSET(&blake, 0, sizeof(blake));
+    XMEMSET(key, 0, sizeof(key));
+    XMEMSET(hash, 0, sizeof(hash));
+
+    /* The internal blake2b_init() / blake2b_init_key() outlen and key/keylen
+     * guards (blake2b.c:125/142/144) are unreachable through the public
+     * wc_* wrappers (which fully validate digestSz before narrowing to byte),
+     * and blake2b_init* are non-WOLFSSL_API symbols. They are covered in the
+     * tests/unit-mcdc/test_blake2b_whitebox.c supplement instead of here, so
+     * this file links cleanly against the shared library in normal CI. */
+
+    /* wc_InitBlake2b_WithKey(): digestSz == 0 || digestSz > OUTBYTES,
+     * isolated from the keylen truncation check by keeping keylen valid. */
+    ExpectIntEQ(wc_InitBlake2b_WithKey(&blake, 0, key, BLAKE2B_KEYBYTES),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2b_WithKey(&blake, BLAKE2B_OUTBYTES + 1, key,
+        BLAKE2B_KEYBYTES), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2b_WithKey(&blake, BLAKE2B_OUTBYTES, key,
+        BLAKE2B_KEYBYTES), 0);
+
+    /* wc_Blake2bFinal(): sz == 0 side of "sz == 0 || sz > OUTBYTES". */
+    XMEMSET(&blake, 0, sizeof(blake));
+    ExpectIntEQ(wc_Blake2bFinal(&blake, hash, 0),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+#endif
+    return EXPECT_RESULT();
+}
+
 /*******************************************************************************
  * BLAKE2s
  ******************************************************************************/
@@ -321,6 +386,12 @@ int test_wc_InitBlake2s(void)
     ExpectIntEQ(wc_InitBlake2s(&blake, 0), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
     ExpectIntEQ(wc_InitBlake2s(&blake, 128), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
     ExpectIntEQ(wc_InitBlake2s(NULL, WC_BLAKE2S_DIGEST_SIZE),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    /* digestSz that truncates via (byte) cast to a valid size must be rejected:
+     * 257 mod 256 = 1, 288 mod 256 = 32 - both within BLAKE2S range */
+    ExpectIntEQ(wc_InitBlake2s(&blake, 257),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2s(&blake, 256 + BLAKE2S_OUTBYTES),
         WC_NO_ERR_TRACE(BAD_FUNC_ARG));
 
     /* Test good arg. */
@@ -350,6 +421,12 @@ int test_wc_InitBlake2s_WithKey(void)
     ExpectIntEQ(wc_InitBlake2s_WithKey(&blake, digestSz, key, 256),
         WC_NO_ERR_TRACE(BAD_FUNC_ARG));
     ExpectIntEQ(wc_InitBlake2s_WithKey(NULL, digestSz, key, keylen),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+
+    /* digestSz that truncates to a valid byte-sized value must be rejected */
+    ExpectIntEQ(wc_InitBlake2s_WithKey(&blake, 257, NULL, keylen),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2s_WithKey(&blake, 256 + BLAKE2S_OUTBYTES, NULL, keylen),
         WC_NO_ERR_TRACE(BAD_FUNC_ARG));
 
     /* Test good arg. */
@@ -397,8 +474,14 @@ int test_wc_Blake2sFinal(void)
     ExpectIntEQ(wc_Blake2sFinal(&blake, NULL, 0),
         WC_NO_ERR_TRACE(BAD_FUNC_ARG));
     ExpectIntEQ(wc_Blake2sFinal(NULL, hash, 0), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    /* requestSz that truncates to valid byte must be rejected */
+    ExpectIntEQ(wc_Blake2sFinal(&blake, hash, 257),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_Blake2sFinal(&blake, hash, 256 + BLAKE2S_OUTBYTES),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
 
     /* Test good args. */
+    ExpectIntEQ(wc_InitBlake2s(&blake, WC_BLAKE2S_DIGEST_SIZE), 0);
     ExpectIntEQ(wc_Blake2sFinal(&blake, hash, WC_BLAKE2S_DIGEST_SIZE), 0);
 #endif
     return EXPECT_RESULT();
@@ -539,6 +622,43 @@ int test_wc_Blake2s_other(void)
         ExpectIntEQ(wc_Blake2sFinal(&blake, hash, WC_BLAKE2S_DIGEST_SIZE), 0);
         ExpectBufEQ(hash, (byte*)expHash, WC_BLAKE2S_DIGEST_SIZE);
     }
+#endif
+    return EXPECT_RESULT();
+}
+
+/* MC/DC decision coverage for the argument-validation bound checks that the
+ * public wc_* wrappers cannot reach with a bad value on every operand.  See
+ * test_wc_blake2b_decision_coverage() for the rationale; this is the
+ * BLAKE2s equivalent. */
+int test_wc_blake2s_decision_coverage(void)
+{
+    EXPECT_DECLS;
+#ifdef HAVE_BLAKE2S
+    Blake2s       blake;
+    byte          key[BLAKE2S_KEYBYTES];
+    byte          hash[WC_BLAKE2S_DIGEST_SIZE];
+
+    XMEMSET(&blake, 0, sizeof(blake));
+    XMEMSET(key, 0, sizeof(key));
+    XMEMSET(hash, 0, sizeof(hash));
+
+    /* Internal blake2s_init()/blake2s_init_key() guards (blake2s.c:122/140/142)
+     * are unreachable through the public wc_* wrappers and are non-WOLFSSL_API;
+     * covered in tests/unit-mcdc/test_blake2s_whitebox.c instead. */
+
+    /* wc_InitBlake2s_WithKey(): digestSz == 0 || digestSz > OUTBYTES,
+     * isolated from the keylen truncation check by keeping keylen valid. */
+    ExpectIntEQ(wc_InitBlake2s_WithKey(&blake, 0, key, BLAKE2S_KEYBYTES),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2s_WithKey(&blake, BLAKE2S_OUTBYTES + 1, key,
+        BLAKE2S_KEYBYTES), WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+    ExpectIntEQ(wc_InitBlake2s_WithKey(&blake, BLAKE2S_OUTBYTES, key,
+        BLAKE2S_KEYBYTES), 0);
+
+    /* wc_Blake2sFinal(): sz == 0 side of "sz == 0 || sz > OUTBYTES". */
+    XMEMSET(&blake, 0, sizeof(blake));
+    ExpectIntEQ(wc_Blake2sFinal(&blake, hash, 0),
+        WC_NO_ERR_TRACE(BAD_FUNC_ARG));
 #endif
     return EXPECT_RESULT();
 }

@@ -501,6 +501,28 @@ int test_wolfSSL_EVP_CIPHER_iv_length(void)
     #if defined(HAVE_CHACHA) && defined(HAVE_POLY1305)
          NID_chacha20_poly1305,
     #endif
+    #ifdef WOLFSSL_AES_CFB
+    #ifdef WOLFSSL_AES_128
+        NID_aes_128_cfb128,
+    #endif
+    #ifdef WOLFSSL_AES_192
+        NID_aes_192_cfb128,
+    #endif
+    #ifdef WOLFSSL_AES_256
+        NID_aes_256_cfb128,
+    #endif
+    #endif /* WOLFSSL_AES_CFB */
+    #ifdef WOLFSSL_AES_OFB
+    #ifdef WOLFSSL_AES_128
+        NID_aes_128_ofb,
+    #endif
+    #ifdef WOLFSSL_AES_192
+        NID_aes_192_ofb,
+    #endif
+    #ifdef WOLFSSL_AES_256
+        NID_aes_256_ofb,
+    #endif
+    #endif /* WOLFSSL_AES_OFB */
     };
     int iv_lengths[] = {
     #if defined(HAVE_AES_CBC) || defined(WOLFSSL_AES_DIRECT)
@@ -546,6 +568,28 @@ int test_wolfSSL_EVP_CIPHER_iv_length(void)
     #if defined(HAVE_CHACHA) && defined(HAVE_POLY1305)
             CHACHA20_POLY1305_AEAD_IV_SIZE,
     #endif
+    #ifdef WOLFSSL_AES_CFB
+    #ifdef WOLFSSL_AES_128
+            AES_BLOCK_SIZE,
+    #endif
+    #ifdef WOLFSSL_AES_192
+            AES_BLOCK_SIZE,
+    #endif
+    #ifdef WOLFSSL_AES_256
+            AES_BLOCK_SIZE,
+    #endif
+    #endif /* WOLFSSL_AES_CFB */
+    #ifdef WOLFSSL_AES_OFB
+    #ifdef WOLFSSL_AES_128
+            AES_BLOCK_SIZE,
+    #endif
+    #ifdef WOLFSSL_AES_192
+            AES_BLOCK_SIZE,
+    #endif
+    #ifdef WOLFSSL_AES_256
+            AES_BLOCK_SIZE,
+    #endif
+    #endif /* WOLFSSL_AES_OFB */
     };
     int i;
     int nidsLen = (sizeof(nids)/sizeof(int));
@@ -633,7 +677,8 @@ int test_wolfSSL_EVP_CIPHER_type_string(void)
 int test_wolfSSL_EVP_BytesToKey(void)
 {
     EXPECT_DECLS;
-#if !defined(NO_AES) && defined(HAVE_AES_CBC) && defined(OPENSSL_ALL)
+#if !defined(NO_AES) && defined(HAVE_AES_CBC) && defined(OPENSSL_ALL) && \
+    defined(WOLFSSL_ENCRYPTED_KEYS) && !defined(NO_PWDBASED)
     byte                key[AES_BLOCK_SIZE] = {0};
     byte                iv[AES_BLOCK_SIZE] = {0};
     int                 count = 0;
@@ -1915,6 +1960,7 @@ int test_wolfssl_EVP_chacha20_poly1305(void)
     byte cipherText[sizeof(plainText)];
     byte decryptedText[sizeof(plainText)];
     byte tag[CHACHA20_POLY1305_AEAD_AUTHTAG_SIZE];
+    byte badTag[CHACHA20_POLY1305_AEAD_AUTHTAG_SIZE];
     EVP_CIPHER_CTX* ctx = NULL;
     int outSz;
 
@@ -1976,6 +2022,28 @@ int test_wolfssl_EVP_chacha20_poly1305(void)
     ExpectIntEQ(EVP_DecryptFinal_ex(ctx, decryptedText, &outSz),
                 WOLFSSL_SUCCESS);
     ExpectIntEQ(outSz, 0);
+    EVP_CIPHER_CTX_free(ctx);
+    ctx = NULL;
+
+    /* Negative test: forged (all-zero) tag must be rejected. */
+    XMEMSET(badTag, 0, sizeof(badTag));
+    ExpectNotNull((ctx = EVP_CIPHER_CTX_new()));
+    ExpectIntEQ(EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL,
+                NULL, NULL), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN,
+                CHACHA20_POLY1305_AEAD_IV_SIZE, NULL), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG,
+                CHACHA20_POLY1305_AEAD_AUTHTAG_SIZE, badTag),
+                WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv),
+                WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_DecryptUpdate(ctx, NULL, &outSz, aad, sizeof(aad)),
+                WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_DecryptUpdate(ctx, decryptedText, &outSz, cipherText,
+                sizeof(cipherText)), WOLFSSL_SUCCESS);
+    /* EVP_DecryptFinal_ex MUST return failure on tag mismatch */
+    ExpectIntNE(EVP_DecryptFinal_ex(ctx, decryptedText, &outSz),
+                WOLFSSL_SUCCESS);
     EVP_CIPHER_CTX_free(ctx);
     ctx = NULL;
 
@@ -2172,7 +2240,7 @@ int test_wolfssl_EVP_sm4_ecb(void)
     };
     byte cipherText[sizeof(plainText) + SM4_BLOCK_SIZE];
     byte decryptedText[sizeof(plainText) + SM4_BLOCK_SIZE];
-    EVP_CIPHER_CTX* ctx;
+    EVP_CIPHER_CTX* ctx = NULL;
     int outSz;
 
     XMEMSET(key, 0, sizeof(key));
@@ -2228,7 +2296,7 @@ int test_wolfssl_EVP_sm4_cbc(void)
     };
     byte cipherText[sizeof(plainText) + SM4_BLOCK_SIZE];
     byte decryptedText[sizeof(plainText) + SM4_BLOCK_SIZE];
-    EVP_CIPHER_CTX* ctx;
+    EVP_CIPHER_CTX* ctx = NULL;
     int outSz;
 
     XMEMSET(key, 0, sizeof(key));
@@ -2296,7 +2364,7 @@ int test_wolfssl_EVP_sm4_ctr(void)
     byte plainText[] = {0xDE, 0xAD, 0xBE, 0xEF};
     byte cipherText[sizeof(plainText)];
     byte decryptedText[sizeof(plainText)];
-    EVP_CIPHER_CTX* ctx;
+    EVP_CIPHER_CTX* ctx = NULL;
     int outSz;
 
     XMEMSET(key, 0, sizeof(key));
@@ -2698,6 +2766,106 @@ int test_wolfSSL_EVP_mdc2(void)
     EXPECT_DECLS;
 #if !defined(NO_WOLFSSL_STUB) && defined(OPENSSL_ALL)
     ExpectNull(wolfSSL_EVP_mdc2());
+#endif
+    return EXPECT_RESULT();
+}
+
+/*
+ * The 3DES ECB entry points reject a context that has no key, and that is
+ * visible here: wolfSSL_EVP_CipherInit only calls wc_Des3_SetKey when a key is
+ * supplied, so initializing EVP_des_ede3_ecb() with a NULL key and then
+ * feeding it data used to run against the zeroed key schedule and report
+ * success. It must fail instead. The ordinary two-stage OpenSSL idiom --
+ * install the cipher, then install the key -- does key the context and must
+ * keep working.
+ *
+ * FIPS builds use the FIPS-certified DES3 implementation, which does not track
+ * key state, so skip the test for FIPS.
+ */
+int test_wolfSSL_EVP_des_ede3_ecb_no_key(void)
+{
+    EXPECT_DECLS;
+#if !defined(NO_DES3) && !defined(HAVE_FIPS) && defined(OPENSSL_EXTRA) && \
+    defined(WOLFSSL_DES_ECB)
+    EVP_CIPHER_CTX* ctx = NULL;
+    byte out[32];
+    int outl = 0;
+    const byte key[24] = {
+        0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,
+        0xfe,0xde,0xba,0x98,0x76,0x54,0x32,0x10,
+        0x89,0xab,0xcd,0xef,0x01,0x23,0x45,0x67
+    };
+    const byte in[16] = {
+        0x4e,0x6f,0x77,0x20,0x69,0x73,0x20,0x74,
+        0x68,0x65,0x20,0x74,0x69,0x6d,0x65,0x20
+    };
+
+    XMEMSET(out, 0, sizeof(out));
+
+    /* No key ever supplied: the update must not produce ciphertext. */
+    ExpectNotNull(ctx = EVP_CIPHER_CTX_new());
+    ExpectIntEQ(EVP_CipherInit(ctx, EVP_des_ede3_ecb(), NULL, NULL, 1), 1);
+    ExpectIntNE(EVP_CipherUpdate(ctx, out, &outl, in, (int)sizeof(in)), 1);
+    EVP_CIPHER_CTX_free(ctx);
+    ctx = NULL;
+
+    /* Cipher first, key second: unaffected. */
+    ExpectNotNull(ctx = EVP_CIPHER_CTX_new());
+    ExpectIntEQ(EVP_CipherInit(ctx, EVP_des_ede3_ecb(), NULL, NULL, 1), 1);
+    ExpectIntEQ(EVP_CipherInit(ctx, NULL, key, NULL, 1), 1);
+    ExpectIntEQ(EVP_CipherUpdate(ctx, out, &outl, in, (int)sizeof(in)), 1);
+    EVP_CIPHER_CTX_free(ctx);
+#endif
+    return EXPECT_RESULT();
+}
+
+/*
+ * The DES-CBC branch of wolfSSL_EVP_Cipher used to discard the return value of
+ * wc_Des_CbcEncrypt / wc_Des_CbcDecrypt. Because ret starts at WOLFSSL_FAILURE
+ * (numerically zero), the "if (ret == 0)" success path then ran unconditionally
+ * and a rounded byte count was reported even when the DES call had rejected the
+ * request. A length that is not a multiple of DES_BLOCK_SIZE makes the software
+ * DES path return BAD_LENGTH_E, so the one-shot EVP_Cipher call must now fail
+ * rather than return a positive length. A block-multiple length still succeeds.
+ *
+ * FIPS builds use the FIPS-certified DES3 implementation for 3DES, but single
+ * DES is not a FIPS algorithm, so skip the test for FIPS.
+ */
+int test_wolfSSL_EVP_Cipher_des_cbc_error(void)
+{
+    EXPECT_DECLS;
+#if !defined(NO_DES3) && !defined(HAVE_FIPS) && defined(OPENSSL_EXTRA)
+    EVP_CIPHER_CTX* ctx = NULL;
+    const byte key[8] = { 0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef };
+    const byte iv[8]  = { 0x12,0x34,0x56,0x78,0x90,0xab,0xcd,0xef };
+    const byte in[16] = {
+        0x4e,0x6f,0x77,0x20,0x69,0x73,0x20,0x74,
+        0x68,0x65,0x20,0x74,0x69,0x6d,0x65,0x20
+    };
+    byte out[16];
+
+    XMEMSET(out, 0, sizeof(out));
+
+    /* Not a multiple of DES_BLOCK_SIZE: the DES call fails and EVP_Cipher must
+     * report the failure, not a rounded byte count. Both the encrypt and the
+     * decrypt arm of the switch must propagate the error. */
+    ExpectNotNull(ctx = EVP_CIPHER_CTX_new());
+    ExpectIntEQ(EVP_CipherInit(ctx, EVP_des_cbc(), key, iv, 1), 1);
+    ExpectIntLT(EVP_Cipher(ctx, out, in, 15), 0);
+    EVP_CIPHER_CTX_free(ctx);
+    ctx = NULL;
+
+    ExpectNotNull(ctx = EVP_CIPHER_CTX_new());
+    ExpectIntEQ(EVP_CipherInit(ctx, EVP_des_cbc(), key, iv, 0), 1);
+    ExpectIntLT(EVP_Cipher(ctx, out, in, 15), 0);
+    EVP_CIPHER_CTX_free(ctx);
+    ctx = NULL;
+
+    /* A block-multiple length still succeeds and reports the full length. */
+    ExpectNotNull(ctx = EVP_CIPHER_CTX_new());
+    ExpectIntEQ(EVP_CipherInit(ctx, EVP_des_cbc(), key, iv, 1), 1);
+    ExpectIntEQ(EVP_Cipher(ctx, out, in, (word32)sizeof(in)), (int)sizeof(in));
+    EVP_CIPHER_CTX_free(ctx);
 #endif
     return EXPECT_RESULT();
 }

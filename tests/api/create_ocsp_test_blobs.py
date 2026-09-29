@@ -54,11 +54,83 @@ def certs(cert_path: list[str]) -> univ.SequenceOf | None:
         certs.append(cert)
     return certs
 
+def certs_from_der(cert_der: list[bytes]) -> univ.SequenceOf | None:
+    if len(cert_der) == 0:
+        return None
+    certs = rfc6960.BasicOCSPResponse()['certs']
+    for cd in cert_der:
+        cert, _ = decode(bytes(cd), asn1Spec=rfc6960.Certificate())
+        certs.append(cert)
+    return certs
+
+def forged_responder_cert() -> bytes:
+    """Build a responder certificate that no trusted CA ever signed.
+
+    It claims the legitimate root CA as its issuer -- same issuer Name DER,
+    and an authorityKeyIdentifier equal to the root CA's subjectKeyIdentifier
+    -- so wolfSSL's signer lookup resolves to the real root CA. It is signed
+    with the imposter root CA's key, so that CA's public key cannot verify it.
+    Name and key-identifier fields only select a candidate issuer (RFC 5280);
+    they do not authenticate one. Only the signature check does, which is what
+    the test built on this certificate exercises.
+
+    Its subject public key is the legitimate responder's, so the response can
+    be signed with the existing ocsp-responder-key.pem.
+    """
+    with open(WOLFSSL_OCSP_CERT_PATH + 'root-ca-cert.pem', 'rb') as f:
+        root_ca = x509.load_pem_x509_certificate(f.read(), default_backend())
+    root_skid = root_ca.extensions.get_extension_for_class(
+        x509.SubjectKeyIdentifier).value.digest
+    imposter_key = get_priv_key(WOLFSSL_OCSP_CERT_PATH +
+                                'imposter-root-ca-key.pem')
+    responder_pub = get_pub_key(WOLFSSL_OCSP_CERT_PATH +
+                                'ocsp-responder-cert.pem')
+
+    subject = x509.Name([
+        x509.NameAttribute(x509.oid.NameOID.COUNTRY_NAME, 'US'),
+        x509.NameAttribute(x509.oid.NameOID.STATE_OR_PROVINCE_NAME,
+                           'Washington'),
+        x509.NameAttribute(x509.oid.NameOID.LOCALITY_NAME, 'Seattle'),
+        x509.NameAttribute(x509.oid.NameOID.ORGANIZATION_NAME, 'wolfSSL'),
+        x509.NameAttribute(x509.oid.NameOID.ORGANIZATIONAL_UNIT_NAME,
+                           'Engineering'),
+        x509.NameAttribute(x509.oid.NameOID.COMMON_NAME,
+                           'wolfSSL FORGED OCSP Responder'),
+        x509.NameAttribute(x509.oid.NameOID.EMAIL_ADDRESS,
+                           'facts@wolfssl.com'),
+    ])
+
+    cert = x509.CertificateBuilder() \
+        .subject_name(subject) \
+        .issuer_name(root_ca.subject) \
+        .public_key(responder_pub) \
+        .serial_number(0x4242) \
+        .not_valid_before(datetime.now() - timedelta(days=1)) \
+        .not_valid_after(datetime.now() + timedelta(days=1000)) \
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None),
+                       critical=True) \
+        .add_extension(x509.KeyUsage(digital_signature=True,
+                                     content_commitment=False,
+                                     key_encipherment=False,
+                                     data_encipherment=False,
+                                     key_agreement=False, key_cert_sign=False,
+                                     crl_sign=False, encipher_only=False,
+                                     decipher_only=False), critical=True) \
+        .add_extension(x509.ExtendedKeyUsage([
+            x509.oid.ExtendedKeyUsageOID.OCSP_SIGNING]), critical=False) \
+        .add_extension(x509.AuthorityKeyIdentifier(
+            key_identifier=root_skid, authority_cert_issuer=None,
+            authority_cert_serial_number=None), critical=False) \
+        .sign(imposter_key, hashes.SHA256(), default_backend())
+    return cert.public_bytes(serialization.Encoding.DER)
+
 def signature(bitstr: str) -> univ.BitString:
     return univ.BitString(hexValue=bitstr)
 
 def resp_id_by_name(cert_path: str) -> rfc6960.ResponderID:
-    cert_der = cert_pem_to_der(cert_path)
+    return resp_id_by_name_der(cert_pem_to_der(cert_path))
+
+def resp_id_by_name_der(cert_der: bytes) -> rfc6960.ResponderID:
     cert, _ = decode(bytes(cert_der), asn1Spec=rfc6960.Certificate())
     subj = cert['tbsCertificate']['subject']
     rid = rfc6960.ResponderID()
@@ -252,9 +324,14 @@ def create_response(rd: dict) -> rfc6960.OCSPResponse:
     """create a response using definition in rd"""
     cs = response_status(rd.get('response_status', RESPONSE_STATUS_GOOD))
     sa = rd.get('signature_algorithm', signature_algorithm())
-    c = certs(rd.get('certs_path', []))
+    if rd.get('certs_der') is not None:
+        c = certs_from_der(rd['certs_der'])
+    else:
+        c = certs(rd.get('certs_path', []))
     rid = None
-    if rd.get('responder_by_name') is not None:
+    if rd.get('responder_cert_der') is not None:
+        rid = resp_id_by_name_der(rd['responder_cert_der'])
+    elif rd.get('responder_by_name') is not None:
         rid = resp_id_by_name(
             rd.get(
                 'responder_cert', WOLFSSL_OCSP_CERT_PATH + 'ocsp-responder-cert.pem'))
@@ -266,6 +343,23 @@ def create_response(rd: dict) -> rfc6960.OCSPResponse:
     for entry in rd.get('responses', []):
         if entry.get('certificate'):
             sr = single_response_from_cert(entry['certificate'], entry['status'])
+        elif entry.get('name_cert') and entry.get('key_cert'):
+            # Forge a CertID where issuerNameHash and issuerKeyHash are taken
+            # from different certificates. Used to test that responder
+            # authorization is bound to BOTH halves of the CertID.
+            name_der = cert_pem_to_der(entry['name_cert'])
+            name_cert, _ = decode(bytes(name_der), asn1Spec=rfc6960.Certificate())
+            key_der = cert_pem_to_der(entry['key_cert'])
+            key_cert, _ = decode(bytes(key_der), asn1Spec=rfc6960.Certificate())
+            issuer_name_hash = sha1(encode(get_name(name_cert))).digest()
+            issuer_key_hash = sha1(get_key(key_cert).asOctets()).digest()
+            cid = cert_id_from_hash(issuer_name_hash, issuer_key_hash,
+                                    entry['serial'])
+            sr = rfc6960.SingleResponse().clone()
+            sr.setComponentByName('certID', cid)
+            sr['certStatus'] = cert_status(entry['status'])
+            sr['thisUpdate'] = useful.GeneralizedTime().fromDateTime(
+                datetime.now() - timedelta(days=1))
         else:
             sr = single_response(entry['issuer_cert'], entry['serial'], entry['status'])
         responses.append(sr)
@@ -301,6 +395,7 @@ def create_bad_response(rd: dict) -> bytes:
 
 if __name__ == '__main__':
     useful.GeneralizedTime._hasSubsecond = False
+    forged_responder_der = forged_responder_cert()
     response_definitions = [
         {
             'response_status': 0,
@@ -404,6 +499,49 @@ if __name__ == '__main__':
             'name': 'resp_bad_embedded_cert'
         },
         {
+            # intermediate1 signs OCSP for its subordinate server1
+            'response_status': 0,
+            'signature_algorithm': signature_algorithm(),
+            'responder_by_name': True,
+            'responder_cert': WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-cert.pem',
+            'responses': [
+                {
+                    'issuer_cert': WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-cert.pem',
+                    'serial': 0x05,
+                    'status': CERT_GOOD
+                }
+            ],
+            'responder_key': WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-key.pem',
+            'name': 'resp_server1_cert'
+        },
+        {
+            # A single, validly-signed BasicOCSPResponse that bundles two
+            # SingleResponses: the first (wire order) is a benign CERT_GOOD entry
+            # for an unrelated serial, the second is the server1 leaf cert marked
+            # CERT_REVOKED.
+            # Signed by intermediate1, the legitimate issuer and
+            # authorized responder for server1.
+            'response_status': 0,
+            'signature_algorithm': signature_algorithm(),
+            'responder_by_name': True,
+            'responder_cert': WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-cert.pem',
+            'responses': [
+                {
+                    'issuer_cert': WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-cert.pem',
+                    'serial': 0x01,
+                    'status': CERT_GOOD
+                },
+                {
+                    'issuer_cert': WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-cert.pem',
+                    'serial': 0x05,
+                    'status': CERT_REVOKED
+                }
+            ],
+            'responder_key': WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-key.pem',
+            'name': 'resp_server1_revoked_good_first'
+        },
+        {
+            # Ancestor-issued responder; rejected by RFC 6960 4.2.2.2 enforcement
             'response_status': 0,
             'signature_algorithm': signature_algorithm(),
             'certs_path': [WOLFSSL_OCSP_CERT_PATH + 'ocsp-responder-cert.pem'],
@@ -416,7 +554,7 @@ if __name__ == '__main__':
                 }
             ],
             'responder_key': WOLFSSL_OCSP_CERT_PATH + 'ocsp-responder-key.pem',
-            'name': 'resp_server1_cert'
+            'name': 'resp_server1_cert_ancestor_responder'
         },
         {
             'response_status': 0,
@@ -480,6 +618,50 @@ if __name__ == '__main__':
             'responder_key': WOLFSSL_OCSP_CERT_PATH + '../ca-key.pem',
             'name': 'resp_server_cert_unknown'
         },
+        {
+            # Forged response: CertID's issuerNameHash points at the legitimate
+            # root CA, but issuerKeyHash points at the imposter root CA (same
+            # DN, different key). Signed by the legitimate ocsp-responder so
+            # the response signature alone verifies. Used to confirm that
+            # responder authorization rejects mismatched CertID halves.
+            'response_status': 0,
+            'signature_algorithm': signature_algorithm(),
+            'certs_path': [WOLFSSL_OCSP_CERT_PATH + 'ocsp-responder-cert.pem'],
+            'responder_by_name': True,
+            'responses': [
+                {
+                    'name_cert': WOLFSSL_OCSP_CERT_PATH + 'root-ca-cert.pem',
+                    'key_cert':  WOLFSSL_OCSP_CERT_PATH +
+                                 'imposter-root-ca-cert.pem',
+                    'serial': 0x01,
+                    'status': CERT_GOOD
+                }
+            ],
+            'responder_key': WOLFSSL_OCSP_CERT_PATH + 'ocsp-responder-key.pem',
+            'name': 'resp_certid_keyhash_mismatch'
+        },
+        {
+            # Forged response: the embedded responder certificate names the
+            # legitimate root CA as its issuer and carries an AKID matching
+            # that CA's SKID, but is signed by the imposter root CA's key, so
+            # the real CA never issued it. Everything else lines up -- the
+            # CertID halves, the responder ID, and the EKU -- so the only
+            # thing standing between this response and acceptance is the
+            # signature check on the responder certificate itself.
+            'response_status': 0,
+            'signature_algorithm': signature_algorithm(),
+            'certs_der': [forged_responder_der],
+            'responder_cert_der': forged_responder_der,
+            'responses': [
+                {
+                    'issuer_cert': WOLFSSL_OCSP_CERT_PATH + 'root-ca-cert.pem',
+                    'serial': 0x01,
+                    'status': CERT_GOOD
+                }
+            ],
+            'responder_key': WOLFSSL_OCSP_CERT_PATH + 'ocsp-responder-key.pem',
+            'name': 'resp_forged_responder_cert'
+        },
     ]
 
     with open('./tests/api/test_ocsp_test_blobs.h', 'w') as f:
@@ -517,6 +699,8 @@ if __name__ == '__main__':
         add_certificate(WOLFSSL_OCSP_CERT_PATH + '../ca-cert.pem', f)
         add_certificate(WOLFSSL_OCSP_CERT_PATH + '../server-cert.pem', f)
         add_certificate(WOLFSSL_OCSP_CERT_PATH + 'intermediate1-ca-cert.pem', f)
+        add_certificate(WOLFSSL_OCSP_CERT_PATH + 'imposter-root-ca-cert.pem', f)
+        add_certificate(WOLFSSL_OCSP_CERT_PATH + 'server1-cert.pem', f)
         br = create_bad_response({
             'response_status': 0,
             'responder_by_key': True,

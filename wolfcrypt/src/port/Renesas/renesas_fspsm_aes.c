@@ -354,10 +354,9 @@ int  wc_fspsm_AesGcmEncrypt(struct Aes* aes, byte* out,
         return BAD_FUNC_ARG;
     }
 
-    if (authTagSz < WOLFSSL_MIN_AUTH_TAG_SZ) {
-        WOLFSSL_MSG("GcmEncrypt authTagSz too small error");
-        return BAD_FUNC_ARG;
-    }
+    ret = wc_local_AesGcmCheckTagSz(authTagSz);
+    if (ret != 0)
+        return ret;
 
     if (aes->ctx.keySize != 16 && aes->ctx.keySize != 32) {
         WOLFSSL_MSG("keySize is invalid, neither 16 or 32.");
@@ -412,9 +411,12 @@ int  wc_fspsm_AesGcmEncrypt(struct Aes* aes, byte* out,
             key_server_aes = (FSPSM_AES_PWKEY)XMALLOC(sizeof(FSPSM_AES_WKEY),
                                             aes->heap, DYNAMIC_TYPE_AES);
             if (key_client_aes == NULL || key_server_aes == NULL) {
-                XFREE(plainBuf,  aes->heap, DYNAMIC_TYPE_AES);
-                XFREE(cipherBuf, aes->heap, DYNAMIC_TYPE_AES);
-                XFREE(aTagBuf,   aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(key_client_aes,  aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(key_server_aes,  aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(plainBuf,       aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(cipherBuf,      aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(aTagBuf,        aes->heap, DYNAMIC_TYPE_AES);
+                wc_fspsm_hw_unlock();
                 return MEMORY_E;
             }
 
@@ -587,7 +589,7 @@ int  wc_fspsm_AesGcmDecrypt(struct Aes* aes, byte* out,
     }
 
     if (authTagSz < WOLFSSL_MIN_AUTH_TAG_SZ) {
-        WOLFSSL_MSG("GcmEncrypt authTagSz too small error");
+        WOLFSSL_MSG("GcmDecrypt authTagSz too small error");
         return BAD_FUNC_ARG;
     }
 
@@ -639,9 +641,12 @@ int  wc_fspsm_AesGcmDecrypt(struct Aes* aes, byte* out,
             key_server_aes = (FSPSM_AES_PWKEY)XMALLOC(sizeof(FSPSM_AES_WKEY),
                                             aes->heap, DYNAMIC_TYPE_AES);
             if (key_client_aes == NULL || key_server_aes == NULL) {
-                XFREE(plainBuf,  aes->heap, DYNAMIC_TYPE_AES);
-                XFREE(cipherBuf, aes->heap, DYNAMIC_TYPE_AES);
-                XFREE(aTagBuf,   aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(key_client_aes,  aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(key_server_aes,  aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(plainBuf,        aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(cipherBuf,       aes->heap, DYNAMIC_TYPE_AES);
+                XFREE(aTagBuf,         aes->heap, DYNAMIC_TYPE_AES);
+                wc_fspsm_hw_unlock();
                 return MEMORY_E;
             }
 
@@ -953,6 +958,7 @@ int wc_AesSetKey(Aes* aes, const byte* userKey, word32 keylen,
     aes->ctx.wrapped_key = (FSPSM_AES_PWKEY)userKey;
     aes->keylen = (int)keylen;
     aes->ctx.keySize = keylen;
+    aes->keyInstalled = 1;
 
     return wc_AesSetIV(aes, iv);
 }

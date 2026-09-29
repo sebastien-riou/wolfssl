@@ -427,10 +427,17 @@ static const char WC_NAME_SHA512[] = "sha512";
 /* create KCAPI handle for SHA512 operation */
 int wc_InitSha512_ex(wc_Sha512* sha, void* heap, int devid)
 {
+    int ret;
     if (sha == NULL) {
         return BAD_FUNC_ARG;
     }
-    return KcapiHashInit(&sha->kcapi, heap, devid, WC_NAME_SHA512);
+    ret = KcapiHashInit(&sha->kcapi, heap, devid, WC_NAME_SHA512);
+#if defined(WOLFSSL_SHA512_HASHTYPE)
+    if (ret == 0) {
+        sha->hashType = WC_HASH_TYPE_SHA512;
+    }
+#endif
+    return ret;
 }
 
 
@@ -473,13 +480,20 @@ int wc_Sha512Copy(wc_Sha512* src, wc_Sha512* dst)
 #if !defined(WOLFSSL_NOSHA512_224)
 static const char WC_NAME_SHA512_224[] = "sha512-224";
 
-/* create KCAPI handle for SHA512 operation */
+/* create KCAPI handle for SHA512/224 operation */
 int wc_InitSha512_224_ex(wc_Sha512* sha, void* heap, int devid)
 {
+    int ret;
     if (sha == NULL) {
         return BAD_FUNC_ARG;
     }
-    return KcapiHashInit(&sha->kcapi, heap, devid, WC_NAME_SHA512_224);
+    ret = KcapiHashInit(&sha->kcapi, heap, devid, WC_NAME_SHA512_224);
+#if defined(WOLFSSL_SHA512_HASHTYPE)
+    if (ret == 0) {
+        sha->hashType = WC_HASH_TYPE_SHA512_224;
+    }
+#endif
+    return ret;
 }
 
 
@@ -488,7 +502,7 @@ int wc_Sha512_224Final(wc_Sha512* sha, byte* hash)
     if (sha == NULL) {
         return BAD_FUNC_ARG;
     }
-    return KcapiHashFinal(&sha->kcapi, hash, WC_SHA512_DIGEST_SIZE,
+    return KcapiHashFinal(&sha->kcapi, hash, WC_SHA512_224_DIGEST_SIZE,
                           WC_NAME_SHA512_224);
 }
 int wc_Sha512_224GetHash(wc_Sha512* sha, byte* hash)
@@ -496,7 +510,7 @@ int wc_Sha512_224GetHash(wc_Sha512* sha, byte* hash)
     if (sha == NULL) {
         return BAD_FUNC_ARG;
     }
-    return KcapiHashGet(&sha->kcapi, hash, WC_SHA512_DIGEST_SIZE);
+    return KcapiHashGet(&sha->kcapi, hash, WC_SHA512_224_DIGEST_SIZE);
 }
 
 
@@ -512,13 +526,20 @@ int wc_Sha512_224Copy(wc_Sha512* src, wc_Sha512* dst)
 #if !defined(WOLFSSL_NOSHA512_256)
 static const char WC_NAME_SHA512_256[] = "sha512-256";
 
-/* create KCAPI handle for SHA512 operation */
+/* create KCAPI handle for SHA512/256 operation */
 int wc_InitSha512_256_ex(wc_Sha512* sha, void* heap, int devid)
 {
+    int ret;
     if (sha == NULL) {
         return BAD_FUNC_ARG;
     }
-    return KcapiHashInit(&sha->kcapi, heap, devid, WC_NAME_SHA512_256);
+    ret = KcapiHashInit(&sha->kcapi, heap, devid, WC_NAME_SHA512_256);
+#if defined(WOLFSSL_SHA512_HASHTYPE)
+    if (ret == 0) {
+        sha->hashType = WC_HASH_TYPE_SHA512_256;
+    }
+#endif
+    return ret;
 }
 
 
@@ -527,7 +548,7 @@ int wc_Sha512_256Final(wc_Sha512* sha, byte* hash)
     if (sha == NULL) {
         return BAD_FUNC_ARG;
     }
-    return KcapiHashFinal(&sha->kcapi, hash, WC_SHA512_DIGEST_SIZE,
+    return KcapiHashFinal(&sha->kcapi, hash, WC_SHA512_256_DIGEST_SIZE,
                           WC_NAME_SHA512_256);
 }
 int wc_Sha512_256GetHash(wc_Sha512* sha, byte* hash)
@@ -535,7 +556,7 @@ int wc_Sha512_256GetHash(wc_Sha512* sha, byte* hash)
     if (sha == NULL) {
         return BAD_FUNC_ARG;
     }
-    return KcapiHashGet(&sha->kcapi, hash, WC_SHA512_DIGEST_SIZE);
+    return KcapiHashGet(&sha->kcapi, hash, WC_SHA512_256_DIGEST_SIZE);
 }
 
 

@@ -121,8 +121,8 @@ void echoclient_test(void* args)
 #ifdef WOLFSSL_LEANPSK
     doPSK = 1;
 #endif
-#if defined(NO_RSA) && !defined(HAVE_ECC) && !defined(HAVE_ED25519) && \
-                                                            !defined(HAVE_ED448)
+#if defined(NO_CERTS) || \
+    (defined(TEST_NO_CLASSIC_AUTH) && !defined(TEST_HAVE_PQC_CERT_AUTH))
     doPSK = 1;
 #endif
     (void)doPSK;
@@ -134,7 +134,8 @@ void echoclient_test(void* args)
 #endif
 
 #if !defined(NO_TLS)
-    #if defined(WOLFSSL_TLS13) && defined(WOLFSSL_SNIFFER)
+    #if defined(WOLFSSL_TLS13) && defined(WOLFSSL_SNIFFER) && \
+        !defined(WOLFSSL_NO_TLS12)
     method = wolfTLSv1_2_client_method();
     #else
     method = wolfSSLv23_client_method();
@@ -146,7 +147,7 @@ void echoclient_test(void* args)
 #endif
     ctx    = SSL_CTX_new(method);
 
-#ifndef NO_FILESYSTEM
+#if !defined(NO_FILESYSTEM) && !defined(NO_CERTS)
     #ifndef NO_RSA
     if (SSL_CTX_load_verify_locations(ctx, caCertFile, 0) != WOLFSSL_SUCCESS)
         err_sys("can't load ca file, Please run from wolfSSL home dir");
@@ -160,6 +161,12 @@ void echoclient_test(void* args)
     #elif defined(HAVE_ED448)
         if (SSL_CTX_load_verify_locations(ctx, caEd448CertFile, 0) != WOLFSSL_SUCCESS)
             err_sys("can't load ca file, Please run from wolfSSL home dir");
+    #elif defined(NO_RSA) && defined(TEST_HAVE_MLDSA_CERTS)
+        if (SSL_CTX_load_verify_locations(ctx, caMldsaCertFile, 0) != WOLFSSL_SUCCESS)
+            err_sys("can't load ca file, Please run from wolfSSL home dir");
+    #elif defined(NO_RSA) && defined(TEST_HAVE_SLHDSA_CERTS)
+        if (SSL_CTX_load_verify_locations(ctx, caSlhdsaCertFile, 0) != WOLFSSL_SUCCESS)
+            err_sys("can't load ca file, Please run from wolfSSL home dir");
     #endif
 #elif !defined(NO_CERTS)
     if (!doPSK)
@@ -168,10 +175,13 @@ void echoclient_test(void* args)
             err_sys("can't load ca buffer");
 #endif
 
-#if defined(WOLFSSL_SNIFFER)
+#if defined(WOLFSSL_SNIFFER) && !defined(WOLFSSL_NO_TLS12)
     /* Only set if not running testsuite */
     if (XSTRSTR(argv[0], "testsuite") == NULL) {
-        /* don't use EDH, can't sniff tmp keys */
+        /* don't use EDH, can't sniff tmp keys. A TLS 1.3 sniffer needs a key
+         * log file or static ephemeral keys instead, so this static RSA suite
+         * is only pinned where TLS 1.2 exists. Advisory: a build without the
+         * suite's ciphers keeps the default list. */
         SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
     }
 #endif

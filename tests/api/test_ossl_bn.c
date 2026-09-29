@@ -323,6 +323,42 @@ int test_wolfSSL_BN_enc_dec(void)
     ExpectNotNull(BN_bin2bn(binNum, sizeof(binNum), b));
     ExpectIntEQ(BN_cmp(a, b), -1);
 
+    /* BN_bn2binpad tests */
+    {
+        unsigned char padOut[5];
+
+        /* Invalid parameters */
+        ExpectIntEQ(BN_bn2binpad(NULL, padOut, sizeof(padOut)), -1);
+        ExpectIntEQ(BN_bn2binpad(&emptyBN, padOut, sizeof(padOut)), -1);
+        ExpectIntEQ(BN_bn2binpad(a, NULL, sizeof(padOut)), -1);
+        ExpectIntEQ(BN_bn2binpad(a, padOut, -1), -1);
+        /* toLen too small for the value */
+        ExpectNotNull(BN_bin2bn(binNum, sizeof(binNum), b));
+        ExpectIntEQ(BN_bn2binpad(b, padOut, 2), -1);
+        /* Normal case: a = 2, padded to 5 bytes */
+        XMEMSET(padOut, 0xFF, sizeof(padOut));
+        ExpectIntEQ(BN_bn2binpad(a, padOut, 5), 5);
+        ExpectIntEQ(padOut[0], 0x00);
+        ExpectIntEQ(padOut[1], 0x00);
+        ExpectIntEQ(padOut[2], 0x00);
+        ExpectIntEQ(padOut[3], 0x00);
+        ExpectIntEQ(padOut[4], 0x02);
+        /* Exact size (no padding needed) */
+        ExpectIntEQ(BN_bn2binpad(a, padOut, 1), 1);
+        ExpectIntEQ(padOut[0], 0x02);
+        /* Zero value padded to 3 bytes */
+        ExpectIntEQ(BN_set_word(a, 0), 1);
+        ExpectIntEQ(BN_bn2binpad(a, padOut, 3), 3);
+        ExpectIntEQ(padOut[0], 0x00);
+        ExpectIntEQ(padOut[1], 0x00);
+        ExpectIntEQ(padOut[2], 0x00);
+        /* toLen == 0 with zero-valued BN is valid */
+        ExpectIntEQ(BN_bn2binpad(a, padOut, 0), 0);
+        /* toLen == 0 with non-zero BN is an error */
+        ExpectIntEQ(BN_set_word(a, 2), 1);
+        ExpectIntEQ(BN_bn2binpad(a, padOut, 0), -1);
+    }
+
     ExpectNotNull(str = BN_bn2hex(a));
     ExpectNotNull(BN_hex2bn(&b, str));
     ExpectIntEQ(BN_cmp(a, b), 0);
@@ -885,6 +921,8 @@ int test_wolfSSL_BN_rand(void)
     BIGNUM* bn = NULL;
     BIGNUM* range = NULL;
     BIGNUM emptyBN;
+    int i;
+    int seen;
 
     XMEMSET(&emptyBN, 0, sizeof(emptyBN));
     ExpectNotNull(bn = BN_new());
@@ -1008,6 +1046,42 @@ int test_wolfSSL_BN_rand(void)
     ExpectIntEQ(BN_rand(bn, 13, WOLFSSL_BN_RAND_TOP_ONE,
         WOLFSSL_BN_RAND_BOTTOM_ANY), 1);
     ExpectIntEQ(BN_num_bits(bn), 13);
+
+    /* A request for a multiple of 8 bits keeps every generated bit. Shifting
+     * out a whole byte would make the 8-bit values zero, hold the 16-bit
+     * values in the low byte, and fix the 8-bit top bit results at 0x80. */
+    seen = 0;
+    for (i = 0; (i < 64) && EXPECT_SUCCESS(); i++) {
+        ExpectIntEQ(BN_rand(bn, 8, WOLFSSL_BN_RAND_TOP_ANY,
+            WOLFSSL_BN_RAND_BOTTOM_ANY), 1);
+        if (EXPECT_SUCCESS() && (BN_is_zero(bn) == 0)) {
+            seen = 1;
+            break;
+        }
+    }
+    ExpectIntEQ(seen, 1);
+
+    seen = 0;
+    for (i = 0; (i < 64) && EXPECT_SUCCESS(); i++) {
+        ExpectIntEQ(BN_rand(bn, 16, WOLFSSL_BN_RAND_TOP_ANY,
+            WOLFSSL_BN_RAND_BOTTOM_ANY), 1);
+        if (EXPECT_SUCCESS() && (BN_num_bits(bn) > 8)) {
+            seen = 1;
+            break;
+        }
+    }
+    ExpectIntEQ(seen, 1);
+
+    seen = 0;
+    for (i = 0; (i < 64) && EXPECT_SUCCESS(); i++) {
+        ExpectIntEQ(BN_pseudo_rand(bn, 8, WOLFSSL_BN_RAND_TOP_ONE,
+            WOLFSSL_BN_RAND_BOTTOM_ANY), 1);
+        if (EXPECT_SUCCESS() && (BN_get_word(bn) != 0x80)) {
+            seen = 1;
+            break;
+        }
+    }
+    ExpectIntEQ(seen, 1);
 
     ExpectIntEQ(BN_rand(range, 64, WOLFSSL_BN_RAND_TOP_ONE,
         WOLFSSL_BN_RAND_BOTTOM_ANY), 1);

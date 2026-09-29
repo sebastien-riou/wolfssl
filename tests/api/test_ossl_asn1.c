@@ -198,11 +198,11 @@ int test_wolfSSL_ASN1_INTEGER_BN(void)
     }
 #if defined(WOLFSSL_QT) || defined(WOLFSSL_HAPROXY)
     ExpectNotNull(bn = ASN1_INTEGER_to_BN(ai, NULL));
+#else
+    ExpectNull(bn = ASN1_INTEGER_to_BN(ai, NULL));
+#endif
     BN_free(bn);
     bn = NULL;
-#else
-    ExpectNull(ASN1_INTEGER_to_BN(ai, NULL));
-#endif
 
     if (ai != NULL) {
         ai->data[0] = 0x02; /* tag for ASN_INTEGER */
@@ -213,11 +213,11 @@ int test_wolfSSL_ASN1_INTEGER_BN(void)
 #if defined(WOLFSSL_QT) || defined(WOLFSSL_HAPROXY)
     /* Interpreted as a number 0x020403. */
     ExpectNotNull(bn = ASN1_INTEGER_to_BN(ai, NULL));
+#else
+    ExpectNull(bn = ASN1_INTEGER_to_BN(ai, NULL));
+#endif
     BN_free(bn);
     bn = NULL;
-#else
-    ExpectNull(ASN1_INTEGER_to_BN(ai, NULL));
-#endif
 
     if (ai != NULL) {
         ai->data[0] = 0x02; /* tag for ASN_INTEGER */
@@ -434,6 +434,8 @@ int test_wolfSSL_d2i_ASN1_INTEGER(void)
         0xd2, 0x96, 0xdf, 0xd9, 0xd0, 0x4f, 0xad, 0xd7
     };
     static const byte garbageDer[] = {0xDE, 0xAD, 0xBE, 0xEF};
+    /* Long-form length with INT_MAX content bytes for overflow testing */
+    static const byte overflowLenDer[] = {0x02, 0x84, 0x7F, 0xFF, 0xFF, 0xFF};
 
     static const ASN1IntTestVector testVectors[] = {
         {zeroDer, sizeof(zeroDer), 0},
@@ -464,6 +466,12 @@ int test_wolfSSL_d2i_ASN1_INTEGER(void)
     p = garbageDer;
     ExpectNull((a = wolfSSL_d2i_ASN1_INTEGER(&b, &p, sizeof(garbageDer))));
     ExpectNull(b);
+    /* Only run on 64-bit systems where the `long` inSz param fits */
+    if (LONG_MAX >= 0x80000005L) {
+        p = overflowLenDer;
+        ExpectNull((a = wolfSSL_d2i_ASN1_INTEGER(&b, &p, 0x80000005L)));
+        ExpectNull(b);
+    }
 
     /* Check i2d error conditions */
     /* NULL input. */
@@ -916,6 +924,8 @@ int test_wolfSSL_ASN1_get_object(void)
     const unsigned char objDerBadLen[] = { 0x30, 0x04 };
     const unsigned char objDerNotObj[] = { 0x02, 0x01, 0x00 };
     const unsigned char objDerNoData[] = { 0x06, 0x00 };
+    /* OBJECT_ID header claims 126 content bytes but only one is present. */
+    const unsigned char objDerOobLen[] = { 0x06, 0x7e, 0x2a };
     const unsigned char* p;
     unsigned char objDer[10];
     unsigned char* der;
@@ -943,14 +953,14 @@ int test_wolfSSL_ASN1_get_object(void)
 
     /* SEQUENCE */
     ExpectIntEQ(ASN1_get_object(&derBuf, &asnLen, &tag, &cls, len) & 0x80, 0);
-    ExpectIntEQ(asnLen, 861);
+    ExpectIntEQ(asnLen, 866);
     ExpectIntEQ(tag, 0x10);
     ExpectIntEQ(cls, 0);
 
     /* SEQUENCE */
     ExpectIntEQ(ASN1_get_object(&derBuf, &asnLen, &tag, &cls,
             len - (derBuf - cliecc_cert_der_256)) & 0x80, 0);
-    ExpectIntEQ(asnLen, 772);
+    ExpectIntEQ(asnLen, 775);
     ExpectIntEQ(tag, 0x10);
     ExpectIntEQ(cls, 0);
 
@@ -1018,6 +1028,10 @@ int test_wolfSSL_ASN1_get_object(void)
     ExpectNull(d2i_ASN1_OBJECT(&a, &p, sizeof(objDerNotObj)));
     p = objDerNoData;
     ExpectNull(d2i_ASN1_OBJECT(&a, &p, sizeof(objDerNoData)));
+    /* Oversized length must not let the header's claimed content length drive
+     * a read past the end of the actual buffer. */
+    p = objDerOobLen;
+    ExpectNull(d2i_ASN1_OBJECT(&a, &p, INT_MAX));
 
     /* Create an ASN OBJECT from content */
     p = derBuf + 2;
@@ -1187,6 +1201,22 @@ int test_wolfSSL_ASN1_STRING(void)
     ExpectNotNull(ASN1_STRING_data(str));
     ExpectIntEQ(ASN1_STRING_length(NULL), 0);
     ExpectIntGT(ASN1_STRING_length(str), 0);
+
+    /* Setting from the object's own buffer must not read freed/cleared data.
+     * Fixed-buffer case: data is held in the small array. */
+    ExpectIntEQ(ASN1_STRING_set(str, (const void*)data, (int)XSTRLEN(data)), 1);
+    ExpectIntEQ(ASN1_STRING_set(str, ASN1_STRING_get0_data(str),
+        ASN1_STRING_length(str)), 1);
+    ExpectIntEQ(ASN1_STRING_length(str), (int)XSTRLEN(data));
+    ExpectIntEQ(XMEMCMP(ASN1_STRING_get0_data(str), data, XSTRLEN(data)), 0);
+    /* Dynamic-buffer case: data is held in a heap allocation. */
+    ExpectIntEQ(ASN1_STRING_set(str, (const void*)longData,
+        (int)XSTRLEN(longData)), 1);
+    ExpectIntEQ(ASN1_STRING_set(str, ASN1_STRING_get0_data(str),
+        ASN1_STRING_length(str)), 1);
+    ExpectIntEQ(ASN1_STRING_length(str), (int)XSTRLEN(longData));
+    ExpectIntEQ(XMEMCMP(ASN1_STRING_get0_data(str), longData,
+        XSTRLEN(longData)), 0);
 
     ASN1_STRING_free(c);
     ASN1_STRING_free(str);
@@ -2165,7 +2195,7 @@ int test_wolfSSL_ASN1_TIME_print(void)
 
     ExpectIntEQ(ASN1_TIME_print(bio, notBefore), 1);
     ExpectIntEQ(BIO_read(bio, buf, sizeof(buf)), 24);
-    ExpectIntEQ(XMEMCMP(buf, "Nov 13 20:41:10 2025 GMT", sizeof(buf) - 1), 0);
+    ExpectIntEQ(XMEMCMP(buf, "Jun 11 21:44:27 2026 GMT", sizeof(buf) - 1), 0);
 
     /* Test BIO_write fails. */
     ExpectIntEQ(BIO_set_write_buf_size(fixed, 1), 1);
@@ -2814,6 +2844,28 @@ int test_ASN1_strings(void)
         str = NULL;
         XFREE(der, NULL, DYNAMIC_TYPE_ASN1);
         der = NULL;
+    }
+
+    /* Negative length must be rejected before the signed->word32 cast
+     * (CWE-190 -> CWE-125). The 2-byte header claims 16 bytes of content
+     * that are not present in the buffer; passing len = -1 would, without
+     * the guard, cast to ~4 GiB so GetLength accepts the claimed length and
+     * d2i_ASN1_STRING over-reads 16 bytes past the buffer. Every wrapper
+     * must instead return NULL without reading the content. */
+    {
+        unsigned char hdr[2];
+        const unsigned char* p;
+
+        hdr[1] = 0x10; /* claim 16 bytes of (absent) content */
+
+        p = hdr; hdr[0] = ASN_OCTET_STRING;
+        ExpectNull(d2i_ASN1_OCTET_STRING(NULL, &p, -1));
+        p = hdr; hdr[0] = ASN_GENERALSTRING;
+        ExpectNull(d2i_ASN1_GENERALSTRING(NULL, &p, -1));
+        p = hdr; hdr[0] = ASN_UTF8STRING;
+        ExpectNull(d2i_ASN1_UTF8STRING(NULL, &p, -1));
+        p = hdr; hdr[0] = ASN_BIT_STRING;
+        ExpectNull(d2i_ASN1_BIT_STRING(NULL, &p, -1));
     }
 
 #endif

@@ -25,85 +25,50 @@
  *       ../wolfssl/wolfcrypt/src/port/ppc32/ppc32-sha256-asm.S
  */
 
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_PPC32_SHA256_ASM_S
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
 
 #ifdef WOLFSSL_PPC32_ASM
 #ifndef WOLFSSL_PPC32_ASM_INLINE
 	.machine ppc
 #ifndef NO_SHA256
 #ifdef WOLFSSL_PPC32_ASM_SPE
-	.section	".text"
-	.section	.rodata
-	.type	L_SHA256_transform_spe_len_k, @object
+#ifndef __APPLE__
+	.text
+	.type	L_SHA256_transform_spe_len_k, %object
 	.size	L_SHA256_transform_spe_len_k, 256
-	.align	4
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
 L_SHA256_transform_spe_len_k:
-	.long	0x428a2f98
-	.long	0x71374491
-	.long	0xb5c0fbcf
-	.long	0xe9b5dba5
-	.long	0x3956c25b
-	.long	0x59f111f1
-	.long	0x923f82a4
-	.long	0xab1c5ed5
-	.long	0xd807aa98
-	.long	0x12835b01
-	.long	0x243185be
-	.long	0x550c7dc3
-	.long	0x72be5d74
-	.long	0x80deb1fe
-	.long	0x9bdc06a7
-	.long	0xc19bf174
-	.long	0xe49b69c1
-	.long	0xefbe4786
-	.long	0xfc19dc6
-	.long	0x240ca1cc
-	.long	0x2de92c6f
-	.long	0x4a7484aa
-	.long	0x5cb0a9dc
-	.long	0x76f988da
-	.long	0x983e5152
-	.long	0xa831c66d
-	.long	0xb00327c8
-	.long	0xbf597fc7
-	.long	0xc6e00bf3
-	.long	0xd5a79147
-	.long	0x6ca6351
-	.long	0x14292967
-	.long	0x27b70a85
-	.long	0x2e1b2138
-	.long	0x4d2c6dfc
-	.long	0x53380d13
-	.long	0x650a7354
-	.long	0x766a0abb
-	.long	0x81c2c92e
-	.long	0x92722c85
-	.long	0xa2bfe8a1
-	.long	0xa81a664b
-	.long	0xc24b8b70
-	.long	0xc76c51a3
-	.long	0xd192e819
-	.long	0xd6990624
-	.long	0xf40e3585
-	.long	0x106aa070
-	.long	0x19a4c116
-	.long	0x1e376c08
-	.long	0x2748774c
-	.long	0x34b0bcb5
-	.long	0x391c0cb3
-	.long	0x4ed8aa4a
-	.long	0x5b9cca4f
-	.long	0x682e6ff3
-	.long	0x748f82ee
-	.long	0x78a5636f
-	.long	0x84c87814
-	.long	0x8cc70208
-	.long	0x90befffa
-	.long	0xa4506ceb
-	.long	0xbef9a3f7
-	.long	0xc67178f2
+	.long	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5
+	.long	0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5
+	.long	0xd807aa98,0x12835b01,0x243185be,0x550c7dc3
+	.long	0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174
+	.long	0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc
+	.long	0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da
+	.long	0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7
+	.long	0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967
+	.long	0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13
+	.long	0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85
+	.long	0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3
+	.long	0xd192e819,0xd6990624,0xf40e3585,0x106aa070
+	.long	0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5
+	.long	0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3
+	.long	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208
+	.long	0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 	.section	".text"
 	.align	4
 	.globl	Transform_Sha256_Len
+	WC_ASM_ATT_HIDDEN(Transform_Sha256_Len)
 	.type	Transform_Sha256_Len, @function
 Transform_Sha256_Len:
 	stwu	1, -104(1)
@@ -1217,80 +1182,41 @@ L_SHA256_transform_spe_len_start:
 	.size	Transform_Sha256_Len,.-Transform_Sha256_Len
 #endif /* WOLFSSL_PPC32_ASM_SPE */
 #ifndef WOLFSSL_PPC32_ASM_SPE
-	.section	".text"
-	.section	.rodata
-	.type	L_SHA256_transform_len_k, @object
+#ifndef __APPLE__
+	.text
+	.type	L_SHA256_transform_len_k, %object
 	.size	L_SHA256_transform_len_k, 256
-	.align	4
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
 L_SHA256_transform_len_k:
-	.long	0x428a2f98
-	.long	0x71374491
-	.long	0xb5c0fbcf
-	.long	0xe9b5dba5
-	.long	0x3956c25b
-	.long	0x59f111f1
-	.long	0x923f82a4
-	.long	0xab1c5ed5
-	.long	0xd807aa98
-	.long	0x12835b01
-	.long	0x243185be
-	.long	0x550c7dc3
-	.long	0x72be5d74
-	.long	0x80deb1fe
-	.long	0x9bdc06a7
-	.long	0xc19bf174
-	.long	0xe49b69c1
-	.long	0xefbe4786
-	.long	0xfc19dc6
-	.long	0x240ca1cc
-	.long	0x2de92c6f
-	.long	0x4a7484aa
-	.long	0x5cb0a9dc
-	.long	0x76f988da
-	.long	0x983e5152
-	.long	0xa831c66d
-	.long	0xb00327c8
-	.long	0xbf597fc7
-	.long	0xc6e00bf3
-	.long	0xd5a79147
-	.long	0x6ca6351
-	.long	0x14292967
-	.long	0x27b70a85
-	.long	0x2e1b2138
-	.long	0x4d2c6dfc
-	.long	0x53380d13
-	.long	0x650a7354
-	.long	0x766a0abb
-	.long	0x81c2c92e
-	.long	0x92722c85
-	.long	0xa2bfe8a1
-	.long	0xa81a664b
-	.long	0xc24b8b70
-	.long	0xc76c51a3
-	.long	0xd192e819
-	.long	0xd6990624
-	.long	0xf40e3585
-	.long	0x106aa070
-	.long	0x19a4c116
-	.long	0x1e376c08
-	.long	0x2748774c
-	.long	0x34b0bcb5
-	.long	0x391c0cb3
-	.long	0x4ed8aa4a
-	.long	0x5b9cca4f
-	.long	0x682e6ff3
-	.long	0x748f82ee
-	.long	0x78a5636f
-	.long	0x84c87814
-	.long	0x8cc70208
-	.long	0x90befffa
-	.long	0xa4506ceb
-	.long	0xbef9a3f7
-	.long	0xc67178f2
+	.long	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5
+	.long	0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5
+	.long	0xd807aa98,0x12835b01,0x243185be,0x550c7dc3
+	.long	0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174
+	.long	0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc
+	.long	0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da
+	.long	0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7
+	.long	0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967
+	.long	0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13
+	.long	0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85
+	.long	0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3
+	.long	0xd192e819,0xd6990624,0xf40e3585,0x106aa070
+	.long	0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5
+	.long	0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3
+	.long	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208
+	.long	0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 #ifndef __PIC__
 	.section	".text"
 	.align	4
 	.globl	Transform_Sha256_Len
+	WC_ASM_ATT_HIDDEN(Transform_Sha256_Len)
 	.type	Transform_Sha256_Len, @function
 Transform_Sha256_Len:
 	stwu	1, -76(1)
@@ -3741,6 +3667,8 @@ L_SHA256_transform_len_begin:
 	mtctr	0
 	# Start of 16 rounds
 L_SHA256_transform_len_start:
+	mfctr	5
+	cmpwi	7, 5, 1
 	# Round 0
 	rotlwi	0, 11, 26
 	rotlwi	5, 11, 21
@@ -3767,9 +3695,7 @@ L_SHA256_transform_len_start:
 	and	0, 0, 5
 	xor	0, 0, 8
 	add	15, 15, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_0
+	beq	7, L_SHA256_transform_len_after_blk_0
 	# Calc new W[0]
 	rotlwi	0, 17, 25
 	rotlwi	5, 17, 14
@@ -3811,9 +3737,7 @@ L_SHA256_transform_len_after_blk_0:
 	and	0, 0, 5
 	xor	0, 0, 7
 	add	14, 14, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_1
+	beq	7, L_SHA256_transform_len_after_blk_1
 	# Calc new W[1]
 	rotlwi	0, 18, 25
 	rotlwi	5, 18, 14
@@ -3855,9 +3779,7 @@ L_SHA256_transform_len_after_blk_1:
 	and	0, 0, 5
 	xor	0, 0, 15
 	add	12, 12, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_2
+	beq	7, L_SHA256_transform_len_after_blk_2
 	# Calc new W[2]
 	rotlwi	0, 19, 25
 	rotlwi	5, 19, 14
@@ -3899,9 +3821,7 @@ L_SHA256_transform_len_after_blk_2:
 	and	0, 0, 5
 	xor	0, 0, 14
 	add	11, 11, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_3
+	beq	7, L_SHA256_transform_len_after_blk_3
 	# Calc new W[3]
 	rotlwi	0, 20, 25
 	rotlwi	5, 20, 14
@@ -3943,9 +3863,7 @@ L_SHA256_transform_len_after_blk_3:
 	and	0, 0, 5
 	xor	0, 0, 12
 	add	10, 10, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_4
+	beq	7, L_SHA256_transform_len_after_blk_4
 	# Calc new W[4]
 	rotlwi	0, 21, 25
 	rotlwi	5, 21, 14
@@ -3987,9 +3905,7 @@ L_SHA256_transform_len_after_blk_4:
 	and	0, 0, 5
 	xor	0, 0, 11
 	add	9, 9, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_5
+	beq	7, L_SHA256_transform_len_after_blk_5
 	# Calc new W[5]
 	rotlwi	0, 22, 25
 	rotlwi	5, 22, 14
@@ -4031,9 +3947,7 @@ L_SHA256_transform_len_after_blk_5:
 	and	0, 0, 5
 	xor	0, 0, 10
 	add	8, 8, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_6
+	beq	7, L_SHA256_transform_len_after_blk_6
 	# Calc new W[6]
 	rotlwi	0, 23, 25
 	rotlwi	5, 23, 14
@@ -4075,9 +3989,7 @@ L_SHA256_transform_len_after_blk_6:
 	and	0, 0, 5
 	xor	0, 0, 9
 	add	7, 7, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_7
+	beq	7, L_SHA256_transform_len_after_blk_7
 	# Calc new W[7]
 	rotlwi	0, 24, 25
 	rotlwi	5, 24, 14
@@ -4119,9 +4031,7 @@ L_SHA256_transform_len_after_blk_7:
 	and	0, 0, 5
 	xor	0, 0, 8
 	add	15, 15, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_8
+	beq	7, L_SHA256_transform_len_after_blk_8
 	# Calc new W[8]
 	rotlwi	0, 25, 25
 	rotlwi	5, 25, 14
@@ -4163,9 +4073,7 @@ L_SHA256_transform_len_after_blk_8:
 	and	0, 0, 5
 	xor	0, 0, 7
 	add	14, 14, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_9
+	beq	7, L_SHA256_transform_len_after_blk_9
 	# Calc new W[9]
 	rotlwi	0, 26, 25
 	rotlwi	5, 26, 14
@@ -4207,9 +4115,7 @@ L_SHA256_transform_len_after_blk_9:
 	and	0, 0, 5
 	xor	0, 0, 15
 	add	12, 12, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_10
+	beq	7, L_SHA256_transform_len_after_blk_10
 	# Calc new W[10]
 	rotlwi	0, 27, 25
 	rotlwi	5, 27, 14
@@ -4251,9 +4157,7 @@ L_SHA256_transform_len_after_blk_10:
 	and	0, 0, 5
 	xor	0, 0, 14
 	add	11, 11, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_11
+	beq	7, L_SHA256_transform_len_after_blk_11
 	# Calc new W[11]
 	rotlwi	0, 28, 25
 	rotlwi	5, 28, 14
@@ -4295,9 +4199,7 @@ L_SHA256_transform_len_after_blk_11:
 	and	0, 0, 5
 	xor	0, 0, 12
 	add	10, 10, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_12
+	beq	7, L_SHA256_transform_len_after_blk_12
 	# Calc new W[12]
 	rotlwi	0, 29, 25
 	rotlwi	5, 29, 14
@@ -4339,9 +4241,7 @@ L_SHA256_transform_len_after_blk_12:
 	and	0, 0, 5
 	xor	0, 0, 11
 	add	9, 9, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_13
+	beq	7, L_SHA256_transform_len_after_blk_13
 	# Calc new W[13]
 	rotlwi	0, 30, 25
 	rotlwi	5, 30, 14
@@ -4383,9 +4283,7 @@ L_SHA256_transform_len_after_blk_13:
 	and	0, 0, 5
 	xor	0, 0, 10
 	add	8, 8, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_14
+	beq	7, L_SHA256_transform_len_after_blk_14
 	# Calc new W[14]
 	rotlwi	0, 31, 25
 	rotlwi	5, 31, 14
@@ -4427,9 +4325,7 @@ L_SHA256_transform_len_after_blk_14:
 	and	0, 0, 5
 	xor	0, 0, 9
 	add	7, 7, 0
-	mfctr	5
-	cmpwi	0, 5, 1
-	beq	0, L_SHA256_transform_len_after_blk_15
+	beq	7, L_SHA256_transform_len_after_blk_15
 	# Calc new W[15]
 	rotlwi	0, 16, 25
 	rotlwi	5, 16, 14
@@ -4509,6 +4405,7 @@ L_SHA256_transform_len_after_blk_15:
 	.section	".text"
 	.align	4
 	.globl	Transform_Sha256_Len
+	WC_ASM_ATT_HIDDEN(Transform_Sha256_Len)
 	.type	Transform_Sha256_Len, @function
 Transform_Sha256_Len:
 	stwu	1, -68(1)
@@ -6977,6 +6874,8 @@ L_SHA256_transform_len_begin:
 	mtctr	3
 	# Start of 16 rounds
 L_SHA256_transform_len_start:
+	mfctr	5
+	cmpwi	7, 5, 1
 	# Round 0
 	rotlwi	3, 9, 26
 	rotlwi	5, 9, 21
@@ -7003,9 +6902,7 @@ L_SHA256_transform_len_start:
 	and	3, 3, 5
 	xor	3, 3, 4
 	add	12, 12, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_0
+	beq	7, L_SHA256_transform_len_after_blk_0
 	# Calc new W[0]
 	rotlwi	3, 15, 25
 	rotlwi	5, 15, 14
@@ -7047,9 +6944,7 @@ L_SHA256_transform_len_after_blk_0:
 	and	3, 3, 5
 	xor	3, 3, 0
 	add	11, 11, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_1
+	beq	7, L_SHA256_transform_len_after_blk_1
 	# Calc new W[1]
 	rotlwi	3, 16, 25
 	rotlwi	5, 16, 14
@@ -7091,9 +6986,7 @@ L_SHA256_transform_len_after_blk_1:
 	and	3, 3, 5
 	xor	3, 3, 12
 	add	10, 10, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_2
+	beq	7, L_SHA256_transform_len_after_blk_2
 	# Calc new W[2]
 	rotlwi	3, 17, 25
 	rotlwi	5, 17, 14
@@ -7135,9 +7028,7 @@ L_SHA256_transform_len_after_blk_2:
 	and	3, 3, 5
 	xor	3, 3, 11
 	add	9, 9, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_3
+	beq	7, L_SHA256_transform_len_after_blk_3
 	# Calc new W[3]
 	rotlwi	3, 18, 25
 	rotlwi	5, 18, 14
@@ -7179,9 +7070,7 @@ L_SHA256_transform_len_after_blk_3:
 	and	3, 3, 5
 	xor	3, 3, 10
 	add	8, 8, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_4
+	beq	7, L_SHA256_transform_len_after_blk_4
 	# Calc new W[4]
 	rotlwi	3, 19, 25
 	rotlwi	5, 19, 14
@@ -7223,9 +7112,7 @@ L_SHA256_transform_len_after_blk_4:
 	and	3, 3, 5
 	xor	3, 3, 9
 	add	7, 7, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_5
+	beq	7, L_SHA256_transform_len_after_blk_5
 	# Calc new W[5]
 	rotlwi	3, 20, 25
 	rotlwi	5, 20, 14
@@ -7267,9 +7154,7 @@ L_SHA256_transform_len_after_blk_5:
 	and	3, 3, 5
 	xor	3, 3, 8
 	add	4, 4, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_6
+	beq	7, L_SHA256_transform_len_after_blk_6
 	# Calc new W[6]
 	rotlwi	3, 21, 25
 	rotlwi	5, 21, 14
@@ -7311,9 +7196,7 @@ L_SHA256_transform_len_after_blk_6:
 	and	3, 3, 5
 	xor	3, 3, 7
 	add	0, 0, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_7
+	beq	7, L_SHA256_transform_len_after_blk_7
 	# Calc new W[7]
 	rotlwi	3, 22, 25
 	rotlwi	5, 22, 14
@@ -7355,9 +7238,7 @@ L_SHA256_transform_len_after_blk_7:
 	and	3, 3, 5
 	xor	3, 3, 4
 	add	12, 12, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_8
+	beq	7, L_SHA256_transform_len_after_blk_8
 	# Calc new W[8]
 	rotlwi	3, 23, 25
 	rotlwi	5, 23, 14
@@ -7399,9 +7280,7 @@ L_SHA256_transform_len_after_blk_8:
 	and	3, 3, 5
 	xor	3, 3, 0
 	add	11, 11, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_9
+	beq	7, L_SHA256_transform_len_after_blk_9
 	# Calc new W[9]
 	rotlwi	3, 24, 25
 	rotlwi	5, 24, 14
@@ -7443,9 +7322,7 @@ L_SHA256_transform_len_after_blk_9:
 	and	3, 3, 5
 	xor	3, 3, 12
 	add	10, 10, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_10
+	beq	7, L_SHA256_transform_len_after_blk_10
 	# Calc new W[10]
 	rotlwi	3, 25, 25
 	rotlwi	5, 25, 14
@@ -7487,9 +7364,7 @@ L_SHA256_transform_len_after_blk_10:
 	and	3, 3, 5
 	xor	3, 3, 11
 	add	9, 9, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_11
+	beq	7, L_SHA256_transform_len_after_blk_11
 	# Calc new W[11]
 	rotlwi	3, 26, 25
 	rotlwi	5, 26, 14
@@ -7531,9 +7406,7 @@ L_SHA256_transform_len_after_blk_11:
 	and	3, 3, 5
 	xor	3, 3, 10
 	add	8, 8, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_12
+	beq	7, L_SHA256_transform_len_after_blk_12
 	# Calc new W[12]
 	rotlwi	3, 27, 25
 	rotlwi	5, 27, 14
@@ -7575,9 +7448,7 @@ L_SHA256_transform_len_after_blk_12:
 	and	3, 3, 5
 	xor	3, 3, 9
 	add	7, 7, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_13
+	beq	7, L_SHA256_transform_len_after_blk_13
 	# Calc new W[13]
 	rotlwi	3, 28, 25
 	rotlwi	5, 28, 14
@@ -7619,9 +7490,7 @@ L_SHA256_transform_len_after_blk_13:
 	and	3, 3, 5
 	xor	3, 3, 8
 	add	4, 4, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_14
+	beq	7, L_SHA256_transform_len_after_blk_14
 	# Calc new W[14]
 	rotlwi	3, 29, 25
 	rotlwi	5, 29, 14
@@ -7663,9 +7532,7 @@ L_SHA256_transform_len_after_blk_14:
 	and	3, 3, 5
 	xor	3, 3, 7
 	add	0, 0, 3
-	mfctr	5
-	cmpwi	3, 5, 1
-	beq	3, L_SHA256_transform_len_after_blk_15
+	beq	7, L_SHA256_transform_len_after_blk_15
 	# Calc new W[15]
 	rotlwi	3, 14, 25
 	rotlwi	5, 14, 14

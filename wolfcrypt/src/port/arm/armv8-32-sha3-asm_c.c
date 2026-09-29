@@ -25,13 +25,20 @@
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-32-sha3-asm.c
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_ARMV8_32_SHA3_ASM_C
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
 #include <wolfssl/wolfcrypt/error-crypt.h>
+
+/* Honor WC_SHA3_NO_ASM as sha3.c does: suppress this NEON BlockSha3 so it
+ * doesn't multiply-define against sha3.c's C BlockSha3 on arm32. */
+#ifdef WC_SHA3_NO_ASM
+    #undef WOLFSSL_ARMASM
+#endif
 
 #ifdef WOLFSSL_ARMASM
 #if !defined(__aarch64__) && !defined(WOLFSSL_ARMASM_THUMB2)
-#include <stdint.h>
-#include <wolfssl/wolfcrypt/libwolfssl_sources.h>
 #ifdef WOLFSSL_ARMASM_INLINE
 
 #ifdef __IAR_SYSTEMS_ICC__
@@ -51,7 +58,7 @@
 
 #ifdef WOLFSSL_SHA3
 #ifndef WOLFSSL_ARMASM_NO_NEON
-static const word64 L_sha3_arm32_neon_rt[] = {
+XALIGNED(16) static const word64 L_sha3_arm32_neon_rt[] = {
     0x0000000000000001UL, 0x0000000000008082UL,
     0x800000000000808aUL, 0x8000000080008000UL,
     0x000000000000808bUL, 0x0000000080000001UL,
@@ -72,11 +79,11 @@ static const word64 L_sha3_arm32_neon_rt[] = {
 WC_OMIT_FRAME_POINTER void BlockSha3(word64* state_p)
 #else
 WC_OMIT_FRAME_POINTER void BlockSha3(word64* state)
-#endif /* WOLFSSL_NO_VAR_ASSIGN_REG */
+#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 {
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    register word64* state asm ("r0") = (word64*)state_p;
-    register word64* L_sha3_arm32_neon_rt_c asm ("r1") =
+    register word64* state __asm__ ("r0") = (word64*)state_p;
+    register word64* L_sha3_arm32_neon_rt_c __asm__ ("r1") =
         (word64*)&L_sha3_arm32_neon_rt;
 #else
     register word64* L_sha3_arm32_neon_rt_c = (word64*)&L_sha3_arm32_neon_rt;
@@ -96,7 +103,7 @@ WC_OMIT_FRAME_POINTER void BlockSha3(word64* state)
         "vld1.8	{d24}, [%[state]]\n\t"
         "sub	%[state], %[state], #0xc0\n\t"
         "\n"
-    "L_sha3_arm32_neon_begin_%=: \n\t"
+    "L_sha3_arm32_neon_begin_%=:\n\t"
         /* Calc b[0..4] */
         "veor	d26, d0, d5\n\t"
         "veor	d27, d1, d6\n\t"
@@ -359,7 +366,7 @@ WC_OMIT_FRAME_POINTER void BlockSha3(word64* state)
 
 #endif /* WOLFSSL_ARMASM_NO_NEON */
 #ifdef WOLFSSL_ARMASM_NO_NEON
-static const word64 L_sha3_arm32_rt[] = {
+XALIGNED(16) static const word64 L_sha3_arm32_rt[] = {
     0x0000000000000001UL, 0x0000000000008082UL,
     0x800000000000808aUL, 0x8000000080008000UL,
     0x000000000000808bUL, 0x0000000080000001UL,
@@ -380,11 +387,12 @@ static const word64 L_sha3_arm32_rt[] = {
 WC_OMIT_FRAME_POINTER void BlockSha3(word64* state_p)
 #else
 WC_OMIT_FRAME_POINTER void BlockSha3(word64* state)
-#endif /* WOLFSSL_NO_VAR_ASSIGN_REG */
+#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 {
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    register word64* state asm ("r0") = (word64*)state_p;
-    register word64* L_sha3_arm32_rt_c asm ("r1") = (word64*)&L_sha3_arm32_rt;
+    register word64* state __asm__ ("r0") = (word64*)state_p;
+    register word64* L_sha3_arm32_rt_c __asm__ ("r1") =
+        (word64*)&L_sha3_arm32_rt;
 #else
     register word64* L_sha3_arm32_rt_c = (word64*)&L_sha3_arm32_rt;
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
@@ -394,7 +402,7 @@ WC_OMIT_FRAME_POINTER void BlockSha3(word64* state)
         "mov	r1, %[L_sha3_arm32_rt]\n\t"
         "mov	r2, #12\n\t"
         "\n"
-    "L_sha3_arm32_begin_%=: \n\t"
+    "L_sha3_arm32_begin_%=:\n\t"
         "str	r2, [sp, #200]\n\t"
         /* Round even */
         /* Calc b[4] */
@@ -2368,7 +2376,7 @@ WC_OMIT_FRAME_POINTER void BlockSha3(word64* state)
 
 #endif /* WOLFSSL_ARMASM_NO_NEON */
 #endif /* WOLFSSL_SHA3 */
-#endif /* !__aarch64__ && !WOLFSSL_ARMASM_THUMB2 */
-#endif /* WOLFSSL_ARMASM */
 
 #endif /* WOLFSSL_ARMASM_INLINE */
+#endif /* !__aarch64__ && !WOLFSSL_ARMASM_THUMB2 */
+#endif /* WOLFSSL_ARMASM */

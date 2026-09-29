@@ -2,11 +2,12 @@
 
 mod common;
 
+#[cfg(random)]
 use wolfssl_wolfcrypt::random::RNG;
 use wolfssl_wolfcrypt::ed448::*;
 
 #[test]
-#[cfg(all(ed448_import, ed448_export))]
+#[cfg(all(ed448_import, ed448_export, random))]
 fn test_make_public() {
     common::setup();
 
@@ -21,6 +22,7 @@ fn test_make_public() {
 }
 
 #[test]
+#[cfg(random)]
 fn test_check_key() {
     let mut rng = RNG::new().expect("Error creating RNG");
     let mut ed = Ed448::generate(&mut rng).expect("Error with generate()");
@@ -215,8 +217,105 @@ fn test_ph_sign_verify() {
     assert!(signature_valid);
 }
 
+// The following tests exercise the Ok(false) return path (a well-formed but
+// invalid signature) of every Ed448 verify function. Each test signs a
+// message, then flips a bit in the R portion (first byte) of the signature.
+// This keeps the signature structurally valid (the S portion remains less
+// than the group order) but makes the verification comparison fail, which is
+// expected to produce Ok(false).
+//
+// The underlying wolfCrypt verify functions return SIG_VERIFY_E for a
+// well-formed but invalid signature instead of returning 0 with the result
+// flag cleared. The Rust wrappers map SIG_VERIFY_E to Ok(false) so that an
+// invalid signature is reported as Ok(false) rather than an error.
+
 #[test]
-#[cfg(all(ed448_import, ed448_export))]
+#[cfg(all(ed448_sign, ed448_verify, random))]
+fn test_verify_msg_bad_sig() {
+    common::setup();
+
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let mut ed = Ed448::generate(&mut rng).expect("Error with generate()");
+
+    let message = [0x42u8, 33, 55, 66];
+    let mut signature = [0u8; Ed448::SIG_SIZE];
+    ed.sign_msg(&message, None, &mut signature).expect("Error with sign_msg()");
+    signature[0] ^= 0x01;
+
+    assert_eq!(ed.verify_msg(&signature, &message, None), Ok(false));
+}
+
+#[test]
+#[cfg(all(ed448_sign, ed448_verify, random))]
+fn test_verify_msg_ex_bad_sig() {
+    common::setup();
+
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let mut ed = Ed448::generate(&mut rng).expect("Error with generate()");
+
+    let message = [0x42u8, 33, 55, 66];
+    let mut signature = [0u8; Ed448::SIG_SIZE];
+    ed.sign_msg_ex(&message, None, Ed448::ED448, &mut signature).expect("Error with sign_msg_ex()");
+    signature[0] ^= 0x01;
+
+    assert_eq!(ed.verify_msg_ex(&signature, &message, None, Ed448::ED448), Ok(false));
+}
+
+#[test]
+#[cfg(all(ed448_sign, ed448_verify, random))]
+fn test_verify_msg_ph_bad_sig() {
+    common::setup();
+
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let mut ed = Ed448::generate(&mut rng).expect("Error with generate()");
+
+    let message = [0x42u8, 33, 55, 66];
+    let context = b"context";
+    let mut signature = [0u8; Ed448::SIG_SIZE];
+    ed.sign_msg_ph(&message, Some(context), &mut signature).expect("Error with sign_msg_ph()");
+    signature[0] ^= 0x01;
+
+    assert_eq!(ed.verify_msg_ph(&signature, &message, Some(context)), Ok(false));
+}
+
+#[test]
+#[cfg(all(ed448_sign, ed448_verify, random))]
+fn test_verify_hash_ph_bad_sig() {
+    common::setup();
+
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let mut ed = Ed448::generate(&mut rng).expect("Error with generate()");
+
+    let hash = [0x55u8; 64];
+    let context = b"context";
+    let mut signature = [0u8; Ed448::SIG_SIZE];
+    ed.sign_hash_ph(&hash, Some(context), &mut signature).expect("Error with sign_hash_ph()");
+    signature[0] ^= 0x01;
+
+    assert_eq!(ed.verify_hash_ph(&signature, &hash, Some(context)), Ok(false));
+}
+
+#[test]
+#[cfg(all(ed448_sign, ed448_streaming_verify, random))]
+fn test_verify_msg_final_bad_sig() {
+    common::setup();
+
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let mut ed = Ed448::generate(&mut rng).expect("Error with generate()");
+
+    let message = [0x42u8, 33, 55, 66];
+    let mut signature = [0u8; Ed448::SIG_SIZE];
+    ed.sign_msg(&message, None, &mut signature).expect("Error with sign_msg()");
+    signature[0] ^= 0x01;
+
+    ed.verify_msg_init(&signature, None, Ed448::ED448).expect("Error with verify_msg_init()");
+    ed.verify_msg_update(&message).expect("Error with verify_msg_update()");
+
+    assert_eq!(ed.verify_msg_final(&signature), Ok(false));
+}
+
+#[test]
+#[cfg(all(ed448_import, ed448_export, random))]
 fn test_import_export() {
     common::setup();
 
@@ -248,6 +347,44 @@ fn test_import_export() {
 }
 
 #[test]
+#[cfg(all(feature = "signature", ed448_import, ed448_export, ed448_sign, ed448_verify, random))]
+fn test_signature_traits() {
+    use signature::{Keypair, SignerMut, Verifier};
+
+    common::setup();
+
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let mut ed = Ed448::generate(&mut rng).expect("Error with generate()");
+
+    let message = b"message to sign via RustCrypto signature trait";
+    let sig: Signature = ed.sign(message);
+
+    // Round-trip the signature bytes through the SignatureEncoding machinery.
+    let bytes = sig.to_bytes();
+    assert_eq!(bytes.len(), Ed448::SIG_SIZE);
+    let sig_round_trip = Signature::try_from(bytes.as_ref()).expect("Signature::try_from bytes");
+    assert_eq!(sig, sig_round_trip);
+
+    // Reject signatures of the wrong length.
+    assert!(Signature::try_from(&bytes[..bytes.len() - 1]).is_err());
+
+    // VerifyingKey obtained via the Keypair trait verifies this signature.
+    let vk: VerifyingKey = ed.verifying_key();
+    vk.verify(message, &sig).expect("Verifier::verify failed");
+
+    // A tampered message must fail verification.
+    let mut tampered = *message;
+    tampered[0] ^= 0x01;
+    assert!(vk.verify(&tampered, &sig).is_err());
+
+    // VerifyingKey bytes round-trip.
+    let vk_bytes = vk.to_bytes();
+    let vk2 = VerifyingKey::try_from(vk_bytes.as_ref()).expect("VerifyingKey::try_from bytes");
+    assert_eq!(vk, vk2);
+}
+
+#[test]
+#[cfg(random)]
 fn test_sizes() {
     let mut rng = RNG::new().expect("Error creating RNG");
     let ed = Ed448::generate(&mut rng).expect("Error with generate()");

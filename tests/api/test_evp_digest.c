@@ -165,11 +165,11 @@ int test_wolfSSL_EVP_sm3(void)
 int test_EVP_blake2(void)
 {
     EXPECT_DECLS;
-#if defined(OPENSSL_EXTRA) && (defined(HAVE_BLAKE2) || defined(HAVE_BLAKE2S))
+#if defined(OPENSSL_EXTRA) && (defined(HAVE_BLAKE2B) || defined(HAVE_BLAKE2S))
     const EVP_MD* md = NULL;
     (void)md;
 
-#if defined(HAVE_BLAKE2)
+#if defined(HAVE_BLAKE2B)
     ExpectNotNull(md = EVP_blake2b512());
     ExpectIntEQ(XSTRNCMP(md, "BLAKE2b512", XSTRLEN("BLAKE2b512")), 0);
 #endif
@@ -222,7 +222,7 @@ int test_wolfSSL_EVP_get_digestbynid(void)
 int test_wolfSSL_EVP_Digest(void)
 {
     EXPECT_DECLS;
-#if defined(OPENSSL_EXTRA) && !defined(NO_SHA256) && !defined(NO_PWDBASED)
+#if defined(OPENSSL_EXTRA) && !defined(NO_SHA256)
     const char* in = "abc";
     int   inLen = (int)XSTRLEN(in);
     byte  out[WC_SHA256_DIGEST_SIZE];
@@ -366,6 +366,22 @@ int test_wolfSSL_EVP_DigestFinalXOF(void)
     ExpectIntEQ(EVP_DigestUpdate(&mdCtx, data, 1), WOLFSSL_SUCCESS);
     ExpectIntEQ(EVP_DigestFinal(&mdCtx, shake, &sz), WOLFSSL_SUCCESS);
     ExpectIntEQ(sz, 16);
+    ExpectIntEQ(EVP_MD_CTX_cleanup(&mdCtx), WOLFSSL_SUCCESS);
+    #endif
+
+    /* NULL size pointer on the non-XOF Final must not crash;
+     * defaults to 32 / 16 bytes for SHAKE256 / SHAKE128. */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(EVP_DigestInit(&mdCtx, EVP_shake256()), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_DigestUpdate(&mdCtx, data, 1), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_DigestFinal(&mdCtx, shake, NULL), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_MD_CTX_cleanup(&mdCtx), WOLFSSL_SUCCESS);
+
+    #if defined(WOLFSSL_SHAKE128)
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(EVP_DigestInit(&mdCtx, EVP_shake128()), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_DigestUpdate(&mdCtx, data, 1), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_DigestFinal(&mdCtx, shake, NULL), WOLFSSL_SUCCESS);
     ExpectIntEQ(EVP_MD_CTX_cleanup(&mdCtx), WOLFSSL_SUCCESS);
     #endif
 #endif

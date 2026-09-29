@@ -429,6 +429,7 @@ int test_wolfSSL_EC_POINT(void)
         X, Y, ctx), 0);
 
 #if !defined(WOLFSSL_ATECC508A) && !defined(WOLFSSL_ATECC608A) && \
+    !defined(WOLFSSL_MICROCHIP_TA100) && \
     !defined(HAVE_SELFTEST) && !defined(WOLFSSL_SP_MATH) && \
     !defined(WOLF_CRYPTO_CB_ONLY_ECC)
     ExpectIntEQ(EC_POINT_add(NULL, NULL, NULL, NULL, ctx), 0);
@@ -476,8 +477,7 @@ int test_wolfSSL_EC_POINT(void)
     /* check if point X coordinate is zero */
     ExpectIntEQ(BN_is_zero(new_point->X), 0);
 
-#if defined(USE_ECC_B_PARAM) && !defined(HAVE_SELFTEST) && \
-    (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
+#if !defined(HAVE_SELFTEST) && (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
     ExpectIntEQ(EC_POINT_is_on_curve(group, new_point, ctx), 1);
 #endif
 
@@ -521,6 +521,7 @@ int test_wolfSSL_EC_POINT(void)
     ExpectIntEQ(EC_POINT_invert(group, new_point, ctx), 1);
 
 #if !defined(WOLFSSL_ATECC508A) && !defined(WOLFSSL_ATECC608A) && \
+    !defined(WOLFSSL_MICROCHIP_TA100) && \
     !defined(HAVE_SELFTEST) && !defined(WOLFSSL_SP_MATH) && \
     !defined(WOLF_CRYPTO_CB_ONLY_ECC)
     {
@@ -630,6 +631,79 @@ int test_wolfSSL_EC_POINT(void)
     #endif
     XFREE(hexStr, NULL, DYNAMIC_TYPE_ECC);
     EC_POINT_free(get_point);
+    get_point = NULL;
+
+    /* Regression: oversized compressed-point hex must not overflow the stack
+     * buffer in wolfSSL_EC_POINT_hex2point(). The byte length decoded from
+     * the hex string must be bounded by the curve's ordinate size. */
+    {
+        char tooLongHex[2 + 600 + 1];
+        size_t i;
+
+        tooLongHex[0] = '0';
+        tooLongHex[1] = '3';
+        for (i = 2; i < sizeof(tooLongHex) - 1; i++)
+            tooLongHex[i] = 'A';
+        tooLongHex[sizeof(tooLongHex) - 1] = '\0';
+        ExpectNull(EC_POINT_hex2point(group, tooLongHex, NULL, ctx));
+
+        /* Same with the "02" (even Y) prefix. */
+        tooLongHex[1] = '2';
+        ExpectNull(EC_POINT_hex2point(group, tooLongHex, NULL, ctx));
+
+        /* Truncated uncompressed input: prefix "04" with too few hex chars
+         * to cover the curve's coordinates. Must return NULL without
+         * reading past the end of the input string. */
+        ExpectNull(EC_POINT_hex2point(group, "04AB", NULL, ctx));
+
+        /* Empty payload after a recognized prefix. */
+        ExpectNull(EC_POINT_hex2point(group, "03", NULL, ctx));
+        ExpectNull(EC_POINT_hex2point(group, "04", NULL, ctx));
+
+        /* Partially populated compressed input: must be rejected so that
+         * wolfSSL_ECPoint_d2i() does not consume uninitialized stack
+         * bytes as the X coordinate. */
+        ExpectNull(EC_POINT_hex2point(group, "03AB", NULL, ctx));
+        ExpectNull(EC_POINT_hex2point(group, "02ABCD", NULL, ctx));
+
+        /* Odd-length compressed payload: 2*key_sz + 1 hex chars after
+         * the "03" prefix (P-256: 65 chars). A truncating-divide bound
+         * (sz = XSTRLEN/2) would round down to key_sz and accept this;
+         * an exact-length compare must reject it. */
+        {
+            char oddLenHex[2 + 65 + 1];
+            for (i = 2; i < sizeof(oddLenHex) - 1; i++)
+                oddLenHex[i] = 'A';
+            oddLenHex[0] = '0';
+            oddLenHex[1] = '3';
+            oddLenHex[sizeof(oddLenHex) - 1] = '\0';
+            ExpectNull(EC_POINT_hex2point(group, oddLenHex, NULL, ctx));
+        }
+    }
+
+    #if defined(HAVE_COMP_KEY) && !defined(HAVE_SELFTEST)
+    /* Round-trip a compressed point with even Y ("02" prefix) to verify
+     * that the prefix-to-parity flag is honored in the compressed branch. */
+    {
+        EC_POINT* even_point = NULL;
+        EC_POINT* round_trip = NULL;
+        char*     even_hex   = NULL;
+
+        ExpectNotNull(even_point = EC_POINT_dup(Gxy, group));
+        ExpectIntEQ(EC_POINT_invert(group, even_point, ctx), 1);
+        ExpectNotNull(even_hex = EC_POINT_point2hex(group, even_point,
+            POINT_CONVERSION_COMPRESSED, ctx));
+        /* P-256 G has odd Y; inverting flips Y parity so prefix is "02". */
+        ExpectIntEQ(even_hex[1], '2');
+        ExpectNotNull(round_trip = EC_POINT_hex2point(group, even_hex, NULL,
+            ctx));
+        ExpectIntEQ(EC_POINT_cmp(group, even_point, round_trip, ctx), 0);
+
+        XFREE(even_hex, NULL, DYNAMIC_TYPE_ECC);
+        EC_POINT_free(round_trip);
+        EC_POINT_free(even_point);
+    }
+    #endif
 
 #ifndef HAVE_SELFTEST
     /* Test point to oct */
@@ -802,6 +876,7 @@ int test_wolfSSL_SPAKE(void)
 
 #if defined(OPENSSL_EXTRA) && defined(HAVE_ECC) && !defined(WOLFSSL_ATECC508A) \
     && !defined(WOLFSSL_ATECC608A) && !defined(HAVE_SELFTEST) && \
+       !defined(WOLFSSL_MICROCHIP_TA100) && \
        !defined(WOLFSSL_SP_MATH) && !defined(WOLF_CRYPTO_CB_ONLY_ECC)
     BIGNUM* x = NULL; /* kdc priv */
     BIGNUM* y = NULL; /* client priv */
@@ -1002,6 +1077,7 @@ int test_EC_i2d(void)
     ExpectNull(d2i_ECPrivateKey(&copy, &tmp, 1));
     ExpectNull(d2i_ECPrivateKey(&key, &tmp, 0));
 
+#ifndef NO_BIO
     {
         EC_KEY *pubkey = NULL;
         BIO* bio = NULL;
@@ -1013,6 +1089,7 @@ int test_EC_i2d(void)
         BIO_free(bio);
         EC_KEY_free(pubkey);
     }
+#endif
 
     ExpectIntEQ(i2d_ECPrivateKey(NULL, &p), 0);
     ExpectIntEQ(i2d_ECPrivateKey(NULL, NULL), 0);
@@ -1478,6 +1555,11 @@ int test_wolfSSL_ECDSA_SIG(void)
     sig = NULL;
 
     ExpectNull(wolfSSL_d2i_ECDSA_SIG(NULL, NULL, sizeof(sigData)));
+    /* Reject non-positive length and *pp == NULL (PR #10207). */
+    cp = sigData;
+    ExpectNull(wolfSSL_d2i_ECDSA_SIG(NULL, &cp, -1));
+    cp = NULL;
+    ExpectNull(wolfSSL_d2i_ECDSA_SIG(NULL, &cp, sizeof(sigData)));
     cp = sigDataBad;
     ExpectNull(wolfSSL_d2i_ECDSA_SIG(NULL, &cp, sizeof(sigDataBad)));
     cp = sigData;
@@ -1614,6 +1696,86 @@ int test_ECDH_compute_key(void)
     EC_KEY_free(key1);
 #endif /* OPENSSL_EXTRA && !NO_ECC256 && !NO_ECC_SECP &&
         * !WOLF_CRYPTO_CB_ONLY_ECC */
+    return EXPECT_RESULT();
+}
+
+/* Test that d2i_ECPrivateKey derives the public point when the optional
+ * publicKey [1] field is absent from the RFC 5915 DER encoding.
+ *
+ * Without the fix, wc_EccPrivateKeyDecode sets type = ECC_PRIVATEKEY_ONLY and
+ * leaves pubkey uninitialised; every downstream operation (sign, ECDH, export)
+ * then runs against uninitialised memory.
+ *
+ * Test vector produced by pyca/cryptography and cross-checked with OpenSSL:
+ *   private scalar: 519b423d715f8b581f4fa8ee59f4771a5b44c8130b4e3eacca54a56dda72b464
+ *   expected pub x: 1ccbe91c075fc7f4f033bfa248db8fccd3565de94bbfb12f3c59ff46c271bf83
+ *   expected pub y: ce4014c68811f9a21a1fdb2c0e6113e06db7ca93b7404e78dc7ccd5ca89a4ca9
+ */
+int test_d2i_ECPrivateKey_no_pubkey(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && !defined(NO_ECC256) && !defined(NO_ECC_SECP) && \
+    defined(HAVE_ECC_KEY_IMPORT) && defined(HAVE_ECC_MAKE_PUB)
+    /* RFC 5915 ECPrivateKey DER with version + privateKey + parameters [0]
+     * but NO publicKey [1] field. */
+    static const byte kPrivOnlyDer[] = {
+        0x30, 0x31,                               /* SEQUENCE (49 bytes)    */
+        0x02, 0x01, 0x01,                         /* version = 1            */
+        0x04, 0x20,                               /* privateKey (32 bytes)  */
+        0x51, 0x9b, 0x42, 0x3d, 0x71, 0x5f, 0x8b, 0x58,
+        0x1f, 0x4f, 0xa8, 0xee, 0x59, 0xf4, 0x77, 0x1a,
+        0x5b, 0x44, 0xc8, 0x13, 0x0b, 0x4e, 0x3e, 0xac,
+        0xca, 0x54, 0xa5, 0x6d, 0xda, 0x72, 0xb4, 0x64,
+        0xa0, 0x0a,                               /* [0] parameters         */
+        0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
+    };
+    /* Expected uncompressed public key (04 || x || y), oracle: pyca/cryptography */
+    static const byte kExpectedPub[] = {
+        0x04,
+        0x1c, 0xcb, 0xe9, 0x1c, 0x07, 0x5f, 0xc7, 0xf4,
+        0xf0, 0x33, 0xbf, 0xa2, 0x48, 0xdb, 0x8f, 0xcc,
+        0xd3, 0x56, 0x5d, 0xe9, 0x4b, 0xbf, 0xb1, 0x2f,
+        0x3c, 0x59, 0xff, 0x46, 0xc2, 0x71, 0xbf, 0x83,
+        0xce, 0x40, 0x14, 0xc6, 0x88, 0x11, 0xf9, 0xa2,
+        0x1a, 0x1f, 0xdb, 0x2c, 0x0e, 0x61, 0x13, 0xe0,
+        0x6d, 0xb7, 0xca, 0x93, 0xb7, 0x40, 0x4e, 0x78,
+        0xdc, 0x7c, 0xcd, 0x5c, 0xa8, 0x9a, 0x4c, 0xa9
+    };
+    const byte* der = kPrivOnlyDer;
+    EC_KEY* key = NULL;
+    unsigned char* pub = NULL;
+    unsigned char* p = NULL;
+    byte hash[32];
+    byte sig[ECC_MAX_SIG_SIZE];
+    unsigned int sigSz = sizeof(sig);
+    int pubLen = 0;
+
+    XMEMSET(hash, 0xab, sizeof(hash));
+
+    /* Import private-only DER -- must succeed and auto-derive the public key. */
+    ExpectNotNull(key = d2i_ECPrivateKey(NULL, &der, sizeof(kPrivOnlyDer)));
+
+    /* Structural validity: public point on curve, priv/pub consistent. */
+    ExpectIntEQ(EC_KEY_check_key(key), 1);
+
+    /* Public key bytes must match the oracle-computed expected value. */
+    ExpectIntEQ((pubLen = i2o_ECPublicKey(key, NULL)), (int)sizeof(kExpectedPub));
+    if (EXPECT_SUCCESS()) {
+        ExpectNotNull(pub = (unsigned char*)XMALLOC(pubLen, NULL,
+            DYNAMIC_TYPE_TMP_BUFFER));
+        p = pub;
+        ExpectIntEQ(i2o_ECPublicKey(key, &p), pubLen);
+        ExpectIntEQ(XMEMCMP(pub, kExpectedPub, (word32)pubLen), 0);
+        XFREE(pub, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    }
+
+    /* ECDSA sign + verify must work with the derived public key. */
+    ExpectIntEQ(ECDSA_sign(0, hash, sizeof(hash), sig, &sigSz, key), 1);
+    ExpectIntEQ(ECDSA_verify(0, hash, sizeof(hash), sig, (int)sigSz, key), 1);
+
+    EC_KEY_free(key);
+#endif /* OPENSSL_EXTRA && !NO_ECC256 && !NO_ECC_SECP && HAVE_ECC_KEY_IMPORT
+        * && HAVE_ECC_MAKE_PUB */
     return EXPECT_RESULT();
 }
 

@@ -20,7 +20,7 @@ static int wolfkdriv_test_aes_cbc_big(device_t dev, int crid)
     struct crypto_session_params csp;
     struct cryptop * crp = NULL;
     Aes *            aes_encrypt = NULL;
-    int    error = 0;
+    int              error = -1;
     byte msg[] = {
         0x6e,0x6f,0x77,0x20,0x69,0x73,0x20,0x74,
         0x68,0x65,0x20,0x74,0x69,0x6d,0x65,0x20,
@@ -50,7 +50,7 @@ static int wolfkdriv_test_aes_cbc_big(device_t dev, int crid)
 
     error = wc_AesInit(aes_encrypt, NULL, INVALID_DEVID);
     if (error) {
-        device_printf(dev, "error: newsession_cipher: aes init: %d\n", error);
+        device_printf(dev, "error: wc_AesInit: %d\n", error);
         goto test_aes_cbc_big_out;
     }
 
@@ -72,20 +72,29 @@ static int wolfkdriv_test_aes_cbc_big(device_t dev, int crid)
     csp.csp_ivlen = WC_AES_BLOCK_SIZE;
     csp.csp_cipher_key = key;
     csp.csp_cipher_klen = WC_AES_BLOCK_SIZE;
+
+    /* get crypto session handle */
     error = crypto_newsession(&session, &csp, crid);
     if (error || session == NULL) {
+        device_printf(dev, "error: test_aes: crypto_newsession: %d, %p\n",
+                      error, (void *)session);
+        error = ENOMEM;
         goto test_aes_cbc_big_out;
     }
 
     crp = crypto_getreq(session, M_WAITOK);
     if (crp == NULL) {
         device_printf(dev, "error: test_aes: crypto_getreq failed\n");
+        error = ENOMEM;
         goto test_aes_cbc_big_out;
     }
 
+    /* configure it.
+     * note: CRYPTO_F_CBIFSYNC is required, or the callback may be deferred
+     * to later, even if the session was sync. */
     crp->crp_callback = wolfkdriv_test_crp_callback;
     crp->crp_op = CRYPTO_OP_ENCRYPT;
-    crp->crp_flags = CRYPTO_F_IV_SEPARATE;
+    crp->crp_flags = CRYPTO_F_IV_SEPARATE | CRYPTO_F_CBIFSYNC;
 
     memcpy(crp->crp_iv, iv, WC_AES_BLOCK_SIZE);
 
@@ -118,6 +127,7 @@ static int wolfkdriv_test_aes_cbc_big(device_t dev, int crid)
         goto test_aes_cbc_big_out;
     }
 
+    device_printf(dev, "info: test_aes_cbc_big: passed\n");
 test_aes_cbc_big_out:
     #if defined(WOLFSSL_BSDKM_VERBOSE_DEBUG)
     device_printf(dev, "info: test_aes_cbc_big: error=%d, session=%p, crp=%p\n",
@@ -152,7 +162,7 @@ static int wolfkdriv_test_aes_gcm(device_t dev, int crid)
     struct crypto_session_params csp;
     struct cryptop * crp = NULL;
     Aes *            enc = NULL;
-    int              error = 0;
+    int              error = -1;
 
     WOLFSSL_SMALL_STACK_STATIC const byte p[] =
     {
@@ -212,7 +222,7 @@ static int wolfkdriv_test_aes_gcm(device_t dev, int crid)
     XMEMSET(resultT, 0, sizeof(resultT));
     XMEMSET(resultC, 0, sizeof(resultC));
 
-    XMEMSET(resultC2, 0, sizeof(resultC));
+    XMEMSET(resultC2, 0, sizeof(resultC2));
     XMEMCPY(resultC2, p, sizeof(p));
 
     /* wolfcrypt encrypt */
@@ -220,6 +230,12 @@ static int wolfkdriv_test_aes_gcm(device_t dev, int crid)
     if (enc == NULL) {
         error = ENOMEM;
         device_printf(dev, "error: malloc failed\n");
+        goto test_aes_gcm_out;
+    }
+
+    error = wc_AesInit(enc, NULL, INVALID_DEVID);
+    if (error) {
+        device_printf(dev, "error: wc_AesInit: %d\n", error);
         goto test_aes_gcm_out;
     }
 
@@ -256,6 +272,7 @@ static int wolfkdriv_test_aes_gcm(device_t dev, int crid)
     if (error || session == NULL) {
         device_printf(dev, "error: test_aes: crypto_newsession: %d, %p\n",
                       error, (void *)session);
+        error = ENOMEM;
         goto test_aes_gcm_out;
     }
 
@@ -263,13 +280,16 @@ static int wolfkdriv_test_aes_gcm(device_t dev, int crid)
     crp = crypto_getreq(session, M_WAITOK);
     if (crp == NULL) {
         device_printf(dev, "error: test_aes: crypto_getreq failed\n");
+        error = ENOMEM;
         goto test_aes_gcm_out;
     }
 
-    /* configure it */
+    /* configure it.
+     * note: CRYPTO_F_CBIFSYNC is required, or the callback may be deferred
+     * to later, even if the session was sync. */
     crp->crp_callback = wolfkdriv_test_crp_callback;
     crp->crp_op = (CRYPTO_OP_ENCRYPT | CRYPTO_OP_COMPUTE_DIGEST);
-    crp->crp_flags = CRYPTO_F_IV_SEPARATE;
+    crp->crp_flags = CRYPTO_F_IV_SEPARATE | CRYPTO_F_CBIFSYNC;
 
     memcpy(crp->crp_iv, iv1, sizeof(iv1));
 
@@ -304,6 +324,7 @@ static int wolfkdriv_test_aes_gcm(device_t dev, int crid)
     error = XMEMCMP(resultC2, p, sizeof(p));
     if (error) { goto test_aes_gcm_out; }
 
+    device_printf(dev, "info: test_aes_gcm: passed\n");
 test_aes_gcm_out:
     #if defined(WOLFSSL_BSDKM_VERBOSE_DEBUG)
     device_printf(dev, "info: test_aes_gcm: error=%d, session=%p, crp=%p\n",

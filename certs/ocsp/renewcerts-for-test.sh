@@ -16,7 +16,7 @@ update_cert(){
         -config "$WOLF_REQ_CONF" \
         -key  $1-key.pem  \
         -out  $1-cert.csr \
-        -subj "/C=US/ST=Washington/L=Seattle/O=wolfSSL/OU=Engineering/CN=$2/emailAddress=info@wolfssl.com"
+        -subj "/C=US/ST=Washington/L=Seattle/O=wolfSSL/OU=Engineering/CN=$2/emailAddress=facts@wolfssl.com"
 
     openssl x509             \
         -req -in $1-cert.csr \
@@ -44,7 +44,7 @@ openssl req                \
     -config "$WOLF_REQ_CONF" \
     -key  root-ca-key.pem  \
     -out  root-ca-cert.csr \
-    -subj "/C=US/ST=Washington/L=Seattle/O=wolfSSL/OU=Engineering/CN=wolfSSL root CA/emailAddress=info@wolfssl.com"
+    -subj "/C=US/ST=Washington/L=Seattle/O=wolfSSL/OU=Engineering/CN=wolfSSL root CA/emailAddress=facts@wolfssl.com"
 
 openssl x509                  \
     -req -in root-ca-cert.csr \
@@ -59,6 +59,30 @@ openssl x509                  \
 rm root-ca-cert.csr
 openssl x509 -in root-ca-cert.pem -text > tmp.pem
 mv tmp.pem root-ca-cert.pem
+
+# imposter-root-ca: self-signed cert sharing the legitimate root-ca DN but
+# with a different key. Used to test that OCSP responder authorization is
+# bound to the CertID issuerKeyHash, not just the issuer name.
+openssl req                            \
+    -new                               \
+    -config "$WOLF_REQ_CONF"           \
+    -key  imposter-root-ca-key.pem     \
+    -out  imposter-root-ca-cert.csr    \
+    -subj "/C=US/ST=Washington/L=Seattle/O=wolfSSL/OU=Engineering/CN=wolfSSL root CA/emailAddress=facts@wolfssl.com"
+
+openssl x509                                \
+    -req -in imposter-root-ca-cert.csr      \
+    -extfile $1                             \
+    -extensions v3_ca                       \
+    -days 1000                              \
+    -signkey imposter-root-ca-key.pem       \
+    -set_serial 199                         \
+    -out imposter-root-ca-cert.pem          \
+    -sha256
+
+rm imposter-root-ca-cert.csr
+openssl x509 -in imposter-root-ca-cert.pem -text > imposter-root-ca-cert_tmp.pem
+mv imposter-root-ca-cert_tmp.pem imposter-root-ca-cert.pem
 
 update_cert intermediate1-ca "wolfSSL intermediate CA 1"       root-ca          v3_ca   01 $1
 update_cert intermediate2-ca "wolfSSL intermediate CA 2"       root-ca          v3_ca   02 $1

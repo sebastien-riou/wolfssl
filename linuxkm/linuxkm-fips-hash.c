@@ -66,7 +66,7 @@ static int hmac_setkey_cb(Hmac *hmac, const byte *key, word32 key_len) {
 }
 
 static int hmac_update_cb(Hmac *hmac, const byte *in, word32 in_len) {
-    return wc_HmacUpdate_fips(hmac, in, in_len);
+    return wc_HmacUpdate(hmac, in, in_len);
 }
 
 static int hmac_final_cb(Hmac *hmac, byte *out, word32 out_sz) {
@@ -104,10 +104,14 @@ int main(int argc, char **argv)
                            .val = FENCEPOST_OPT_FLAG | offsetof(typeof(seg_map), x) }
         FENCEPOST_OPT(text_start),
         FENCEPOST_OPT(text_end),
-        FENCEPOST_OPT(reloc_tab_start),
-        FENCEPOST_OPT(reloc_tab_end),
-        FENCEPOST_OPT(reloc_tab_len_start),
-        FENCEPOST_OPT(reloc_tab_len_end),
+        FENCEPOST_OPT(text_reloc_tab.start),
+        FENCEPOST_OPT(text_reloc_tab.end),
+        FENCEPOST_OPT(text_reloc_tab.len_start),
+        FENCEPOST_OPT(text_reloc_tab.len_end),
+        FENCEPOST_OPT(rodata_reloc_tab.start),
+        FENCEPOST_OPT(rodata_reloc_tab.end),
+        FENCEPOST_OPT(rodata_reloc_tab.len_start),
+        FENCEPOST_OPT(rodata_reloc_tab.len_end),
         FENCEPOST_OPT(fips_text_start),
         FENCEPOST_OPT(fips_text_end),
         FENCEPOST_OPT(rodata_start),
@@ -228,10 +232,14 @@ int main(int argc, char **argv)
 
     if ((seg_map.text_start == ~0UL) ||
         (seg_map.text_end == ~0UL) ||
-        (seg_map.reloc_tab_start == ~0UL) ||
-        (seg_map.reloc_tab_end == ~0UL) ||
-        (seg_map.reloc_tab_len_start == ~0UL) ||
-        (seg_map.reloc_tab_len_end == ~0UL) ||
+        (seg_map.text_reloc_tab.start == ~0UL) ||
+        (seg_map.text_reloc_tab.end == ~0UL) ||
+        (seg_map.text_reloc_tab.len_start == ~0UL) ||
+        (seg_map.text_reloc_tab.len_end == ~0UL) ||
+        (seg_map.rodata_reloc_tab.start == ~0UL) ||
+        (seg_map.rodata_reloc_tab.end == ~0UL) ||
+        (seg_map.rodata_reloc_tab.len_start == ~0UL) ||
+        (seg_map.rodata_reloc_tab.len_end == ~0UL) ||
         (seg_map.fips_text_start == ~0UL) ||
         (seg_map.fips_text_end == ~0UL) ||
         (seg_map.rodata_start == ~0UL) ||
@@ -267,12 +275,23 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if ((seg_map.reloc_tab_start >= seg_map.reloc_tab_end) ||
-        (seg_map.reloc_tab_end >= (unsigned long)st.st_size) ||
-        (seg_map.reloc_tab_len_start >= seg_map.reloc_tab_len_end) ||
-        (seg_map.reloc_tab_len_end >= (unsigned long)st.st_size))
+    if ((seg_map.text_reloc_tab.start >= seg_map.text_reloc_tab.end) ||
+        (seg_map.text_reloc_tab.end >= (unsigned long)st.st_size) ||
+        (seg_map.text_reloc_tab.len_start >= seg_map.text_reloc_tab.len_end) ||
+        (seg_map.text_reloc_tab.len_end >= (unsigned long)st.st_size))
     {
-        fprintf(stderr, "%s: supplied reloc_tab fencepost(s) are out of bounds "
+        fprintf(stderr, "%s: supplied text_reloc_tab fencepost(s) are out of bounds "
+                "for supplied module %s with length %lu.\n",
+                progname, mod_path, (unsigned long)st.st_size);
+        exit(1);
+    }
+
+    if ((seg_map.rodata_reloc_tab.start >= seg_map.rodata_reloc_tab.end) ||
+        (seg_map.rodata_reloc_tab.end >= (unsigned long)st.st_size) ||
+        (seg_map.rodata_reloc_tab.len_start >= seg_map.rodata_reloc_tab.len_end) ||
+        (seg_map.rodata_reloc_tab.len_end >= (unsigned long)st.st_size))
+    {
+        fprintf(stderr, "%s: supplied rodata_reloc_tab fencepost(s) are out of bounds "
                 "for supplied module %s with length %lu.\n",
                 progname, mod_path, (unsigned long)st.st_size);
         exit(1);
@@ -291,10 +310,15 @@ int main(int argc, char **argv)
     seg_map.start = (unsigned long)mod_map;
     seg_map.end = (unsigned long)mod_map + st.st_size;
 
-    seg_map.reloc_tab_start += (unsigned long)mod_map;
-    seg_map.reloc_tab_end += (unsigned long)mod_map;
-    seg_map.reloc_tab_len_start += (unsigned long)mod_map;
-    seg_map.reloc_tab_len_end += (unsigned long)mod_map;
+    seg_map.text_reloc_tab.start += (unsigned long)mod_map;
+    seg_map.text_reloc_tab.end += (unsigned long)mod_map;
+    seg_map.text_reloc_tab.len_start += (unsigned long)mod_map;
+    seg_map.text_reloc_tab.len_end += (unsigned long)mod_map;
+
+    seg_map.rodata_reloc_tab.start += (unsigned long)mod_map;
+    seg_map.rodata_reloc_tab.end += (unsigned long)mod_map;
+    seg_map.rodata_reloc_tab.len_start += (unsigned long)mod_map;
+    seg_map.rodata_reloc_tab.len_end += (unsigned long)mod_map;
 
     seg_map.verifyCore_start += (unsigned long)mod_map;
     seg_map.verifyCore_end += (unsigned long)mod_map;

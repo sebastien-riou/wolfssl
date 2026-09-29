@@ -30,6 +30,12 @@
 
 #include <wolfssl/openssl/evp.h>
 #include <wolfssl/openssl/kdf.h>
+#ifdef WOLFSSL_HAVE_MLDSA
+    #include <wolfssl/wolfcrypt/wc_mldsa.h>
+#endif
+#ifdef HAVE_CURVE25519
+    #include <wolfssl/wolfcrypt/curve25519.h>
+#endif
 #include <tests/api/api.h>
 #include <tests/api/test_evp_pkey.h>
 
@@ -379,6 +385,76 @@ int test_wolfSSL_EVP_MD_hmac_signing(void)
     #endif
 #endif
 #endif /* OPENSSL_EXTRA */
+    return EXPECT_RESULT();
+}
+
+/* Verify that EVP_DigestVerifyFinal rejects zero-length HMAC tags. */
+int test_wolfSSL_EVP_DigestVerify_HMAC_zero_len_forgery(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && !defined(NO_HMAC) && !defined(NO_SHA256)
+    static const unsigned char key[] = {
+        0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+        0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+        0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+        0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b
+    };
+    static const char message[] = "wolfSSL DigestVerifyFinal forgery probe";
+    static const unsigned char zeros[WC_MAX_DIGEST_SIZE] = { 0 };
+
+    WOLFSSL_EVP_PKEY*  pkey = NULL;
+    WOLFSSL_EVP_MD_CTX mdCtx;
+    unsigned char      tag[WC_MAX_DIGEST_SIZE];
+    size_t             tagLen = sizeof(tag);
+
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+
+    ExpectNotNull(pkey = wolfSSL_EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL,
+                                                      key, (int)sizeof(key)));
+
+    /* Compute the genuine HMAC-SHA256 tag for the message. */
+    ExpectIntEQ(wolfSSL_EVP_DigestSignInit(&mdCtx, NULL, wolfSSL_EVP_sha256(),
+                                           NULL, pkey), 1);
+    ExpectIntEQ(wolfSSL_EVP_DigestSignUpdate(&mdCtx, message,
+                                             (unsigned int)XSTRLEN(message)),
+                1);
+    ExpectIntEQ(wolfSSL_EVP_DigestSignFinal(&mdCtx, tag, &tagLen), 1);
+    ExpectIntEQ((int)tagLen, WC_SHA256_DIGEST_SIZE);
+    ExpectIntEQ(wolfSSL_EVP_MD_CTX_cleanup(&mdCtx), 1);
+
+    /* Full-length genuine tag verifies. */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyInit(&mdCtx, NULL, wolfSSL_EVP_sha256(),
+                                             NULL, pkey), 1);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyUpdate(&mdCtx, message,
+                                               (unsigned int)XSTRLEN(message)),
+                1);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyFinal(&mdCtx, tag, tagLen), 1);
+    ExpectIntEQ(wolfSSL_EVP_MD_CTX_cleanup(&mdCtx), 1);
+
+    /* Wrong full-length tag is rejected. */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyInit(&mdCtx, NULL, wolfSSL_EVP_sha256(),
+                                             NULL, pkey), 1);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyUpdate(&mdCtx, message,
+                                               (unsigned int)XSTRLEN(message)),
+                1);
+    ExpectIntNE(wolfSSL_EVP_DigestVerifyFinal(&mdCtx, zeros,
+                                              WC_SHA256_DIGEST_SIZE), 1);
+    ExpectIntEQ(wolfSSL_EVP_MD_CTX_cleanup(&mdCtx), 1);
+
+    /* Zero-length tag must be rejected. */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyInit(&mdCtx, NULL, wolfSSL_EVP_sha256(),
+                                             NULL, pkey), 1);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyUpdate(&mdCtx, message,
+                                               (unsigned int)XSTRLEN(message)),
+                1);
+    ExpectIntNE(wolfSSL_EVP_DigestVerifyFinal(&mdCtx, zeros, 0), 1);
+    ExpectIntEQ(wolfSSL_EVP_MD_CTX_cleanup(&mdCtx), 1);
+
+    wolfSSL_EVP_PKEY_free(pkey);
+#endif
     return EXPECT_RESULT();
 }
 
@@ -742,7 +818,7 @@ int test_wolfSSL_EVP_PKEY_set1_get1_DSA(void)
 {
     EXPECT_DECLS;
 #if defined(OPENSSL_ALL) && !defined (NO_DSA) && !defined(HAVE_SELFTEST) && \
-    defined(WOLFSSL_KEY_GEN)
+    !defined(WC_FIPS_186_5_PLUS) && defined(WOLFSSL_KEY_GEN)
     DSA       *dsa  = NULL;
     DSA       *setDsa  = NULL;
     EVP_PKEY  *pkey = NULL;
@@ -829,7 +905,8 @@ int test_wolfSSL_EVP_PKEY_set1_get1_DSA(void)
     DSA_free(setDsa);
     EVP_PKEY_free(pkey);
     EVP_PKEY_free(set1Pkey);
-#endif /* OPENSSL_ALL && !NO_DSA && !HAVE_SELFTEST && WOLFSSL_KEY_GEN */
+#endif /* OPENSSL_ALL && !NO_DSA && !HAVE_SELFTEST && !WC_FIPS_186_5_PLUS */
+       /* && WOLFSSL_KEY_GEN */
     return EXPECT_RESULT();
 } /* END test_EVP_PKEY_set1_get1_DSA */
 
@@ -1357,6 +1434,342 @@ int test_wolfSSL_EVP_PKEY_keygen(void)
     return EXPECT_RESULT();
 }
 
+/*
+ * wolfSSL_EVP_PKEY_keygen() has to replace whatever the caller supplied
+ * EVP_PKEY already holds.
+ *
+ * The RSA branch used to pass &pkey->pkey.ptr straight to
+ * wolfSSL_i2d_RSAPrivateKey(). A non-NULL pointer there means "caller supplied
+ * buffer" to i2d, so the freshly generated key DER was written into the DER
+ * already on the pkey without a size check, and the pointer was left pointing
+ * past the encoding.
+ */
+int test_wolfSSL_EVP_PKEY_keygen_reuse(void)
+{
+    EXPECT_DECLS;
+/* wolfSSL_i2d_PrivateKey() needs OPENSSL_EXTRA plus !NO_ASN, and nothing here
+ * is OPENSSL_ALL only. */
+#if defined(OPENSSL_EXTRA) && !defined(NO_RSA) && defined(WOLFSSL_KEY_GEN) && \
+    defined(USE_CERT_BUFFERS_2048) && !defined(HAVE_SELFTEST) && \
+    !defined(NO_ASN)
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    WOLFSSL_EVP_PKEY* decoded = NULL;
+    EVP_PKEY_CTX*     ctx = NULL;
+    const unsigned char* in;
+    unsigned char*    der = NULL;
+    int               derSz = 0;
+/* load_file() is compiled only when certificates are available. */
+#if defined(HAVE_PKCS8) && !defined(NO_FILESYSTEM) && !defined(NO_CERTS)
+    byte*             p8 = NULL;
+    size_t            p8Sz = 0;
+#endif
+
+    /* Populate the pkey with a public key DER much smaller than the private
+     * key DER that keygen will produce. */
+    in = client_keypub_der_2048;
+    ExpectNotNull(pkey = wolfSSL_d2i_PUBKEY(NULL, &in,
+        (long)sizeof_client_keypub_der_2048));
+
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(pkey, NULL));
+    ExpectIntEQ(EVP_PKEY_keygen_init(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_keygen(ctx, &pkey), WOLFSSL_SUCCESS);
+
+    /* The DER on the pkey has to be the generated private key, held in a
+     * buffer that starts where pkey.ptr points. */
+    ExpectIntGT(derSz = wolfSSL_i2d_PrivateKey(pkey, &der), 0);
+    in = der;
+    ExpectNotNull(decoded = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL, &in,
+        (long)derSz));
+#if defined(WOLFSSL_ERROR_CODE_OPENSSL)
+    ExpectIntEQ(EVP_PKEY_cmp(pkey, decoded), 1);
+#else
+    ExpectIntEQ(EVP_PKEY_cmp(pkey, decoded), 0);
+#endif
+
+    XFREE(der, NULL, DYNAMIC_TYPE_OPENSSL);
+    der = NULL;
+    EVP_PKEY_free(decoded);
+    decoded = NULL;
+    EVP_PKEY_CTX_free(ctx);
+    ctx = NULL;
+    EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+#if defined(HAVE_PKCS8) && !defined(NO_FILESYSTEM) && !defined(NO_CERTS)
+    /* Same again, seeded from a PKCS#8 wrapped key. That gives the pkey a
+     * non-zero pkcs8HeaderSz, which does not describe the bare PKCS#1
+     * encoding keygen installs, so it has to be cleared. */
+    ExpectIntEQ(load_file("./certs/server-keyPkcs8.der", &p8, &p8Sz), 0);
+    in = p8;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL, &in,
+        (long)p8Sz));
+
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(pkey, NULL));
+    ExpectIntEQ(EVP_PKEY_keygen_init(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_keygen(ctx, &pkey), WOLFSSL_SUCCESS);
+
+    ExpectIntGT(derSz = wolfSSL_i2d_PrivateKey(pkey, &der), 0);
+    in = der;
+    ExpectNotNull(decoded = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL, &in,
+        (long)derSz));
+#if defined(WOLFSSL_ERROR_CODE_OPENSSL)
+    ExpectIntEQ(EVP_PKEY_cmp(pkey, decoded), 1);
+#else
+    ExpectIntEQ(EVP_PKEY_cmp(pkey, decoded), 0);
+#endif
+
+    XFREE(der, NULL, DYNAMIC_TYPE_OPENSSL);
+    XFREE(p8, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    EVP_PKEY_free(decoded);
+    EVP_PKEY_CTX_free(ctx);
+    EVP_PKEY_free(pkey);
+#endif /* HAVE_PKCS8 && !NO_FILESYSTEM && !NO_CERTS */
+#endif
+    return EXPECT_RESULT();
+}
+
+/*
+ * Replacing a PKCS#8 wrapped key on an EVP_PKEY with an EC key that carries no
+ * wrapper has to drop pkcs8HeaderSz along with the encoding it described.
+ *
+ * ECC_populate_EVP_PKEY() writes a bare SEC1 ECPrivateKey when the EC key has
+ * no header size of its own. Everything that exports the key, from
+ * wolfSSL_EVP_PKEY_get_der() to the PKCS#8 encryption in
+ * wolfSSL_PEM_write_bio_PKCS8PrivateKey(), skips pkcs8HeaderSz bytes of the
+ * stored buffer, so a size left from the previous key makes them start inside
+ * the new encoding and hand out a truncated one.
+ */
+int test_wolfSSL_EVP_PKEY_set1_EC_KEY_no_pkcs8(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_ECC) && !defined(NO_FILESYSTEM) && \
+    !defined(NO_CERTS) && !defined(NO_ASN)
+    WOLFSSL_EVP_PKEY* wrapped = NULL;
+    WOLFSSL_EVP_PKEY* fresh = NULL;
+    WOLFSSL_EC_KEY*   ec = NULL;
+    const unsigned char* in;
+    unsigned char*    wrappedDer = NULL;
+    unsigned char*    freshDer = NULL;
+    int               wrappedSz = 0;
+    int               freshSz = 0;
+    byte*             buf = NULL;
+    size_t            bufSz = 0;
+
+    /* Seed a pkey from a PKCS#8 wrapped key so that pkcs8HeaderSz starts out
+     * non-zero. */
+    ExpectIntEQ(load_file("./certs/ecc-keyPkcs8.der", &buf, &bufSz), 0);
+    in = buf;
+    ExpectNotNull(wrapped = wolfSSL_d2i_PrivateKey(EVP_PKEY_EC, NULL, &in,
+        (long)bufSz));
+
+    /* A generated key carries no PKCS#8 header, so setting it takes the
+     * traditional branch of ECC_populate_EVP_PKEY(). */
+    ExpectNotNull(ec = wolfSSL_EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    ExpectIntEQ(wolfSSL_EC_KEY_generate_key(ec), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_EVP_PKEY_set1_EC_KEY(wrapped, ec), WOLFSSL_SUCCESS);
+
+    /* The same key on a pkey that never held a wrapped one is the reference:
+     * both have to export the identical encoding. */
+    ExpectNotNull(fresh = wolfSSL_EVP_PKEY_new());
+    ExpectIntEQ(wolfSSL_EVP_PKEY_set1_EC_KEY(fresh, ec), WOLFSSL_SUCCESS);
+
+    ExpectIntGT(freshSz = wolfSSL_i2d_PrivateKey(fresh, &freshDer), 0);
+    ExpectIntGT(wrappedSz = wolfSSL_i2d_PrivateKey(wrapped, &wrappedDer), 0);
+    ExpectIntEQ(wrappedSz, freshSz);
+    ExpectNotNull(wrappedDer);
+    ExpectNotNull(freshDer);
+    ExpectBufEQ(wrappedDer, freshDer, (size_t)freshSz);
+
+    XFREE(wrappedDer, NULL, DYNAMIC_TYPE_OPENSSL);
+    XFREE(freshDer, NULL, DYNAMIC_TYPE_OPENSSL);
+    XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    wolfSSL_EC_KEY_free(ec);
+    wolfSSL_EVP_PKEY_free(fresh);
+    wolfSSL_EVP_PKEY_free(wrapped);
+#endif
+    return EXPECT_RESULT();
+}
+
+/*
+ * Replacing the key on an EVP_PKEY with one whose DER is SHORTER has to shrink
+ * the stored encoding without writing past the new buffer.
+ *
+ * Under WOLFSSL_NO_REALLOC, PopulateRSAEvpPkeyDer() and ECC_populate_EVP_PKEY()
+ * emulate XREALLOC by allocating a buffer sized for the new encoding and
+ * copying pkey_sz bytes, the size of the OLD one, into it. The CI job
+ * opensslextra-norealloc-asan builds exactly that configuration under ASan, so
+ * this test is where such an over-copy gets caught.
+ */
+int test_wolfSSL_EVP_PKEY_set1_shrinking_der(void)
+{
+    EXPECT_DECLS;
+/* settings.h defines WOLFSSL_KEY_TO_DER only when RSA is enabled, so gating the
+ * whole test on it would compile the ECC half out of an RSA-less build, and
+ * that half is the only coverage for the ECC_populate_EVP_PKEY() over-copy.
+ * Gate on the union and keep the per-algorithm guards inside. */
+#if defined(OPENSSL_EXTRA) && !defined(NO_FILESYSTEM) && !defined(NO_CERTS) && \
+    !defined(NO_ASN) && \
+    ((!defined(NO_RSA) && defined(WOLFSSL_KEY_TO_DER)) || defined(HAVE_ECC))
+    const unsigned char* in;
+    byte*             buf = NULL;
+    size_t            bufSz = 0;
+#if !defined(NO_RSA) && defined(WOLFSSL_KEY_TO_DER)
+    WOLFSSL_EVP_PKEY* rsaPkey = NULL;
+    WOLFSSL_RSA*      rsaPub = NULL;
+    int               rsaPrivSz = 0;
+#endif
+#ifdef HAVE_ECC
+    WOLFSSL_EVP_PKEY* ecPkey = NULL;
+    WOLFSSL_EC_KEY*   ecPriv = NULL;
+    WOLFSSL_EC_KEY*   ecPub = NULL;
+    int               ecPrivSz = 0;
+#endif
+
+#if !defined(NO_RSA) && defined(WOLFSSL_KEY_TO_DER)
+    /* Private key DER first, then a public-only key whose DER is about a
+     * quarter of the size. */
+    ExpectIntEQ(load_file("./certs/client-key.der", &buf, &bufSz), 0);
+    in = buf;
+    ExpectNotNull(rsaPkey = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL, &in,
+        (long)bufSz));
+    ExpectIntGT(rsaPrivSz = wolfSSL_i2d_PrivateKey(rsaPkey, NULL), 0);
+    XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    buf = NULL;
+
+    ExpectIntEQ(load_file("./certs/client-keyPub.der", &buf, &bufSz), 0);
+    in = buf;
+    ExpectNotNull(rsaPub = wolfSSL_d2i_RSAPublicKey(NULL, &in, (long)bufSz));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_set1_RSA(rsaPkey, rsaPub), WOLFSSL_SUCCESS);
+    /* Confirm the stored encoding really did shrink, so the test keeps
+     * exercising the direction that overruns. */
+    ExpectIntLT(wolfSSL_i2d_PrivateKey(rsaPkey, NULL), rsaPrivSz);
+
+    XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    buf = NULL;
+    wolfSSL_RSA_free(rsaPub);
+    wolfSSL_EVP_PKEY_free(rsaPkey);
+#endif
+
+#ifdef HAVE_ECC
+    /* Same shape for ECC: the private key encoding is longer than the public
+     * one for the same curve. The seed is PKCS#8 wrapped rather than a bare
+     * SEC1 key, so pkcs8HeaderSz starts non-zero and the exact size assertion
+     * below catches a header size carried over onto the public encoding. */
+    ExpectIntEQ(load_file("./certs/ecc-keyPkcs8.der", &buf, &bufSz), 0);
+    in = buf;
+    ExpectNotNull(ecPkey = wolfSSL_d2i_PrivateKey(EVP_PKEY_EC, NULL, &in,
+        (long)bufSz));
+    ExpectIntGT(ecPrivSz = wolfSSL_i2d_PrivateKey(ecPkey, NULL), 0);
+    ExpectNotNull(ecPriv = wolfSSL_EVP_PKEY_get1_EC_KEY(ecPkey));
+
+    /* A key holding only the public point takes ECC_populate_EVP_PKEY's
+     * public branch. */
+    ExpectNotNull(ecPub = wolfSSL_EC_KEY_new_by_curve_name(
+        NID_X9_62_prime256v1));
+    ExpectIntEQ(wolfSSL_EC_KEY_set_public_key(ecPub,
+        wolfSSL_EC_KEY_get0_public_key(ecPriv)), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_EVP_PKEY_set1_EC_KEY(ecPkey, ecPub), WOLFSSL_SUCCESS);
+    ExpectIntLT(wolfSSL_i2d_PrivateKey(ecPkey, NULL), ecPrivSz);
+    /* Exact rather than "smaller", so that an export starting at a stale
+     * pkcs8HeaderSz shows up as a size mismatch instead of passing. */
+    ExpectIntEQ(wolfSSL_i2d_PrivateKey(ecPkey, NULL),
+        wc_EccPublicKeyDerSize((ecc_key*)ecPub->internal, 1));
+
+    XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    buf = NULL;
+    wolfSSL_EC_KEY_free(ecPub);
+    wolfSSL_EC_KEY_free(ecPriv);
+    wolfSSL_EVP_PKEY_free(ecPkey);
+#endif
+#endif /* OPENSSL_EXTRA && WOLFSSL_KEY_TO_DER && !NO_FILESYSTEM */
+    return EXPECT_RESULT();
+}
+
+/*
+ * wolfSSL_EVP_PKEY_get1_EC_KEY() hands the caller a reference of its own, so
+ * releasing it has to leave the copy the EVP_PKEY holds intact and usable.
+ *
+ * This covers the path where the pkey already carries the EC_KEY, which is
+ * what every decode entry point produces. It passes with and without the
+ * reference fix in the branch that builds the key instead, since no decode
+ * path reaches that branch; it is here to pin the reference contract rather
+ * than as a regression test for it.
+ */
+int test_wolfSSL_EVP_PKEY_get1_EC_KEY_reuse(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_ECC) && !defined(NO_FILESYSTEM) && \
+    !defined(NO_CERTS) && !defined(NO_ASN)
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    WOLFSSL_EC_KEY*   ec1 = NULL;
+    WOLFSSL_EC_KEY*   ec2 = NULL;
+    const unsigned char* in;
+    byte*             buf = NULL;
+    size_t            bufSz = 0;
+
+    /* A pkey decoded from DER carries no EC_KEY yet, so the first get1 is the
+     * call that builds and caches one. */
+    ExpectIntEQ(load_file("./certs/ecc-client-key.der", &buf, &bufSz), 0);
+    in = buf;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey(EVP_PKEY_EC, NULL, &in,
+        (long)bufSz));
+
+    ExpectNotNull(ec1 = wolfSSL_EVP_PKEY_get1_EC_KEY(pkey));
+    wolfSSL_EC_KEY_free(ec1);
+    ec1 = NULL;
+
+    /* The pkey still holds a live key, so this neither reads freed memory nor
+     * returns NULL. */
+    ExpectNotNull(ec2 = wolfSSL_EVP_PKEY_get1_EC_KEY(pkey));
+    ExpectNotNull(wolfSSL_EC_KEY_get0_public_key(ec2));
+    wolfSSL_EC_KEY_free(ec2);
+
+    XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    wolfSSL_EVP_PKEY_free(pkey);
+#endif
+    return EXPECT_RESULT();
+}
+
+/*
+ * EVP_PKEY_keygen() on a pkey that already carries a DH object has to release
+ * it rather than overwrite the only reference to it.
+ */
+int test_wolfSSL_EVP_PKEY_keygen_dh_reuse(void)
+{
+    EXPECT_DECLS;
+#if (defined(OPENSSL_ALL) || defined(WOLFSSL_QT) || \
+     defined(WOLFSSL_OPENSSH)) && !defined(NO_DH) && \
+    defined(WOLFSSL_DH_EXTRA) && !defined(NO_FILESYSTEM) && \
+    !defined(NO_CERTS) && (!defined(HAVE_FIPS) || FIPS_VERSION_GT(2,0))
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    WOLFSSL_DH*       dh = NULL;
+    EVP_PKEY_CTX*     ctx = NULL;
+    byte*             buf = NULL;
+    size_t            bufSz = 0;
+
+    ExpectIntEQ(load_file("./certs/dh2048.der", &buf, &bufSz), 0);
+    ExpectNotNull(dh = wolfSSL_DH_new());
+    ExpectIntEQ(wolfSSL_DH_LoadDer(dh, buf, (int)bufSz), WOLFSSL_SUCCESS);
+
+    /* set1 leaves the pkey holding a reference of its own, which keygen has to
+     * release when it installs the generated key. */
+    ExpectNotNull(pkey = wolfSSL_EVP_PKEY_new());
+    ExpectIntEQ(wolfSSL_EVP_PKEY_set1_DH(pkey, dh), WOLFSSL_SUCCESS);
+
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(pkey, NULL));
+    ExpectIntEQ(EVP_PKEY_keygen_init(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_keygen(ctx, &pkey), WOLFSSL_SUCCESS);
+
+    EVP_PKEY_CTX_free(ctx);
+    wolfSSL_DH_free(dh);
+    XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    wolfSSL_EVP_PKEY_free(pkey);
+#endif
+    return EXPECT_RESULT();
+}
+
 int test_wolfSSL_EVP_SignInit_ex(void)
 {
     EXPECT_DECLS;
@@ -1455,7 +1868,11 @@ static int test_wolfSSL_EVP_PKEY_sign_verify(int keyType)
     !defined(HAVE_SELFTEST)
 #if !defined(HAVE_FIPS) || (defined(HAVE_FIPS_VERSION) && (HAVE_FIPS_VERSION>2))
         {
+#ifdef HAVE_FIPS
+            ExpectNotNull(rsa = RSA_generate_key(2048, WC_RSA_EXPONENT, NULL, NULL));
+#else
             ExpectNotNull(rsa = RSA_generate_key(2048, 3, NULL, NULL));
+#endif
             ExpectIntEQ(EVP_PKEY_assign_RSA(pkey, rsa), WOLFSSL_SUCCESS);
         }
 #endif
@@ -1521,9 +1938,25 @@ static int test_wolfSSL_EVP_PKEY_sign_verify(int keyType)
     ExpectIntEQ(EVP_PKEY_verify(
         ctx_verify, sig, siglen, hash, SHA256_DIGEST_LENGTH),
         WOLFSSL_SUCCESS);
-    ExpectIntEQ(EVP_PKEY_verify(
-        ctx_verify, sig, siglen, zero, SHA256_DIGEST_LENGTH),
-        WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+
+    if (keyType == EVP_PKEY_EC) {
+#ifdef WC_TEST_NO_ECC_SIGN_VERIFY_ZERO_DIGEST
+        /* wolfSSL differs from OpenSSL in that it treats a hash of all 0's as a
+         * fatal error and does not attempt to verify */
+        ExpectIntEQ(EVP_PKEY_verify(
+            ctx_verify, sig, siglen, zero, SHA256_DIGEST_LENGTH),
+            WC_NO_ERR_TRACE(WOLFSSL_FATAL_ERROR));
+#else
+        ExpectIntEQ(EVP_PKEY_verify(
+            ctx_verify, sig, siglen, zero, SHA256_DIGEST_LENGTH),
+            WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+#endif
+    }
+    else {
+        ExpectIntEQ(EVP_PKEY_verify(
+            ctx_verify, sig, siglen, zero, SHA256_DIGEST_LENGTH),
+            WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    }
 
 #if defined(OPENSSL_EXTRA) && !defined(NO_RSA) && defined(WOLFSSL_KEY_GEN) && \
     !defined(HAVE_SELFTEST)
@@ -1606,7 +2039,8 @@ int test_wolfSSL_EVP_PKEY_sign_verify_dsa(void)
 {
     EXPECT_DECLS;
 #if defined(OPENSSL_EXTRA)
-#if !defined (NO_DSA) && !defined(HAVE_SELFTEST) && defined(WOLFSSL_KEY_GEN)
+#if !defined (NO_DSA) && !defined(WC_FIPS_186_5_PLUS) && \
+    !defined(HAVE_SELFTEST) && defined(WOLFSSL_KEY_GEN)
     ExpectIntEQ(test_wolfSSL_EVP_PKEY_sign_verify(EVP_PKEY_DSA), TEST_SUCCESS);
 #endif
 #endif
@@ -1925,6 +2359,121 @@ int test_wolfSSL_EVP_MD_ecc_signing(void)
 }
 
 
+int test_wolfSSL_EVP_DigestSign(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && !defined(NO_RSA) && defined(USE_CERT_BUFFERS_2048)
+    WOLFSSL_EVP_PKEY* privKey = NULL;
+    WOLFSSL_EVP_PKEY* pubKey = NULL;
+    const unsigned char testData[] = "Hi There";
+    WOLFSSL_EVP_MD_CTX mdCtx;
+    int ret;
+    const unsigned char* cp;
+    const unsigned char* p;
+    unsigned char sig[2048/8];
+    size_t sigSz;
+
+    cp = client_key_der_2048;
+    ExpectNotNull((privKey = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL, &cp,
+                                                  sizeof_client_key_der_2048)));
+    p = client_keypub_der_2048;
+    ExpectNotNull((pubKey = wolfSSL_d2i_PUBKEY(NULL, &p,
+                                               sizeof_client_keypub_der_2048)));
+
+    /* One-shot sign: query size first */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestSignInit(&mdCtx, NULL, wolfSSL_EVP_sha256(),
+                                                             NULL, privKey), 1);
+    sigSz = 0;
+    ExpectIntEQ(wolfSSL_EVP_DigestSign(&mdCtx, NULL, &sigSz, testData,
+                                       (unsigned int)XSTRLEN((const char*)testData)), 1);
+    ExpectIntGT((int)sigSz, 0);
+    ret = wolfSSL_EVP_MD_CTX_cleanup(&mdCtx);
+    ExpectIntEQ(ret, 1);
+
+    /* One-shot sign: actually produce the signature */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestSignInit(&mdCtx, NULL, wolfSSL_EVP_sha256(),
+                                                             NULL, privKey), 1);
+    sigSz = sizeof(sig);
+    ExpectIntEQ(wolfSSL_EVP_DigestSign(&mdCtx, sig, &sigSz, testData,
+                                       (unsigned int)XSTRLEN((const char*)testData)), 1);
+    ExpectIntGT((int)sigSz, 0);
+    ret = wolfSSL_EVP_MD_CTX_cleanup(&mdCtx);
+    ExpectIntEQ(ret, 1);
+
+    /* One-shot verify */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyInit(&mdCtx, NULL,
+                wolfSSL_EVP_sha256(), NULL, pubKey), 1);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerify(&mdCtx, sig, sigSz, testData,
+                                         (unsigned int)XSTRLEN((const char*)testData)), 1);
+    ret = wolfSSL_EVP_MD_CTX_cleanup(&mdCtx);
+    ExpectIntEQ(ret, 1);
+
+    /* One-shot sign + verify with NULL ctx should fail */
+    ExpectIntEQ(wolfSSL_EVP_DigestSign(NULL, sig, &sigSz, testData,
+                                       (unsigned int)XSTRLEN((const char*)testData)),
+                WOLFSSL_FAILURE);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerify(NULL, sig, sigSz, testData,
+                                         (unsigned int)XSTRLEN((const char*)testData)),
+                WOLFSSL_FAILURE);
+
+    wolfSSL_EVP_PKEY_free(pubKey);
+    wolfSSL_EVP_PKEY_free(privKey);
+#endif
+    return EXPECT_RESULT();
+}
+
+
+int test_wolfSSL_EVP_DigestSign_ecc(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_ECC) && defined(USE_CERT_BUFFERS_256)
+    WOLFSSL_EVP_PKEY* privKey = NULL;
+    WOLFSSL_EVP_PKEY* pubKey = NULL;
+    const unsigned char testData[] = "ECC one-shot test";
+    WOLFSSL_EVP_MD_CTX mdCtx;
+    int ret;
+    const unsigned char* cp;
+    const unsigned char* p;
+    unsigned char sig[256];
+    size_t sigSz;
+
+    cp = ecc_clikey_der_256;
+    ExpectNotNull(privKey = wolfSSL_d2i_PrivateKey(EVP_PKEY_EC, NULL, &cp,
+                                                   sizeof_ecc_clikey_der_256));
+    p = ecc_clikeypub_der_256;
+    ExpectNotNull((pubKey = wolfSSL_d2i_PUBKEY(NULL, &p,
+                                                sizeof_ecc_clikeypub_der_256)));
+
+    /* One-shot sign */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestSignInit(&mdCtx, NULL, wolfSSL_EVP_sha256(),
+                                                             NULL, privKey), 1);
+    sigSz = sizeof(sig);
+    ExpectIntEQ(wolfSSL_EVP_DigestSign(&mdCtx, sig, &sigSz, testData,
+                                       (unsigned int)XSTRLEN((const char*)testData)), 1);
+    ExpectIntGT((int)sigSz, 0);
+    ret = wolfSSL_EVP_MD_CTX_cleanup(&mdCtx);
+    ExpectIntEQ(ret, 1);
+
+    /* One-shot verify */
+    wolfSSL_EVP_MD_CTX_init(&mdCtx);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerifyInit(&mdCtx, NULL,
+                wolfSSL_EVP_sha256(), NULL, pubKey), 1);
+    ExpectIntEQ(wolfSSL_EVP_DigestVerify(&mdCtx, sig, sigSz, testData,
+                                         (unsigned int)XSTRLEN((const char*)testData)), 1);
+    ret = wolfSSL_EVP_MD_CTX_cleanup(&mdCtx);
+    ExpectIntEQ(ret, 1);
+
+    wolfSSL_EVP_PKEY_free(pubKey);
+    wolfSSL_EVP_PKEY_free(privKey);
+#endif
+    return EXPECT_RESULT();
+}
+
+
 int test_wolfSSL_EVP_PKEY_encrypt(void)
 {
     EXPECT_DECLS;
@@ -1956,7 +2505,11 @@ int test_wolfSSL_EVP_PKEY_encrypt(void)
         XMEMSET(outDec, 0, rsaKeySz);
     }
 
+#ifdef HAVE_FIPS
+    ExpectNotNull(rsa = RSA_generate_key(2048, WC_RSA_EXPONENT, NULL, NULL));
+#else
     ExpectNotNull(rsa = RSA_generate_key(2048, 3, NULL, NULL));
+#endif
     ExpectNotNull(pkey = wolfSSL_EVP_PKEY_new());
     ExpectIntEQ(EVP_PKEY_assign_RSA(pkey, rsa), WOLFSSL_SUCCESS);
     if (EXPECT_FAIL()) {
@@ -2287,7 +2840,8 @@ int test_wolfSSL_EVP_PKEY_print_public(void)
     /*
      *  test DH public key print
      */
-#if defined(WOLFSSL_DH_EXTRA) && defined(USE_CERT_BUFFERS_2048)
+#if !defined(NO_DH) && defined(WOLFSSL_DH_EXTRA) && \
+    defined(USE_CERT_BUFFERS_2048)
 
     ExpectNotNull(rbio = BIO_new_mem_buf( dh_pub_key_der_2048,
         sizeof_dh_pub_key_der_2048));
@@ -2344,7 +2898,7 @@ int test_wolfSSL_EVP_PKEY_print_public(void)
     rbio = NULL;
     wbio = NULL;
 
-#endif /* WOLFSSL_DH_EXTRA && USE_CERT_BUFFERS_2048 */
+#endif /* !NO_DH && WOLFSSL_DH_EXTRA && USE_CERT_BUFFERS_2048 */
 
     /* to prevent "unused variable" warning */
     (void)pkey;
@@ -2357,3 +2911,930 @@ int test_wolfSSL_EVP_PKEY_print_public(void)
     return EXPECT_RESULT();
 }
 
+int test_wolfSSL_EVP_PKEY_ed25519(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_ED25519) && \
+    defined(HAVE_ED25519_KEY_IMPORT)
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    const unsigned char* p;
+
+    /* Known-valid Ed25519 public key matching server_ed25519_key. The bytes
+     * are the raw 32-byte BIT STRING contents from
+     * ./certs/ed25519/server-ed25519-key.der so the import succeeds even
+     * under strict point-validation. */
+    static const unsigned char rawPub[32] = {
+        0x23, 0xaa, 0x4d, 0x60, 0x50, 0xe0, 0x13, 0xd3,
+        0x3a, 0xed, 0xab, 0xf6, 0xa9, 0xcc, 0x4a, 0xfe,
+        0xd7, 0x4d, 0x2f, 0xd2, 0x5b, 0x1a, 0x10, 0x05,
+        0xef, 0x5a, 0x41, 0x25, 0xce, 0x1b, 0x53, 0x78
+    };
+
+    /* SPKI wrapper around the same known-valid public key (the full
+     * contents of ./certs/ed25519/server-ed25519-key.der). */
+    static const unsigned char spkiPub[] = {
+        0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
+        0x23, 0xaa, 0x4d, 0x60, 0x50, 0xe0, 0x13, 0xd3,
+        0x3a, 0xed, 0xab, 0xf6, 0xa9, 0xcc, 0x4a, 0xfe,
+        0xd7, 0x4d, 0x2f, 0xd2, 0x5b, 0x1a, 0x10, 0x05,
+        0xef, 0x5a, 0x41, 0x25, 0xce, 0x1b, 0x53, 0x78
+    };
+
+    /* Exercise the WC_EVP_PKEY_ED25519 case in d2i_evp_pkey()
+     * including the algId match for the PKCS#8 wrapper. */
+    p = server_ed25519_key;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey(EVP_PKEY_ED25519, NULL,
+        &p, (long)sizeof_server_ed25519_key));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_ED25519);
+    wolfSSL_EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    p = spkiPub;
+    ExpectNotNull(pkey = wolfSSL_d2i_PUBKEY(NULL, &p, (long)sizeof(spkiPub)));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_ED25519);
+    wolfSSL_EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    /* Exercise EVP_PKEY_new_raw_public_key to parse 32 raw BIT STRING bytes */
+    ExpectNotNull(pkey = wolfSSL_EVP_PKEY_new_raw_public_key(
+        WC_EVP_PKEY_ED25519, NULL, rawPub, sizeof(rawPub)));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_ED25519);
+    wolfSSL_EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+#if !defined(NO_RSA) && defined(USE_CERT_BUFFERS_2048)
+    {
+        /* Reuse: after decoding an RSA key, reusing the same EVP_PKEY for
+         * an Ed25519 SPKI must re-populate type and DER and release the
+         * RSA object. */
+        p = client_keypub_der_2048;
+        ExpectNotNull(wolfSSL_d2i_PUBKEY(&pkey, &p,
+            (long)sizeof_client_keypub_der_2048));
+        ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_RSA);
+        p = spkiPub;
+        ExpectNotNull(wolfSSL_d2i_PUBKEY(&pkey, &p, (long)sizeof(spkiPub)));
+        ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_ED25519);
+        if (pkey != NULL) {
+            /* The stored DER length is how far the Ed25519 decoder advanced
+             * its index, which differs between the ASN template and
+             * original implementations - only require that the previous RSA
+             * DER (larger than the whole SPKI) was replaced. */
+            ExpectIntGT(pkey->pkey_sz, 0);
+            ExpectIntLE(pkey->pkey_sz, (int)sizeof(spkiPub));
+            ExpectNull(wolfSSL_EVP_PKEY_get0_RSA(pkey));
+        }
+        wolfSSL_EVP_PKEY_free(pkey);
+        pkey = NULL;
+    }
+#endif
+
+    {
+        static const unsigned char junk[16] = { 0 };
+        const unsigned char* jp = junk;
+        ExpectNull(wolfSSL_d2i_PUBKEY(NULL, &jp, (long)sizeof(junk)));
+    }
+#endif
+    return EXPECT_RESULT();
+}
+
+int test_wolfSSL_CTX_use_PrivateKey_ed25519(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_ED25519) && \
+    defined(HAVE_ED25519_KEY_IMPORT) && !defined(NO_WOLFSSL_SERVER) && \
+    !defined(NO_TLS)
+    WOLFSSL_CTX* ctx = NULL;
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    const unsigned char* p;
+
+    ExpectNotNull(ctx = wolfSSL_CTX_new(wolfSSLv23_server_method()));
+
+     /* Load the matching Ed25519 server cert */
+    ExpectIntEQ(wolfSSL_CTX_use_certificate_buffer(ctx, server_ed25519_cert,
+        (long)sizeof_server_ed25519_cert, WOLFSSL_FILETYPE_ASN1),
+        WOLFSSL_SUCCESS);
+
+    /* Decode the Ed25519 private key as a WOLFSSL_EVP_PKEY */
+    p = server_ed25519_key;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey(EVP_PKEY_ED25519, NULL,
+        &p, (long)sizeof_server_ed25519_key));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_ED25519);
+
+    /* Load the pkey and check for success */
+    ExpectIntEQ(wolfSSL_CTX_use_PrivateKey(ctx, pkey), WOLFSSL_SUCCESS);
+
+    wolfSSL_EVP_PKEY_free(pkey);
+    wolfSSL_CTX_free(ctx);
+#endif
+    return EXPECT_RESULT();
+}
+
+int test_wolfSSL_EVP_PKEY_ed448(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_ED448) && \
+    defined(HAVE_ED448_KEY_IMPORT)
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    const unsigned char* p;
+
+    /* Known-valid Ed448 public key: the raw 57-byte BIT STRING contents
+     * from ./certs/ed448/server-ed448-key.der so the import succeeds even
+     * under strict point-validation. */
+    static const unsigned char rawPub[57] = {
+        0x54, 0x81, 0x39, 0x01, 0xeb, 0x37, 0xd9, 0xa9,
+        0x07, 0xcd, 0x01, 0xbc, 0x9d, 0x70, 0x16, 0xc2,
+        0x2c, 0x2b, 0x75, 0x5b, 0x63, 0xdb, 0xee, 0x3a,
+        0x2d, 0x44, 0x92, 0x46, 0xb4, 0x7b, 0x07, 0x03,
+        0x4f, 0xa2, 0xae, 0x86, 0x86, 0xdc, 0x8b, 0x4b,
+        0x2c, 0x7f, 0xe8, 0x6b, 0x14, 0x8d, 0x58, 0xdd,
+        0x6d, 0xe7, 0x6f, 0x3a, 0x05, 0x95, 0xa8, 0xef,
+        0x00
+    };
+
+    /* SPKI wrapper around the same known-valid public key (the full
+     * contents of ./certs/ed448/server-ed448-key.der). */
+    static const unsigned char spkiPub[] = {
+        0x30, 0x43, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x71, 0x03, 0x3a, 0x00,
+        0x54, 0x81, 0x39, 0x01, 0xeb, 0x37, 0xd9, 0xa9,
+        0x07, 0xcd, 0x01, 0xbc, 0x9d, 0x70, 0x16, 0xc2,
+        0x2c, 0x2b, 0x75, 0x5b, 0x63, 0xdb, 0xee, 0x3a,
+        0x2d, 0x44, 0x92, 0x46, 0xb4, 0x7b, 0x07, 0x03,
+        0x4f, 0xa2, 0xae, 0x86, 0x86, 0xdc, 0x8b, 0x4b,
+        0x2c, 0x7f, 0xe8, 0x6b, 0x14, 0x8d, 0x58, 0xdd,
+        0x6d, 0xe7, 0x6f, 0x3a, 0x05, 0x95, 0xa8, 0xef,
+        0x00
+    };
+
+    /* SPKI path. */
+    p = spkiPub;
+    ExpectNotNull(pkey = wolfSSL_d2i_PUBKEY(NULL, &p, (long)sizeof(spkiPub)));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_ED448);
+    wolfSSL_EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    /* Parse raw bytes */
+    ExpectNotNull(pkey = wolfSSL_EVP_PKEY_new_raw_public_key(
+        WC_EVP_PKEY_ED448, NULL, rawPub, sizeof(rawPub)));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_ED448);
+    wolfSSL_EVP_PKEY_free(pkey);
+    pkey = NULL;
+#endif
+    return EXPECT_RESULT();
+}
+
+/* Decoding into a caller-supplied EVP_PKEY must re-populate the object
+ * (documented OpenSSL reuse semantics). An ML-DSA decode into a key that
+ * previously held another key must not return success while leaving the
+ * old key data in place. */
+int test_wolfSSL_d2i_PUBKEY_mldsa_reuse(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(WOLFSSL_HAVE_MLDSA) && \
+    defined(WOLFSSL_MLDSA_PUBLIC_KEY) && !defined(WOLFSSL_MLDSA_NO_ASN1) && \
+    !defined(WOLFSSL_NO_ML_DSA_44) && !defined(WOLFSSL_NO_ML_DSA_65) && \
+    !defined(NO_RSA) && defined(USE_CERT_BUFFERS_2048) && \
+    !defined(NO_FILESYSTEM)
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    const unsigned char* p;
+    unsigned char* der44 = NULL;
+    unsigned char* der65 = NULL;
+    int der44Sz = 0;
+    int der65Sz = 0;
+    XFILE f = XBADFILE;
+
+    ExpectNotNull(der44 = (unsigned char*)XMALLOC(2048, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+    ExpectNotNull(der65 = (unsigned char*)XMALLOC(2600, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+    ExpectTrue((f = XFOPEN("./certs/mldsa/mldsa44_pub-spki.der", "rb"))
+        != XBADFILE);
+    ExpectIntGT(der44Sz = (int)XFREAD(der44, 1, 2048, f), 0);
+    if (f != XBADFILE) {
+        XFCLOSE(f);
+        f = XBADFILE;
+    }
+    ExpectTrue((f = XFOPEN("./certs/mldsa/mldsa65_pub-spki.der", "rb"))
+        != XBADFILE);
+    ExpectIntGT(der65Sz = (int)XFREAD(der65, 1, 2600, f), 0);
+    if (f != XBADFILE) {
+        XFCLOSE(f);
+        f = XBADFILE;
+    }
+
+#ifdef HAVE_CURVE25519
+    {
+        /* Start from a raw X25519 key: the RSA decode below repurposes the
+         * EVP_PKEY and must release the curve25519 object too. */
+        static const unsigned char x25519Base[CURVE25519_PUB_KEY_SIZE] =
+            { 9 };
+        ExpectNotNull(pkey = wolfSSL_EVP_PKEY_new_raw_public_key(
+            WC_EVP_PKEY_X25519, NULL, x25519Base, sizeof(x25519Base)));
+        ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), WC_EVP_PKEY_X25519);
+    }
+#endif
+
+    /* Decode an RSA SPKI first so pkey holds a non-ML-DSA key. */
+    p = client_keypub_der_2048;
+    ExpectNotNull(wolfSSL_d2i_PUBKEY(&pkey, &p,
+        (long)sizeof_client_keypub_der_2048));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), EVP_PKEY_RSA);
+#ifdef HAVE_CURVE25519
+    if (pkey != NULL) {
+        /* The X25519 object must have been released and detached when the
+         * key was repurposed to RSA. */
+        ExpectNull(pkey->curve25519);
+    }
+#endif
+
+    /* Reuse the same EVP_PKEY for an ML-DSA SPKI and check the object was
+     * re-populated with the new key. */
+    p = der44;
+    ExpectNotNull(wolfSSL_d2i_PUBKEY(&pkey, &p, (long)der44Sz));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), WC_EVP_PKEY_DILITHIUM);
+    if (pkey != NULL) {
+        ExpectIntEQ(pkey->pkey_sz, der44Sz);
+        ExpectNotNull(pkey->pkey.ptr);
+        if (pkey->pkey.ptr != NULL) {
+            ExpectIntEQ(XMEMCMP(pkey->pkey.ptr, der44, (size_t)der44Sz), 0);
+        }
+        /* The RSA object from the first decode must have been released
+         * and detached when the key was repurposed. */
+        ExpectNull(wolfSSL_EVP_PKEY_get0_RSA(pkey));
+    }
+
+    /* Reuse again with a different ML-DSA level: same type, new key data. */
+    p = der65;
+    ExpectNotNull(wolfSSL_d2i_PUBKEY(&pkey, &p, (long)der65Sz));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), WC_EVP_PKEY_DILITHIUM);
+    if (pkey != NULL) {
+        ExpectIntEQ(pkey->pkey_sz, der65Sz);
+        ExpectNotNull(pkey->pkey.ptr);
+        if (pkey->pkey.ptr != NULL) {
+            ExpectIntEQ(XMEMCMP(pkey->pkey.ptr, der65, (size_t)der65Sz), 0);
+        }
+    }
+
+    wolfSSL_EVP_PKEY_free(pkey);
+    XFREE(der65, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    XFREE(der44, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+#endif
+    return EXPECT_RESULT();
+}
+
+/* Typed d2i entry points for ML-DSA: a PKCS#8 key of another algorithm
+ * and raw (non-DER) bytes must both be rejected; a matching PKCS#8
+ * ML-DSA key must decode. */
+int test_wolfSSL_d2i_PrivateKey_mldsa(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(WOLFSSL_HAVE_MLDSA) && \
+    defined(WOLFSSL_MLDSA_PRIVATE_KEY) && \
+    defined(WOLFSSL_MLDSA_PUBLIC_KEY) && !defined(WOLFSSL_MLDSA_NO_ASN1) && \
+    !defined(WOLFSSL_NO_ML_DSA_44) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM)
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    const unsigned char* p;
+    unsigned char* mldsaDer = NULL;
+    unsigned char* rsaDer = NULL;
+    unsigned char* rawBlob = NULL;
+    int mldsaSz = 0;
+    int rsaSz = 0;
+    XFILE f = XBADFILE;
+
+    ExpectNotNull(mldsaDer = (unsigned char*)XMALLOC(4096, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+    ExpectNotNull(rsaDer = (unsigned char*)XMALLOC(2048, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+    /* 2560 = ML-DSA-44 raw private key size */
+    ExpectNotNull(rawBlob = (unsigned char*)XMALLOC(2560, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+    ExpectTrue((f = XFOPEN("./certs/mldsa/mldsa44-key.der", "rb"))
+        != XBADFILE);
+    ExpectIntGT(mldsaSz = (int)XFREAD(mldsaDer, 1, 4096, f), 0);
+    if (f != XBADFILE) {
+        XFCLOSE(f);
+        f = XBADFILE;
+    }
+    ExpectTrue((f = XFOPEN("./certs/server-keyPkcs8.der", "rb")) != XBADFILE);
+    ExpectIntGT(rsaSz = (int)XFREAD(rsaDer, 1, 2048, f), 0);
+    if (f != XBADFILE) {
+        XFCLOSE(f);
+        f = XBADFILE;
+    }
+
+    /* PKCS#8 ML-DSA private key decodes with the matching type. */
+    p = mldsaDer;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey(WC_EVP_PKEY_DILITHIUM, NULL,
+        &p, (long)mldsaSz));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), WC_EVP_PKEY_DILITHIUM);
+
+    /* i2d must emit the full PKCS#8 wrapper (the parameter set only exists
+     * in the AlgorithmIdentifier) so the output round-trips through d2i. */
+    {
+        WOLFSSL_EVP_PKEY* pkey2 = NULL;
+        unsigned char* out = NULL;
+
+        ExpectIntEQ(wolfSSL_i2d_PrivateKey(pkey, &out), mldsaSz);
+        ExpectNotNull(out);
+        if (out != NULL) {
+            ExpectIntEQ(XMEMCMP(out, mldsaDer, (size_t)mldsaSz), 0);
+            p = out;
+            ExpectNotNull(pkey2 = wolfSSL_d2i_PrivateKey(
+                WC_EVP_PKEY_DILITHIUM, NULL, &p, (long)mldsaSz));
+            wolfSSL_EVP_PKEY_free(pkey2);
+        }
+        XFREE(out, NULL, DYNAMIC_TYPE_OPENSSL);
+    }
+    wolfSSL_EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    /* PKCS#8 RSA key requested as ML-DSA is rejected by the algId check. */
+    p = rsaDer;
+    ExpectNull(wolfSSL_d2i_PrivateKey(WC_EVP_PKEY_DILITHIUM, NULL, &p,
+        (long)rsaSz));
+
+    /* Raw (non-DER) private key bytes are rejected: d2i is a DER API, the
+     * size-keyed raw import is for the auto-detect path only. Use genuine
+     * raw bytes so the rejection is due to the format, not the contents. */
+    {
+        wc_MlDsaKey* mldsa = NULL;
+        word32 idx = 0;
+        word32 rawSz = 2560;
+        int keyRet = WC_NO_ERR_TRACE(BAD_FUNC_ARG);
+
+        ExpectNotNull(mldsa = (wc_MlDsaKey*)XMALLOC(sizeof(*mldsa), NULL,
+            DYNAMIC_TYPE_TMP_BUFFER));
+        ExpectIntEQ(keyRet = wc_MlDsaKey_Init(mldsa, NULL, INVALID_DEVID), 0);
+        PRIVATE_KEY_UNLOCK();
+        ExpectIntEQ(wc_MlDsaKey_PrivateKeyDecode(mldsa, mldsaDer,
+            (word32)mldsaSz, &idx), 0);
+        ExpectIntEQ(wc_MlDsaKey_ExportPrivRaw(mldsa, rawBlob, &rawSz), 0);
+        PRIVATE_KEY_LOCK();
+        if (keyRet == 0) {
+            wc_MlDsaKey_Free(mldsa);
+        }
+        XFREE(mldsa, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+
+        p = rawBlob;
+        ExpectNull(wolfSSL_d2i_PrivateKey(WC_EVP_PKEY_DILITHIUM, NULL, &p,
+            (long)rawSz));
+    }
+
+    /* Typed public-key entry point decodes an ML-DSA SPKI. Reuse the
+     * mldsaDer buffer for the SPKI bytes. */
+    {
+        int spkiSz = 0;
+
+        ExpectTrue((f = XFOPEN("./certs/mldsa/mldsa44_pub-spki.der", "rb"))
+            != XBADFILE);
+        ExpectIntGT(spkiSz = (int)XFREAD(mldsaDer, 1, 4096, f), 0);
+        if (f != XBADFILE) {
+            XFCLOSE(f);
+            f = XBADFILE;
+        }
+        p = mldsaDer;
+        ExpectNotNull(pkey = wolfSSL_d2i_PublicKey(WC_EVP_PKEY_DILITHIUM,
+            NULL, &p, (long)spkiSz));
+        ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), WC_EVP_PKEY_DILITHIUM);
+        wolfSSL_EVP_PKEY_free(pkey);
+        pkey = NULL;
+    }
+
+    XFREE(rawBlob, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    XFREE(rsaDer, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    XFREE(mldsaDer, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+#endif
+    return EXPECT_RESULT();
+}
+
+int test_wolfSSL_EVP_PKEY_x25519(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_CURVE25519)
+    EVP_PKEY* pkey = NULL;
+    EVP_PKEY* peer = NULL;
+    EVP_PKEY_CTX* genCtx = NULL;
+    EVP_PKEY_CTX* ctx = NULL;
+    unsigned char rawPriv[32];
+    unsigned char rawPub[32];
+    unsigned char secretA[32];
+    unsigned char secretB[32];
+    size_t secretLen;
+    int i;
+
+    for (i = 0; i < 32; i++) {
+        rawPriv[i] = (unsigned char)i;
+        rawPub[i]  = (unsigned char)(0x40 + i);
+    }
+
+    /* Raw import with the correct length reports the X25519 type. */
+    ExpectNotNull(pkey = EVP_PKEY_new_raw_public_key(
+        EVP_PKEY_X25519, NULL, rawPub, sizeof(rawPub)));
+    ExpectIntEQ(EVP_PKEY_id(pkey), EVP_PKEY_X25519);
+    EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    ExpectNotNull(pkey = EVP_PKEY_new_raw_private_key(
+        EVP_PKEY_X25519, NULL, rawPriv, sizeof(rawPriv)));
+    ExpectIntEQ(EVP_PKEY_id(pkey), EVP_PKEY_X25519);
+
+    /* X25519 is key-agreement only: signing must be rejected. */
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(pkey, NULL));
+    ExpectIntNE(EVP_PKEY_sign_init(ctx), WOLFSSL_SUCCESS);
+    EVP_PKEY_CTX_free(ctx);
+    ctx = NULL;
+    EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    /* Wrong raw lengths are rejected. */
+    ExpectNull(EVP_PKEY_new_raw_public_key(
+        EVP_PKEY_X25519, NULL, rawPub, 16));
+    ExpectNull(EVP_PKEY_new_raw_private_key(
+        EVP_PKEY_X25519, NULL, rawPriv, 16));
+
+    /* Generate two key pairs and confirm ECDH agreement is symmetric. This
+     * also exercises the little-endian convention used on import/derive. */
+    ExpectNotNull(genCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_X25519, NULL));
+    ExpectIntEQ(EVP_PKEY_keygen_init(genCtx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_keygen(genCtx, &pkey), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_keygen(genCtx, &peer), WOLFSSL_SUCCESS);
+    EVP_PKEY_CTX_free(genCtx);
+    genCtx = NULL;
+
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(pkey, NULL));
+    ExpectIntEQ(EVP_PKEY_derive_init(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_derive_set_peer(ctx, peer), WOLFSSL_SUCCESS);
+    secretLen = sizeof(secretA);
+    ExpectIntEQ(EVP_PKEY_derive(ctx, secretA, &secretLen), WOLFSSL_SUCCESS);
+    ExpectIntEQ((int)secretLen, 32);
+    EVP_PKEY_CTX_free(ctx);
+    ctx = NULL;
+
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(peer, NULL));
+    ExpectIntEQ(EVP_PKEY_derive_init(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_derive_set_peer(ctx, pkey), WOLFSSL_SUCCESS);
+    secretLen = sizeof(secretB);
+    ExpectIntEQ(EVP_PKEY_derive(ctx, secretB, &secretLen), WOLFSSL_SUCCESS);
+    ExpectIntEQ((int)secretLen, 32);
+    EVP_PKEY_CTX_free(ctx);
+    ctx = NULL;
+
+    ExpectIntEQ(XMEMCMP(secretA, secretB, 32), 0);
+
+    EVP_PKEY_free(peer);
+    EVP_PKEY_free(pkey);
+#endif
+    return EXPECT_RESULT();
+}
+
+int test_wolfSSL_EVP_PKEY_x448(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(HAVE_CURVE448)
+    EVP_PKEY* pkey = NULL;
+    EVP_PKEY* peer = NULL;
+    EVP_PKEY_CTX* genCtx = NULL;
+    EVP_PKEY_CTX* ctx = NULL;
+    unsigned char rawPriv[56];
+    unsigned char rawPub[56];
+    unsigned char secretA[56];
+    unsigned char secretB[56];
+    size_t secretLen;
+    int i;
+
+    for (i = 0; i < 56; i++) {
+        rawPriv[i] = (unsigned char)i;
+        rawPub[i]  = (unsigned char)(0x40 + i);
+    }
+
+    /* Raw import with the correct length reports the X448 type. */
+    ExpectNotNull(pkey = EVP_PKEY_new_raw_public_key(
+        EVP_PKEY_X448, NULL, rawPub, sizeof(rawPub)));
+    ExpectIntEQ(EVP_PKEY_id(pkey), EVP_PKEY_X448);
+    EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    ExpectNotNull(pkey = EVP_PKEY_new_raw_private_key(
+        EVP_PKEY_X448, NULL, rawPriv, sizeof(rawPriv)));
+    ExpectIntEQ(EVP_PKEY_id(pkey), EVP_PKEY_X448);
+
+    /* X448 is key-agreement only: signing must be rejected. */
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(pkey, NULL));
+    ExpectIntNE(EVP_PKEY_sign_init(ctx), WOLFSSL_SUCCESS);
+    EVP_PKEY_CTX_free(ctx);
+    ctx = NULL;
+    EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    /* Wrong raw lengths are rejected. */
+    ExpectNull(EVP_PKEY_new_raw_public_key(
+        EVP_PKEY_X448, NULL, rawPub, 16));
+    ExpectNull(EVP_PKEY_new_raw_private_key(
+        EVP_PKEY_X448, NULL, rawPriv, 16));
+
+    /* Generate two key pairs and confirm ECDH agreement is symmetric. */
+    ExpectNotNull(genCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_X448, NULL));
+    ExpectIntEQ(EVP_PKEY_keygen_init(genCtx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_keygen(genCtx, &pkey), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_keygen(genCtx, &peer), WOLFSSL_SUCCESS);
+    EVP_PKEY_CTX_free(genCtx);
+    genCtx = NULL;
+
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(pkey, NULL));
+    ExpectIntEQ(EVP_PKEY_derive_init(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_derive_set_peer(ctx, peer), WOLFSSL_SUCCESS);
+    secretLen = sizeof(secretA);
+    ExpectIntEQ(EVP_PKEY_derive(ctx, secretA, &secretLen), WOLFSSL_SUCCESS);
+    ExpectIntEQ((int)secretLen, 56);
+    EVP_PKEY_CTX_free(ctx);
+    ctx = NULL;
+
+    ExpectNotNull(ctx = EVP_PKEY_CTX_new(peer, NULL));
+    ExpectIntEQ(EVP_PKEY_derive_init(ctx), WOLFSSL_SUCCESS);
+    ExpectIntEQ(EVP_PKEY_derive_set_peer(ctx, pkey), WOLFSSL_SUCCESS);
+    secretLen = sizeof(secretB);
+    ExpectIntEQ(EVP_PKEY_derive(ctx, secretB, &secretLen), WOLFSSL_SUCCESS);
+    ExpectIntEQ((int)secretLen, 56);
+    EVP_PKEY_CTX_free(ctx);
+    ctx = NULL;
+
+    ExpectIntEQ(XMEMCMP(secretA, secretB, 56), 0);
+
+    EVP_PKEY_free(peer);
+    EVP_PKEY_free(pkey);
+#endif
+    return EXPECT_RESULT();
+}
+
+int test_wolfSSL_EVP_PKEY_encoded_public_key(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && (defined(HAVE_ECC) || defined(HAVE_CURVE25519) || \
+    defined(HAVE_CURVE448))
+    /* Type-independent bad-argument handling. The deprecated tls_encodedpoint
+     * names are macro aliases of these, so exercising one covers both. */
+    {
+        unsigned char* p = NULL;
+        ExpectIntEQ((int)EVP_PKEY_get1_encoded_public_key(NULL, &p), 0);
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(NULL,
+            (const unsigned char*)"abc", 3), 0);
+    }
+
+#ifdef HAVE_ECC
+    {
+        EC_KEY* ec1 = NULL;
+        EC_KEY* ec2 = NULL;
+        EVP_PKEY* pkey1 = NULL;
+        EVP_PKEY* pkey2 = NULL;
+        unsigned char* enc = NULL;
+        unsigned char* enc2 = NULL;
+        unsigned char* encTls = NULL;
+        size_t encLen = 0;
+        size_t encLen2 = 0;
+        size_t encLenTls = 0;
+
+        /* EVP_PKEY holding a generated P-256 key. */
+        ExpectNotNull(ec1 = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+        ExpectIntEQ(EC_KEY_generate_key(ec1), 1);
+        ExpectNotNull(pkey1 = EVP_PKEY_new());
+        ExpectIntEQ(EVP_PKEY_set1_EC_KEY(pkey1, ec1), 1);
+
+        /* Bad arguments with a valid key. */
+        ExpectIntEQ((int)EVP_PKEY_get1_encoded_public_key(pkey1, NULL), 0);
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(pkey1, NULL, 10), 0);
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(pkey1, enc, 0), 0);
+
+        /* get1 returns the uncompressed point: 0x04 || X || Y == 65 bytes. */
+        ExpectIntEQ((int)(encLen =
+            EVP_PKEY_get1_encoded_public_key(pkey1, &enc)), 65);
+        ExpectNotNull(enc);
+        if (enc != NULL) {
+            ExpectIntEQ(enc[0], 0x04);
+        }
+
+        /* Deprecated alias must produce identical output. */
+        ExpectIntEQ((int)(encLenTls =
+            EVP_PKEY_get1_tls_encodedpoint(pkey1, &encTls)), (int)encLen);
+        ExpectBufEQ(encTls, enc, encLen);
+
+        /* set1 into a second key with the same curve, then round-trip get1. */
+        ExpectNotNull(ec2 = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+        ExpectIntEQ(EC_KEY_generate_key(ec2), 1);
+        ExpectNotNull(pkey2 = EVP_PKEY_new());
+        ExpectIntEQ(EVP_PKEY_set1_EC_KEY(pkey2, ec2), 1);
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(pkey2, enc, encLen), 1);
+        ExpectIntEQ((int)(encLen2 =
+            EVP_PKEY_get1_encoded_public_key(pkey2, &enc2)), (int)encLen);
+        ExpectBufEQ(enc2, enc, encLen);
+
+        OPENSSL_free(enc);
+        OPENSSL_free(enc2);
+        OPENSSL_free(encTls);
+        EC_KEY_free(ec1);
+        EC_KEY_free(ec2);
+        EVP_PKEY_free(pkey1);
+        EVP_PKEY_free(pkey2);
+    }
+
+    /* set1 must produce a peer key usable for ECDH, i.e. the internal wolfCrypt
+     * key (consumed by EVP_PKEY_derive) is synced, not just the wire bytes. */
+    {
+        EC_KEY* aKey = NULL;
+        EC_KEY* bKey = NULL;
+        EC_KEY* pKey = NULL;
+        EVP_PKEY* alice = NULL;
+        EVP_PKEY* bob = NULL;
+        EVP_PKEY* peer = NULL;
+        EVP_PKEY_CTX* ctx = NULL;
+        unsigned char* bobEnc = NULL;
+        size_t bobEncLen = 0;
+        unsigned char secretRef[80];
+        unsigned char secret[80];
+        size_t refLen = sizeof(secretRef);
+        size_t secLen = sizeof(secret);
+
+        ExpectNotNull(aKey = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+        ExpectIntEQ(EC_KEY_generate_key(aKey), 1);
+        ExpectNotNull(alice = EVP_PKEY_new());
+        ExpectIntEQ(EVP_PKEY_set1_EC_KEY(alice, aKey), 1);
+
+        ExpectNotNull(bKey = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+        ExpectIntEQ(EC_KEY_generate_key(bKey), 1);
+        ExpectNotNull(bob = EVP_PKEY_new());
+        ExpectIntEQ(EVP_PKEY_set1_EC_KEY(bob, bKey), 1);
+
+        /* Reference shared secret: alice + the real bob. */
+        ExpectNotNull(ctx = EVP_PKEY_CTX_new(alice, NULL));
+        ExpectIntEQ(EVP_PKEY_derive_init(ctx), 1);
+        ExpectIntEQ(EVP_PKEY_derive_set_peer(ctx, bob), 1);
+        ExpectIntEQ(EVP_PKEY_derive(ctx, secretRef, &refLen), 1);
+        EVP_PKEY_CTX_free(ctx);
+        ctx = NULL;
+
+        /* Load bob's public point into a fresh peer key (using the deprecated
+         * set name to also cover that alias). */
+        ExpectIntGT((int)(bobEncLen =
+            EVP_PKEY_get1_encoded_public_key(bob, &bobEnc)), 0);
+        ExpectNotNull(pKey = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+        ExpectIntEQ(EC_KEY_generate_key(pKey), 1);
+        ExpectNotNull(peer = EVP_PKEY_new());
+        ExpectIntEQ(EVP_PKEY_set1_EC_KEY(peer, pKey), 1);
+        ExpectIntEQ(EVP_PKEY_set1_tls_encodedpoint(peer, bobEnc, bobEncLen), 1);
+
+        /* Secret with the set1-loaded peer must match the reference. */
+        ExpectNotNull(ctx = EVP_PKEY_CTX_new(alice, NULL));
+        ExpectIntEQ(EVP_PKEY_derive_init(ctx), 1);
+        ExpectIntEQ(EVP_PKEY_derive_set_peer(ctx, peer), 1);
+        ExpectIntEQ(EVP_PKEY_derive(ctx, secret, &secLen), 1);
+        EVP_PKEY_CTX_free(ctx);
+        ctx = NULL;
+
+        ExpectIntEQ((int)secLen, (int)refLen);
+        ExpectBufEQ(secret, secretRef, refLen);
+
+        OPENSSL_free(bobEnc);
+        EC_KEY_free(aKey);
+        EC_KEY_free(bKey);
+        EC_KEY_free(pKey);
+        EVP_PKEY_free(alice);
+        EVP_PKEY_free(bob);
+        EVP_PKEY_free(peer);
+    }
+#endif /* HAVE_ECC */
+
+#ifdef HAVE_CURVE25519
+    {
+        EVP_PKEY_CTX* genCtx = NULL;
+        EVP_PKEY* pkey = NULL;
+        EVP_PKEY* peer = NULL;
+        unsigned char* enc = NULL;
+        unsigned char* enc2 = NULL;
+        unsigned char* encTls = NULL;
+        size_t encLen = 0;
+        size_t encLen2 = 0;
+        size_t encLenTls = 0;
+
+        ExpectNotNull(genCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_X25519, NULL));
+        ExpectIntEQ(EVP_PKEY_keygen_init(genCtx), 1);
+        ExpectIntEQ(EVP_PKEY_keygen(genCtx, &pkey), 1);
+        ExpectIntEQ(EVP_PKEY_keygen(genCtx, &peer), 1);
+        EVP_PKEY_CTX_free(genCtx);
+        genCtx = NULL;
+
+        /* Raw X25519 public key is 32 bytes. */
+        ExpectIntEQ((int)(encLen =
+            EVP_PKEY_get1_encoded_public_key(pkey, &enc)), 32);
+        ExpectNotNull(enc);
+
+        /* Deprecated alias parity. */
+        ExpectIntEQ((int)(encLenTls =
+            EVP_PKEY_get1_tls_encodedpoint(pkey, &encTls)), (int)encLen);
+        ExpectBufEQ(encTls, enc, encLen);
+
+        /* set1 into the peer key and round-trip. */
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(peer, enc, encLen), 1);
+        ExpectIntEQ((int)(encLen2 =
+            EVP_PKEY_get1_encoded_public_key(peer, &enc2)), (int)encLen);
+        ExpectBufEQ(enc2, enc, encLen);
+
+        /* A failed set1 (wrong length) must leave the existing key intact. */
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(peer, enc, encLen - 1), 0);
+        {
+            unsigned char* enc3 = NULL;
+            size_t encLen3 = 0;
+            ExpectIntEQ((int)(encLen3 =
+                EVP_PKEY_get1_encoded_public_key(peer, &enc3)), (int)encLen);
+            ExpectBufEQ(enc3, enc, encLen);
+            OPENSSL_free(enc3);
+        }
+
+        OPENSSL_free(enc);
+        OPENSSL_free(enc2);
+        OPENSSL_free(encTls);
+        EVP_PKEY_free(pkey);
+        EVP_PKEY_free(peer);
+    }
+#endif /* HAVE_CURVE25519 */
+
+#ifdef HAVE_CURVE448
+    {
+        EVP_PKEY_CTX* genCtx = NULL;
+        EVP_PKEY* pkey = NULL;
+        EVP_PKEY* peer = NULL;
+        unsigned char* enc = NULL;
+        unsigned char* enc2 = NULL;
+        size_t encLen = 0;
+        size_t encLen2 = 0;
+
+        ExpectNotNull(genCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_X448, NULL));
+        ExpectIntEQ(EVP_PKEY_keygen_init(genCtx), 1);
+        ExpectIntEQ(EVP_PKEY_keygen(genCtx, &pkey), 1);
+        ExpectIntEQ(EVP_PKEY_keygen(genCtx, &peer), 1);
+        EVP_PKEY_CTX_free(genCtx);
+        genCtx = NULL;
+
+        /* Raw X448 public key is 56 bytes. */
+        ExpectIntEQ((int)(encLen =
+            EVP_PKEY_get1_encoded_public_key(pkey, &enc)), 56);
+        ExpectNotNull(enc);
+
+        /* set1 into the peer key and round-trip. */
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(peer, enc, encLen), 1);
+        ExpectIntEQ((int)(encLen2 =
+            EVP_PKEY_get1_encoded_public_key(peer, &enc2)), (int)encLen);
+        ExpectBufEQ(enc2, enc, encLen);
+
+        /* A failed set1 (wrong length) must leave the existing key intact. */
+        ExpectIntEQ(EVP_PKEY_set1_encoded_public_key(peer, enc, encLen - 1), 0);
+        {
+            unsigned char* enc3 = NULL;
+            size_t encLen3 = 0;
+            ExpectIntEQ((int)(encLen3 =
+                EVP_PKEY_get1_encoded_public_key(peer, &enc3)), (int)encLen);
+            ExpectBufEQ(enc3, enc, encLen);
+            OPENSSL_free(enc3);
+        }
+
+        OPENSSL_free(enc);
+        OPENSSL_free(enc2);
+        EVP_PKEY_free(pkey);
+        EVP_PKEY_free(peer);
+    }
+#endif /* HAVE_CURVE448 */
+#endif /* OPENSSL_EXTRA && (HAVE_ECC || HAVE_CURVE25519 || HAVE_CURVE448) */
+    return EXPECT_RESULT();
+}
+
+
+int test_wolfSSL_d2i_PrivateKey_reuse_resets_state(void)
+{
+    EXPECT_DECLS;
+/* wolfSSL_d2i_PrivateKey_EVP() and wolfSSL_PEM_write_bio_PKCS8PrivateKey() are
+ * both OPENSSL_ALL, and the latter also needs PKCS#8 and a password based key
+ * derivation. */
+#if defined(OPENSSL_ALL) && defined(HAVE_PKCS8) && !defined(NO_PWDBASED) && \
+    defined(HAVE_ECC) && !defined(NO_RSA) && !defined(NO_FILESYSTEM) && \
+    !defined(NO_BIO) && defined(WOLFSSL_DER_TO_PEM)
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    unsigned char* rsaDer = NULL;
+    unsigned char* eccDer = NULL;
+    unsigned char* freshPem = NULL;
+    const unsigned char* p = NULL;
+    unsigned char* q = NULL;
+    WOLFSSL_BIO* bio = NULL;
+    char* pem = NULL;
+    int rsaSz = 0;
+    int eccSz = 0;
+    int freshSz = 0;
+    XFILE f = XBADFILE;
+
+    ExpectNotNull(rsaDer = (unsigned char*)XMALLOC(4096, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+    ExpectNotNull(eccDer = (unsigned char*)XMALLOC(4096, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+
+    ExpectTrue((f = XFOPEN("./certs/server-keyPkcs8.der", "rb")) != XBADFILE);
+    ExpectIntGT(rsaSz = (int)XFREAD(rsaDer, 1, 4096, f), 0);
+    if (f != XBADFILE) {
+        XFCLOSE(f);
+        f = XBADFILE;
+    }
+    ExpectTrue((f = XFOPEN("./certs/ecc-key.der", "rb")) != XBADFILE);
+    ExpectIntGT(eccSz = (int)XFREAD(eccDer, 1, 4096, f), 0);
+    if (f != XBADFILE) {
+        XFCLOSE(f);
+        f = XBADFILE;
+    }
+
+    /* Baseline: decode the traditional ECC key into a new object and record
+     * its PKCS#8 PEM. */
+    q = eccDer;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey_EVP(NULL, &q, (long)eccSz));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), WC_EVP_PKEY_EC);
+    ExpectNotNull(bio = wolfSSL_BIO_new(wolfSSL_BIO_s_mem()));
+    ExpectIntGT(wolfSSL_PEM_write_bio_PKCS8PrivateKey(bio, pkey, NULL, NULL, 0,
+        NULL, NULL), 0);
+    ExpectIntGT(freshSz = (int)wolfSSL_BIO_get_mem_data(bio, &pem), 0);
+    ExpectNotNull(freshPem = (unsigned char*)XMALLOC((size_t)freshSz, NULL,
+        DYNAMIC_TYPE_TMP_BUFFER));
+    if (freshPem != NULL && pem != NULL) {
+        XMEMCPY(freshPem, pem, (size_t)freshSz);
+    }
+    wolfSSL_BIO_free(bio);
+    bio = NULL;
+    wolfSSL_EVP_PKEY_free(pkey);
+    pkey = NULL;
+
+    /* A PKCS#8 RSA key records a non-zero pkcs8HeaderSz. */
+    p = rsaDer;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey(WC_EVP_PKEY_RSA, NULL, &p,
+        (long)rsaSz));
+    ExpectIntGT((int)pkey->pkcs8HeaderSz, 0);
+
+    /* Reusing that object for the traditional ECC key must clear it, so the
+     * re-encoded key is not sliced at the previous key's header offset. */
+    q = eccDer;
+    ExpectNotNull(wolfSSL_d2i_PrivateKey_EVP(&pkey, &q, (long)eccSz));
+    ExpectIntEQ(wolfSSL_EVP_PKEY_id(pkey), WC_EVP_PKEY_EC);
+    ExpectIntEQ((int)pkey->pkcs8HeaderSz, 0);
+
+    /* The reused object must encode exactly like the fresh one. */
+    ExpectNotNull(bio = wolfSSL_BIO_new(wolfSSL_BIO_s_mem()));
+    ExpectIntGT(wolfSSL_PEM_write_bio_PKCS8PrivateKey(bio, pkey, NULL, NULL, 0,
+        NULL, NULL), 0);
+    ExpectIntEQ((int)wolfSSL_BIO_get_mem_data(bio, &pem), freshSz);
+    ExpectBufEQ(pem, freshPem, freshSz);
+
+    wolfSSL_BIO_free(bio);
+    wolfSSL_EVP_PKEY_free(pkey);
+    XFREE(freshPem, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    XFREE(eccDer, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    XFREE(rsaDer, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+#endif
+    return EXPECT_RESULT();
+}
+
+/* wolfSSL_CTX_use_PrivateKey() re-encodes the key already held by the EVP_PKEY
+ * through PopulateRSAEvpPkeyDer(), which sizes its buffer from the unwrapped
+ * PKCS#1 encoding while a PKCS#8 loaded key's cached DER carries the wrapper.
+ * Under WOLFSSL_NO_REALLOC the old contents were copied into that smaller
+ * buffer, so one call on a wrapped key overran it, with no key replacement.
+ *
+ * test_wolfSSL_EVP_PKEY_set1_shrinking_der() covers the same sink through
+ * EVP_PKEY_set1_*; this covers the only other caller. The overrun needs a
+ * sanitizer on a WOLFSSL_NO_REALLOC build to see; the sizes below hold either
+ * way. WOLFSSL_KEY_GEN is required. */
+int test_wolfSSL_CTX_use_PrivateKey_pkcs8_repopulate(void)
+{
+    EXPECT_DECLS;
+#if defined(OPENSSL_EXTRA) && defined(WOLFSSL_KEY_TO_DER) && \
+    defined(WOLFSSL_KEY_GEN) && defined(HAVE_PKCS8) && !defined(NO_RSA) && \
+    !defined(NO_FILESYSTEM) && !defined(NO_CERTS) && !defined(NO_TLS) && \
+    !defined(NO_WOLFSSL_CLIENT)
+    WOLFSSL_CTX*      ctx = NULL;
+    WOLFSSL_EVP_PKEY* pkey = NULL;
+    const unsigned char* in;
+    byte*  buf = NULL;
+    size_t bufSz = 0;
+    int    wrappedSz = 0;
+
+    ExpectIntEQ(load_file("./certs/server-keyPkcs8.der", &buf, &bufSz), 0);
+    in = buf;
+    ExpectNotNull(pkey = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL, &in,
+        (long)bufSz));
+    /* Premise: without the wrapper the re-encode is the same size and the
+     * shrink is never exercised. */
+    ExpectIntGT((int)pkey->pkcs8HeaderSz, 0);
+    ExpectIntGT(wrappedSz = wolfSSL_i2d_PrivateKey(pkey, NULL), 0);
+
+    ExpectNotNull(ctx = wolfSSL_CTX_new(wolfSSLv23_client_method()));
+    ExpectIntEQ(wolfSSL_CTX_use_PrivateKey(ctx, pkey), WOLFSSL_SUCCESS);
+    /* Exact: a dropped or stale wrapper shows up as a size mismatch. */
+    ExpectIntEQ(wolfSSL_i2d_PrivateKey(pkey, NULL), wrappedSz);
+
+    XFREE(buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+    wolfSSL_CTX_free(ctx);
+    wolfSSL_EVP_PKEY_free(pkey);
+#endif
+    return EXPECT_RESULT();
+}

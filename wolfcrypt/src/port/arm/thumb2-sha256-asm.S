@@ -25,6 +25,9 @@
  *       thumb2 ../wolfssl/wolfcrypt/src/port/arm/thumb2-sha256-asm.S
  */
 
+#define WC_FIPS_LL_CRYPTO
+#define _WC_BUILDING_THUMB2_SHA256_ASM_S
+
 #include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
 
 #ifdef WOLFSSL_ARMASM
@@ -34,78 +37,40 @@
 	.syntax unified
 #ifndef NO_SHA256
 #ifdef WOLFSSL_ARMASM_NO_NEON
+#ifndef __APPLE__
 	.text
 	.type	L_SHA256_transform_len_k, %object
 	.size	L_SHA256_transform_len_k, 256
-	.align	4
+#else
+	.section	__DATA,__data
+#endif /* __APPLE__ */
+	/* 8-byte aligned, 64-bit aligned */
+#ifndef __APPLE__
+	.align	3
+#else
+	.p2align	3
+#endif /* __APPLE__ */
 L_SHA256_transform_len_k:
-	.word	0x428a2f98
-	.word	0x71374491
-	.word	0xb5c0fbcf
-	.word	0xe9b5dba5
-	.word	0x3956c25b
-	.word	0x59f111f1
-	.word	0x923f82a4
-	.word	0xab1c5ed5
-	.word	0xd807aa98
-	.word	0x12835b01
-	.word	0x243185be
-	.word	0x550c7dc3
-	.word	0x72be5d74
-	.word	0x80deb1fe
-	.word	0x9bdc06a7
-	.word	0xc19bf174
-	.word	0xe49b69c1
-	.word	0xefbe4786
-	.word	0xfc19dc6
-	.word	0x240ca1cc
-	.word	0x2de92c6f
-	.word	0x4a7484aa
-	.word	0x5cb0a9dc
-	.word	0x76f988da
-	.word	0x983e5152
-	.word	0xa831c66d
-	.word	0xb00327c8
-	.word	0xbf597fc7
-	.word	0xc6e00bf3
-	.word	0xd5a79147
-	.word	0x6ca6351
-	.word	0x14292967
-	.word	0x27b70a85
-	.word	0x2e1b2138
-	.word	0x4d2c6dfc
-	.word	0x53380d13
-	.word	0x650a7354
-	.word	0x766a0abb
-	.word	0x81c2c92e
-	.word	0x92722c85
-	.word	0xa2bfe8a1
-	.word	0xa81a664b
-	.word	0xc24b8b70
-	.word	0xc76c51a3
-	.word	0xd192e819
-	.word	0xd6990624
-	.word	0xf40e3585
-	.word	0x106aa070
-	.word	0x19a4c116
-	.word	0x1e376c08
-	.word	0x2748774c
-	.word	0x34b0bcb5
-	.word	0x391c0cb3
-	.word	0x4ed8aa4a
-	.word	0x5b9cca4f
-	.word	0x682e6ff3
-	.word	0x748f82ee
-	.word	0x78a5636f
-	.word	0x84c87814
-	.word	0x8cc70208
-	.word	0x90befffa
-	.word	0xa4506ceb
-	.word	0xbef9a3f7
-	.word	0xc67178f2
+	.long	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5
+	.long	0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5
+	.long	0xd807aa98,0x12835b01,0x243185be,0x550c7dc3
+	.long	0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174
+	.long	0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc
+	.long	0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da
+	.long	0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7
+	.long	0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967
+	.long	0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13
+	.long	0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85
+	.long	0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3
+	.long	0xd192e819,0xd6990624,0xf40e3585,0x106aa070
+	.long	0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5
+	.long	0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3
+	.long	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208
+	.long	0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 	.text
 	.align	4
 	.globl	Transform_Sha256_Len_base
+	WC_ASM_ATT_HIDDEN(Transform_Sha256_Len_base)
 	.type	Transform_Sha256_Len_base, %function
 Transform_Sha256_Len_base:
 	PUSH	{r4, r5, r6, r7, r8, r9, r10, r11, lr}
@@ -167,7 +132,7 @@ L_SHA256_transform_len_begin:
 	LDR	r4, [r0, #8]
 	EOR	r11, r11, r4
 #ifndef WOLFSSL_ARMASM_SHA256_SMALL
-	MOV	r3, #0x3
+	MOV	r3, #3
 	/* Start of 16 rounds */
 L_SHA256_transform_len_start_fast:
 	/* Round 0 */
@@ -923,7 +888,7 @@ L_SHA256_transform_len_start_fast:
 	ADD	r9, r9, r4
 	STR	r9, [sp, #60]
 	ADD	r12, r12, #0x40
-	SUBS	r3, r3, #0x1
+	SUBS	r3, r3, #1
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BNE	L_SHA256_transform_len_start_fast
 #else
@@ -1442,10 +1407,10 @@ L_SHA256_transform_len_start_fast:
 	STR	r8, [r0, #16]
 	STR	r9, [r0]
 #else
-	MOV	r3, #0x4
+	MOV	r3, #4
 	/* Start of 16 rounds */
 L_SHA256_transform_len_start_small:
-	SUB	r3, r3, #0x1
+	SUB	r3, r3, #1
 	/* Round 0 */
 	LDR	r5, [r0, #16]
 	LDR	r6, [r0, #20]
@@ -1478,7 +1443,7 @@ L_SHA256_transform_len_start_small:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #12]
 	STR	r9, [r0, #28]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_0
 #else
@@ -1532,7 +1497,7 @@ L_SHA256_transform_len_blk_end_0:
 	ADD	r9, r9, r10
 	STR	r8, [r0, #8]
 	STR	r9, [r0, #24]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_1
 #else
@@ -1586,7 +1551,7 @@ L_SHA256_transform_len_blk_end_1:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #4]
 	STR	r9, [r0, #20]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_2
 #else
@@ -1640,7 +1605,7 @@ L_SHA256_transform_len_blk_end_2:
 	ADD	r9, r9, r10
 	STR	r8, [r0]
 	STR	r9, [r0, #16]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_3
 #else
@@ -1694,7 +1659,7 @@ L_SHA256_transform_len_blk_end_3:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #28]
 	STR	r9, [r0, #12]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_4
 #else
@@ -1748,7 +1713,7 @@ L_SHA256_transform_len_blk_end_4:
 	ADD	r9, r9, r10
 	STR	r8, [r0, #24]
 	STR	r9, [r0, #8]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_5
 #else
@@ -1802,7 +1767,7 @@ L_SHA256_transform_len_blk_end_5:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #20]
 	STR	r9, [r0, #4]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_6
 #else
@@ -1856,7 +1821,7 @@ L_SHA256_transform_len_blk_end_6:
 	ADD	r9, r9, r10
 	STR	r8, [r0, #16]
 	STR	r9, [r0]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_7
 #else
@@ -1910,7 +1875,7 @@ L_SHA256_transform_len_blk_end_7:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #12]
 	STR	r9, [r0, #28]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_8
 #else
@@ -1964,7 +1929,7 @@ L_SHA256_transform_len_blk_end_8:
 	ADD	r9, r9, r10
 	STR	r8, [r0, #8]
 	STR	r9, [r0, #24]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_9
 #else
@@ -2018,7 +1983,7 @@ L_SHA256_transform_len_blk_end_9:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #4]
 	STR	r9, [r0, #20]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_10
 #else
@@ -2072,7 +2037,7 @@ L_SHA256_transform_len_blk_end_10:
 	ADD	r9, r9, r10
 	STR	r8, [r0]
 	STR	r9, [r0, #16]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_11
 #else
@@ -2126,7 +2091,7 @@ L_SHA256_transform_len_blk_end_11:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #28]
 	STR	r9, [r0, #12]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_12
 #else
@@ -2180,7 +2145,7 @@ L_SHA256_transform_len_blk_end_12:
 	ADD	r9, r9, r10
 	STR	r8, [r0, #24]
 	STR	r9, [r0, #8]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_13
 #else
@@ -2234,7 +2199,7 @@ L_SHA256_transform_len_blk_end_13:
 	ADD	r9, r9, r11
 	STR	r8, [r0, #20]
 	STR	r9, [r0, #4]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_14
 #else
@@ -2288,7 +2253,7 @@ L_SHA256_transform_len_blk_end_14:
 	ADD	r9, r9, r10
 	STR	r8, [r0, #16]
 	STR	r9, [r0]
-	CMP	r3, #0x0
+	CMP	r3, #0
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BEQ	L_SHA256_transform_len_blk_end_15
 #else
@@ -2310,7 +2275,7 @@ L_SHA256_transform_len_blk_end_14:
 	ADD	r9, r9, r4
 	STR	r9, [sp, #60]
 L_SHA256_transform_len_blk_end_15:
-	CMP	r3, #0x0
+	CMP	r3, #0
 	ADD	r12, r12, #0x40
 #if defined(__GNUC__) || defined(__ICCARM__) || defined(__IAR_SYSTEMS_ICC__)
 	BNE	L_SHA256_transform_len_start_small
@@ -2361,10 +2326,10 @@ L_SHA256_transform_len_blk_end_15:
 	.size	Transform_Sha256_Len_base,.-Transform_Sha256_Len_base
 #endif /* WOLFSSL_ARMASM_NO_NEON */
 #endif /* !NO_SHA256 */
-#endif /* WOLFSSL_ARMASM_THUMB2 */
-#endif /* WOLFSSL_ARMASM */
 
 #if defined(__linux__) && defined(__ELF__)
-.section        .note.GNU-stack,"",%progbits
+.section	.note.GNU-stack,"",%progbits
 #endif
 #endif /* !WOLFSSL_ARMASM_INLINE */
+#endif /* WOLFSSL_ARMASM_THUMB2 */
+#endif /* WOLFSSL_ARMASM */

@@ -19,25 +19,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
-#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
-
 /* Generated using (from wolfssl):
  *   cd ../scripts
  *   ruby ./poly1305/poly1305.rb arm64 \
  *       ../wolfssl/wolfcrypt/src/port/arm/armv8-poly1305-asm.S
  */
+
+#define _WC_BUILDING_ARMV8_POLY1305_ASM_S
+
+#include <wolfssl/wolfcrypt/libwolfssl_sources_asm.h>
+
 #ifdef WOLFSSL_ARMASM
 #ifdef __aarch64__
 #ifndef WOLFSSL_ARMASM_INLINE
 #ifndef __APPLE__
 .text
 .globl	poly1305_arm64_block_16
+WC_ASM_ATT_HIDDEN(poly1305_arm64_block_16)
 .type	poly1305_arm64_block_16,@function
 .align	2
 poly1305_arm64_block_16:
 #else
 .section	__TEXT,__text
 .globl	_poly1305_arm64_block_16
+WC_ASM_ATT_HIDDEN(_poly1305_arm64_block_16)
 .p2align	2
 _poly1305_arm64_block_16:
 #endif /* __APPLE__ */
@@ -117,12 +122,14 @@ _poly1305_arm64_block_16:
 #ifndef __APPLE__
 .text
 .globl	poly1305_arm64_blocks
+WC_ASM_ATT_HIDDEN(poly1305_arm64_blocks)
 .type	poly1305_arm64_blocks,@function
 .align	2
 poly1305_arm64_blocks:
 #else
 .section	__TEXT,__text
 .globl	_poly1305_arm64_blocks
+WC_ASM_ATT_HIDDEN(_poly1305_arm64_blocks)
 .p2align	2
 _poly1305_arm64_blocks:
 #endif /* __APPLE__ */
@@ -438,31 +445,31 @@ L_poly1305_arm64_blocks_done_all:
 #endif /* __APPLE__ */
 #ifndef __APPLE__
 	.text
-	.type	L_poly1305_set_key_arm64_clamp, %object
 	.section	.rodata
+	.type	L_poly1305_set_key_arm64_clamp, %object
 	.size	L_poly1305_set_key_arm64_clamp, 16
 #else
 	.section	__DATA,__data
 #endif /* __APPLE__ */
+	# 8-byte aligned, 64-bit aligned
 #ifndef __APPLE__
 	.align	3
 #else
 	.p2align	3
 #endif /* __APPLE__ */
 L_poly1305_set_key_arm64_clamp:
-	.word	0x0fffffff
-	.word	0x0ffffffc
-	.word	0x0ffffffc
-	.word	0x0ffffffc
+	.long	0x0fffffff,0x0ffffffc,0x0ffffffc,0x0ffffffc
 #ifndef __APPLE__
 .text
 .globl	poly1305_set_key
+WC_ASM_ATT_HIDDEN(poly1305_set_key)
 .type	poly1305_set_key,@function
 .align	2
 poly1305_set_key:
 #else
 .section	__TEXT,__text
 .globl	_poly1305_set_key
+WC_ASM_ATT_HIDDEN(_poly1305_set_key)
 .p2align	2
 _poly1305_set_key:
 #endif /* __APPLE__ */
@@ -655,12 +662,14 @@ _poly1305_set_key:
 #ifndef __APPLE__
 .text
 .globl	poly1305_final
+WC_ASM_ATT_HIDDEN(poly1305_final)
 .type	poly1305_final,@function
 .align	2
 poly1305_final:
 #else
 .section	__TEXT,__text
 .globl	_poly1305_final
+WC_ASM_ATT_HIDDEN(_poly1305_final)
 .p2align	2
 _poly1305_final:
 #endif /* __APPLE__ */

@@ -36,6 +36,10 @@
     #include <wolfssl/wolfcrypt/fips.h>
 #endif /* HAVE_FIPS_VERSION >= 2 */
 
+#ifndef WC_HAVE_SHA2_NO_SMALL_STACK
+    #define WC_HAVE_SHA2_NO_SMALL_STACK
+#endif
+
 #ifdef __cplusplus
     extern "C" {
 #endif
@@ -80,6 +84,12 @@
     #include <wolfssl/wolfcrypt/port/st/stm32.h>
 #endif
 
+/* no raw hash access when software transform is stripped */
+#if defined(WOLF_CRYPTO_CB_ONLY_SHA512)
+#undef  WOLFSSL_NO_HASH_RAW
+#define WOLFSSL_NO_HASH_RAW
+#endif
+
 #define SHA512_NOINLINE WC_NO_INLINE
 
 #ifdef WOLFSSL_SHA512
@@ -98,28 +108,26 @@
 #endif /* WOLFSSL_SHA512 */
 
 /* in bytes */
-enum {
 #ifdef WOLFSSL_SHA512
-    WC_SHA512              =   WC_HASH_TYPE_SHA512,
+    #define WC_SHA512              WC_HASH_TYPE_SHA512
     #ifndef WOLFSSL_NOSHA512_224
-    WC_SHA512_224          =   WC_HASH_TYPE_SHA512_224,
+    #define WC_SHA512_224          WC_HASH_TYPE_SHA512_224
     #endif
     #ifndef WOLFSSL_NOSHA512_256
-    WC_SHA512_256          =   WC_HASH_TYPE_SHA512_256,
+    #define WC_SHA512_256          WC_HASH_TYPE_SHA512_256
     #endif
 #endif
-    WC_SHA512_BLOCK_SIZE   = 128,
-    WC_SHA512_DIGEST_SIZE  =  64,
-    WC_SHA512_PAD_SIZE     = 112,
+    #define WC_SHA512_BLOCK_SIZE   128
+    #define WC_SHA512_DIGEST_SIZE   64
+    #define WC_SHA512_PAD_SIZE     112
 
-    WC_SHA512_224_BLOCK_SIZE  = WC_SHA512_BLOCK_SIZE,
-    WC_SHA512_224_DIGEST_SIZE = 28,
-    WC_SHA512_224_PAD_SIZE    = WC_SHA512_PAD_SIZE,
+    #define WC_SHA512_224_BLOCK_SIZE  WC_SHA512_BLOCK_SIZE
+    #define WC_SHA512_224_DIGEST_SIZE 28
+    #define WC_SHA512_224_PAD_SIZE    WC_SHA512_PAD_SIZE
 
-    WC_SHA512_256_BLOCK_SIZE  = WC_SHA512_BLOCK_SIZE,
-    WC_SHA512_256_DIGEST_SIZE = 32,
-    WC_SHA512_256_PAD_SIZE    = WC_SHA512_PAD_SIZE
-};
+    #define WC_SHA512_256_BLOCK_SIZE  WC_SHA512_BLOCK_SIZE
+    #define WC_SHA512_256_DIGEST_SIZE 32
+    #define WC_SHA512_256_PAD_SIZE    WC_SHA512_PAD_SIZE
 
 
 #if defined(WOLFSSL_IMX6_CAAM) && !defined(WOLFSSL_QNX_CAAM)
@@ -155,13 +163,10 @@ struct wc_Sha512 {
 #ifdef USE_INTEL_SPEEDUP
     const byte* data;
 #endif
-#ifdef WC_C_DYNAMIC_FALLBACK
-    int sha_method;
-#endif
 #ifdef WOLFSSL_ASYNC_CRYPT
     WC_ASYNC_DEV asyncDev;
 #endif /* WOLFSSL_ASYNC_CRYPT */
-#ifdef WOLFSSL_SMALL_STACK_CACHE
+#if defined(WOLFSSL_SMALL_STACK_CACHE) && !defined(WC_SHA2_NO_SMALL_STACK)
     word64* W;
 #endif
 
@@ -220,7 +225,9 @@ struct wc_Sha512 {
 
 #endif /* HAVE_FIPS */
 
-#if defined(WOLFSSL_SHA512)
+/* SHA-384 reuses the SHA-512 transform, so these internal functions are
+ * needed whenever either algorithm is enabled. */
+#if defined(WOLFSSL_SHA512) || defined(WOLFSSL_SHA384)
 
 #ifdef WOLFSSL_ARMASM
 #if !defined(WOLFSSL_ARMASM_NO_NEON)
@@ -235,14 +242,96 @@ WOLFSSL_LOCAL void Transform_Sha512_Len_crypto(wc_Sha512* sha512,
 WOLFSSL_LOCAL void Transform_Sha512_Len_base(wc_Sha512* sha512,
     const byte* data, word32 len);
 #endif
-#endif
+#endif /* WOLFSSL_ARMASM */
 
+#if defined(WOLFSSL_RISCV_ASM)
+WOLFSSL_LOCAL void Transform_Sha512_Len_riscv(wc_Sha512* sha512,
+    const byte* data, word32 len);
+WOLFSSL_LOCAL void Transform_Sha512_Len_riscv_crypto(wc_Sha512* sha512,
+    const byte* data, word32 len);
+WOLFSSL_LOCAL void Transform_Sha512_Len_riscv_vector(wc_Sha512* sha512,
+    const byte* data, word32 len);
+#endif
+#endif /* WOLFSSL_SHA512 || WOLFSSL_SHA384 */
+
+#if defined(WOLFSSL_SHA512)
 WOLFSSL_API int wc_InitSha512(wc_Sha512* sha);
 WOLFSSL_API int wc_InitSha512_ex(wc_Sha512* sha, void* heap, int devId);
 WOLFSSL_API int wc_Sha512Update(wc_Sha512* sha, const byte* data, word32 len);
+#if !defined(WOLF_CRYPTO_CB_ONLY_SHA512)
 WOLFSSL_API int wc_Sha512FinalRaw(wc_Sha512* sha512, byte* hash);
+#endif
 WOLFSSL_API int wc_Sha512Final(wc_Sha512* sha512, byte* hash);
 WOLFSSL_API void wc_Sha512Free(wc_Sha512* sha);
+WOLFSSL_API int wc_Sha512Reset(wc_Sha512* sha);
+
+/* Multi-buffer SHA-512: compress eight independent message blocks at once,
+ * one per 64-bit lane of an AVX-512 register.  XMSS drives this directly, the
+ * way ML-KEM and SLH-DSA drive the multi-way Keccak in sha3.h - there is no
+ * wrapper API, so the caller owns the interleaved state, the CPUID check and
+ * the vector-register save.
+ *
+ * state is lane-interleaved: word i of message m is state[i * 8 + m], which
+ * is what the round code needs in a register.  data is eight consecutive
+ * 128-byte blocks.  The compressed block is added into state, so a caller
+ * starts it from the SHA-512 initial value or from a shared prefix's
+ * chaining value and calls once per block.
+ *
+ * Only this width is built.  Measured per 128-byte block on a Zen 5:
+ * eight-way AVX-512 18.1 ns against 98.8 ns for Transform_Sha512_AVX2_RORX,
+ * a 5.5x gain - there is no SHA-NI for SHA-512 to lose to.  A four-way AVX2
+ * version was written and measured at only 1.25x, since AVX2 has no vprorq,
+ * no vpternlogq and no embedded broadcast and cannot hold the schedule in
+ * sixteen registers, so it is not carried.
+ *
+ * The condition must stay in step with the guard the generator puts around
+ * Transform_Sha512_x8_AVX512 in sha512_asm.S.
+ */
+/* NO_AVX2_SUPPORT matters as well: the generator nests the AVX-512 block
+ * inside HAVE_INTEL_AVX2 in sha512_asm.S, so dropping AVX2 drops these too.
+ * The WC_SHA256_N_WAY guard in sha256.h tests the same thing. */
+#if defined(WOLFSSL_X86_64_BUILD) && defined(USE_INTEL_SPEEDUP) && \
+    !defined(NO_AVX2_SUPPORT) && \
+    !defined(NO_AVX512_SUPPORT) && !defined(WOLFSSL_NO_SHA512_N_WAY) && \
+    defined(WOLFSSL_SHA512) && defined(WOLFSSL_HAVE_XMSS)
+
+#define WC_SHA512_N_WAY
+/* Messages compressed at once - the 64-bit lane count of a zmm. */
+#define WC_SHA512_N_WAY_CNT       8
+/* Bytes of message data one call consumes. */
+#define WC_SHA512_N_WAY_BLK_SZ    (WC_SHA512_N_WAY_CNT * WC_SHA512_BLOCK_SIZE)
+
+WOLFSSL_LOCAL void Transform_Sha512_x8_AVX512(word64* state,
+    const byte* data);
+#ifndef NO_AVX512BW_SUPPORT
+/* The same kernel, byte-swapping the message with vpshufb instead of the
+ * four-instruction form the AVX-512F-only version uses - about 1%.  Call it
+ * only after IS_INTEL_AVX512_BW(). */
+WOLFSSL_LOCAL void Transform_Sha512_x8_AVX512_BW(word64* state,
+    const byte* data);
+#endif
+
+#ifdef WOLFSSL_HAVE_XMSS
+/* XMSS with SHA-512 and n = 64, eight chains at a time.  The same two hashes
+ * the SHA-256 sets use, a block wider: PRF is the single block holding ADRS,
+ * continuing from the state padding || SEED leaves behind, and F is two
+ * blocks of values already held lane-interleaved.
+ *
+ * out   - WC_SHA512_N_WAY_CNT * 8 words, lane-interleaved.
+ * mid   - the eight-word state left by padding || SEED.
+ * adrs  - ADRS as four host-order words: the halves alike in every lane.
+ * chainv, hashv - per-lane chain and hash address.
+ * st    - the chain value, lane-interleaved, in and out.
+ * key, bm - lane-interleaved, as PRF left them.
+ */
+WOLFSSL_LOCAL void Transform_Sha512_x8_XmssPrf_AVX512(word64* out,
+    const word64* mid, const word64* adrs, const word32* chainv,
+    const word32* hashv);
+WOLFSSL_LOCAL void Transform_Sha512_x8_XmssF_AVX512(word64* st,
+    const word64* key, const word64* bm);
+#endif
+
+#endif /* multi-buffer SHA-512 */
 
 WOLFSSL_API int wc_Sha512GetHash(wc_Sha512* sha512, byte* hash);
 WOLFSSL_API int wc_Sha512Copy(wc_Sha512* src, wc_Sha512* dst);
@@ -255,7 +344,8 @@ WOLFSSL_API int wc_Sha512Copy(wc_Sha512* src, wc_Sha512* dst);
     WOLFSSL_API int wc_Sha512GetFlags(wc_Sha512* sha512, word32* flags);
 #endif
 
-#if defined(OPENSSL_EXTRA) || defined(HAVE_CURL)
+#if (defined(OPENSSL_EXTRA) || defined(HAVE_CURL)) && \
+    !defined(WOLF_CRYPTO_CB_ONLY_SHA512)
 WOLFSSL_API int wc_Sha512Transform(wc_Sha512* sha, const unsigned char* data);
 #endif
 
@@ -264,9 +354,12 @@ WOLFSSL_API int wc_Sha512Transform(wc_Sha512* sha, const unsigned char* data);
 WOLFSSL_API int wc_InitSha512_224(wc_Sha512* sha);
 WOLFSSL_API int wc_InitSha512_224_ex(wc_Sha512* sha, void* heap, int devId);
 WOLFSSL_API int wc_Sha512_224Update(wc_Sha512* sha, const byte* data, word32 len);
+#if !defined(WOLF_CRYPTO_CB_ONLY_SHA512)
 WOLFSSL_API int wc_Sha512_224FinalRaw(wc_Sha512* sha512, byte* hash);
+#endif
 WOLFSSL_API int wc_Sha512_224Final(wc_Sha512* sha512, byte* hash);
 WOLFSSL_API void wc_Sha512_224Free(wc_Sha512* sha);
+WOLFSSL_API int wc_Sha512_224Reset(wc_Sha512* sha);
 WOLFSSL_API int wc_Sha512_224GetHash(wc_Sha512* sha512, byte* hash);
 WOLFSSL_API int wc_Sha512_224Copy(wc_Sha512* src, wc_Sha512* dst);
 #ifdef WOLFSSL_HASH_FLAGS
@@ -274,7 +367,8 @@ WOLFSSL_API int wc_Sha512_224Copy(wc_Sha512* src, wc_Sha512* dst);
     WOLFSSL_API int wc_Sha512_224GetFlags(wc_Sha512* sha512, word32* flags);
 #endif
 
-#if defined(OPENSSL_EXTRA) || defined(HAVE_CURL)
+#if (defined(OPENSSL_EXTRA) || defined(HAVE_CURL)) && \
+    !defined(WOLF_CRYPTO_CB_ONLY_SHA512)
 WOLFSSL_API int wc_Sha512_224Transform(wc_Sha512* sha,
                                                 const unsigned char* data);
 #endif /* OPENSSL_EXTRA */
@@ -285,9 +379,12 @@ WOLFSSL_API int wc_Sha512_224Transform(wc_Sha512* sha,
 WOLFSSL_API int wc_InitSha512_256(wc_Sha512* sha);
 WOLFSSL_API int wc_InitSha512_256_ex(wc_Sha512* sha, void* heap, int devId);
 WOLFSSL_API int wc_Sha512_256Update(wc_Sha512* sha, const byte* data, word32 len);
+#if !defined(WOLF_CRYPTO_CB_ONLY_SHA512)
 WOLFSSL_API int wc_Sha512_256FinalRaw(wc_Sha512* sha512, byte* hash);
+#endif
 WOLFSSL_API int wc_Sha512_256Final(wc_Sha512* sha512, byte* hash);
 WOLFSSL_API void wc_Sha512_256Free(wc_Sha512* sha);
+WOLFSSL_API int wc_Sha512_256Reset(wc_Sha512* sha);
 WOLFSSL_API int wc_Sha512_256GetHash(wc_Sha512* sha512, byte* hash);
 WOLFSSL_API int wc_Sha512_256Copy(wc_Sha512* src, wc_Sha512* dst);
 #ifdef WOLFSSL_HASH_FLAGS
@@ -295,7 +392,8 @@ WOLFSSL_API int wc_Sha512_256Copy(wc_Sha512* src, wc_Sha512* dst);
     WOLFSSL_API int wc_Sha512_256GetFlags(wc_Sha512* sha512, word32* flags);
 #endif
 
-#if defined(OPENSSL_EXTRA) || defined(HAVE_CURL)
+#if (defined(OPENSSL_EXTRA) || defined(HAVE_CURL)) && \
+    !defined(WOLF_CRYPTO_CB_ONLY_SHA512)
 WOLFSSL_API int wc_Sha512_256Transform(wc_Sha512* sha,
                                                 const unsigned char* data);
 #endif /* OPENSSL_EXTRA */
@@ -321,12 +419,10 @@ WOLFSSL_API int wc_Sha512_256Transform(wc_Sha512* sha,
 #endif
 
 /* in bytes */
-enum {
-    WC_SHA384              =   WC_HASH_TYPE_SHA384,
-    WC_SHA384_BLOCK_SIZE   =   WC_SHA512_BLOCK_SIZE,
-    WC_SHA384_DIGEST_SIZE  =   48,
-    WC_SHA384_PAD_SIZE     =   WC_SHA512_PAD_SIZE
-};
+    #define WC_SHA384              WC_HASH_TYPE_SHA384
+    #define WC_SHA384_BLOCK_SIZE   WC_SHA512_BLOCK_SIZE
+    #define WC_SHA384_DIGEST_SIZE  48
+    #define WC_SHA384_PAD_SIZE     WC_SHA512_PAD_SIZE
 
 
 #ifndef WC_SHA384_TYPE_DEFINED
@@ -338,9 +434,12 @@ enum {
 WOLFSSL_API int wc_InitSha384(wc_Sha384* sha);
 WOLFSSL_API int wc_InitSha384_ex(wc_Sha384* sha, void* heap, int devId);
 WOLFSSL_API int wc_Sha384Update(wc_Sha384* sha, const byte* data, word32 len);
+#if !defined(WOLF_CRYPTO_CB_ONLY_SHA512)
 WOLFSSL_API int wc_Sha384FinalRaw(wc_Sha384* sha384, byte* hash);
+#endif
 WOLFSSL_API int wc_Sha384Final(wc_Sha384* sha384, byte* hash);
 WOLFSSL_API void wc_Sha384Free(wc_Sha384* sha);
+WOLFSSL_API int wc_Sha384Reset(wc_Sha384* sha);
 
 WOLFSSL_API int wc_Sha384GetHash(wc_Sha384* sha384, byte* hash);
 WOLFSSL_API int wc_Sha384Copy(wc_Sha384* src, wc_Sha384* dst);

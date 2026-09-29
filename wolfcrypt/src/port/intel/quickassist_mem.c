@@ -57,6 +57,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <errno.h>
+
 
 #ifdef SAL_IOMMU_CODE
     #include <icp_sal_iommu.h>
@@ -408,6 +410,14 @@ static void* _qaeMemAlloc(size_t size, void* heap, int type
         ptr = qaeMemAllocNUMA((Cpa32U)(size + sizeof(qaeMemHeader)), 0,
             alignment, &page_offset);
     #endif
+        /* Service not up (e.g. "Running without async"): fall back to regular
+         * memory so software crypto can proceed. A NULL while it IS up means
+         * real NUMA exhaustion and stays NULL so the QAT op fails cleanly. */
+        if (ptr == NULL && !IntelQaIsStarted()) {
+            isNuma = 0;
+            page_offset = QAE_NOT_NUMA_PAGE;
+            ptr = malloc(size + sizeof(qaeMemHeader));
+        }
     }
     else {
         isNuma = 0;
@@ -609,8 +619,10 @@ void* IntelQaRealloc(void *ptr, size_t size, void* heap, int type
                 copySize = size;
             XMEMCPY(newPtr, ptr, copySize);
 
-            if (newIsNuma == 0 && ptrIsNuma == 0) {
-                /* for non-NUMA, treat as normal REALLOC and free old pointer */
+            if (ptrIsNuma == 0) {
+                /* old pointer is a qae-headed non-NUMA buffer (software
+                 * fallback) -- free it. Caller-owned (ptrIsNuma == -1) and
+                 * NUMA (== 1) buffers are handled by their own paths. */
                 _qaeMemFree(ptr, heap, type
                 #ifdef WOLFSSL_DEBUG_MEMORY
                     , func, line
@@ -714,7 +726,7 @@ CpaStatus qaeMemInit(void)
 {
     if (g_qaeMemFd < 0) {
     #ifndef QAT_V2
-        g_qaeMemFd = open(QAE_MEM, O_RDWR);
+        g_qaeMemFd = wc_open_cloexec(QAE_MEM, O_RDWR);
         if (g_qaeMemFd < 0) {
             printf("unable to open %s %d\n", QAE_MEM, g_qaeMemFd);
             return CPA_STATUS_FAIL;

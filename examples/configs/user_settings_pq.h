@@ -76,25 +76,22 @@ extern "C" {
 /* ML-KEM / Kyber (Key Encapsulation) */
 /* ------------------------------------------------- */
 #if 1 /* ML-KEM (FIPS 203) */
-    #define WOLFSSL_HAVE_KYBER
-    #define WOLFSSL_WC_KYBER
-    #define WOLFSSL_KYBER512   /* Level 1: 128-bit security */
-    #define WOLFSSL_KYBER768   /* Level 3: 192-bit security */
-    #define WOLFSSL_KYBER1024  /* Level 5: 256-bit security */
+    #define WOLFSSL_HAVE_MLKEM
+    /* All three parameter sets are built by default - Level 1 (ML-KEM-512),
+     * Level 3 (768) and Level 5 (1024). Remove one with the matching
+     * WOLFSSL_NO_ML_KEM_512 / _768 / _1024. */
+    #define WOLFSSL_SHAKE128
+    #define WOLFSSL_SHAKE256
 #endif
 
 /* ------------------------------------------------- */
 /* ML-DSA / Dilithium (Signatures) */
 /* ------------------------------------------------- */
 #if 1 /* ML-DSA (FIPS 204) */
-    #define HAVE_DILITHIUM
-    #define WOLFSSL_WC_DILITHIUM
-    #define DILITHIUM_LEVEL2   /* Level 2: ~128-bit security */
-    #define DILITHIUM_LEVEL3   /* Level 3: ~192-bit security */
-    #define DILITHIUM_LEVEL5   /* Level 5: ~256-bit security */
+    #define WOLFSSL_HAVE_MLDSA
     /* Uses FIPS 204 final standard by default */
     #if 0 /* FIPS 204 Draft version */
-        #define WOLFSSL_DILITHIUM_FIPS204_DRAFT
+        #define WOLFSSL_MLDSA_FIPS204_DRAFT
     #endif
     #define WOLFSSL_SHAKE128
     #define WOLFSSL_SHAKE256
@@ -105,7 +102,6 @@ extern "C" {
 /* ------------------------------------------------- */
 #if 0 /* LMS signatures */
     #define WOLFSSL_HAVE_LMS
-    #define WOLFSSL_WC_LMS
     #ifndef LMS_LEVELS
         #define LMS_LEVELS 2
     #endif
@@ -122,7 +118,6 @@ extern "C" {
 /* ------------------------------------------------- */
 #if 0 /* XMSS signatures */
     #define WOLFSSL_HAVE_XMSS
-    #define WOLFSSL_WC_XMSS
     #ifndef WOLFSSL_XMSS_MAX_HEIGHT
         #define WOLFSSL_XMSS_MAX_HEIGHT 20
     #endif

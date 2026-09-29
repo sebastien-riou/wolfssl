@@ -105,7 +105,6 @@ extern "C" {
 #define WOLFSSL_POST_HANDSHAKE_AUTH
 #define WOLFSSL_SEND_HRR_COOKIE /* Used by DTLS v1.3 */
 #define HAVE_ANON /* anon cipher suites */
-#define HAVE_FALLBACK_SCSV /* TLS_FALLBACK_SCSV */
 #define WOLFSSL_EARLY_DATA
 #define HAVE_SERVER_RENEGOTIATION_INFO
 
@@ -236,7 +235,6 @@ extern "C" {
 #define HAVE_X963_KDF
 #define WOLFSSL_CMAC
 #define WOLFSSL_DES_ECB
-#define HAVE_BLAKE2
 #define HAVE_BLAKE2B
 #define HAVE_BLAKE2S
 #define WOLFSSL_SIPHASH

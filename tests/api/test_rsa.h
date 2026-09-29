@@ -32,6 +32,7 @@ int test_wc_RsaPrivateKeyDecodeRaw(void);
 int test_wc_MakeRsaKey(void);
 int test_wc_CheckProbablePrime(void);
 int test_wc_RsaPSS_Verify(void);
+int test_wc_RsaPSS_BadTerminator(void);
 int test_wc_RsaPSS_VerifyCheck(void);
 int test_wc_RsaPSS_VerifyCheckInline(void);
 int test_wc_RsaKeyToDer(void);
@@ -42,6 +43,12 @@ int test_wc_RsaEncryptSize(void);
 int test_wc_RsaSSL_SignVerify(void);
 int test_wc_RsaFlattenPublicKey(void);
 int test_wc_RsaDecrypt_BoundsCheck(void);
+int test_wc_RsaFunctionCheckIn_OversizedModulus(void);
+int test_wc_RsaKeyToDer_SizeOverflow(void);
+int test_wc_RsaDecisionCoverage(void);
+int test_wc_RsaFeatureCoverage(void);
+int test_wc_CryptoCb_RsaPssVerify(void);
+int test_wc_CryptoCb_RsaPssVerifyRecover(void);
 
 #define TEST_RSA_DECLS                                          \
     TEST_DECL_GROUP("rsa", test_wc_InitRsaKey),                 \
@@ -52,6 +59,7 @@ int test_wc_RsaDecrypt_BoundsCheck(void);
     TEST_DECL_GROUP("rsa", test_wc_MakeRsaKey),                 \
     TEST_DECL_GROUP("rsa", test_wc_CheckProbablePrime),         \
     TEST_DECL_GROUP("rsa", test_wc_RsaPSS_Verify),              \
+    TEST_DECL_GROUP("rsa", test_wc_RsaPSS_BadTerminator),       \
     TEST_DECL_GROUP("rsa", test_wc_RsaPSS_VerifyCheck),         \
     TEST_DECL_GROUP("rsa", test_wc_RsaPSS_VerifyCheckInline),   \
     TEST_DECL_GROUP("rsa", test_wc_RsaKeyToDer),                \
@@ -61,6 +69,12 @@ int test_wc_RsaDecrypt_BoundsCheck(void);
     TEST_DECL_GROUP("rsa", test_wc_RsaEncryptSize),             \
     TEST_DECL_GROUP("rsa", test_wc_RsaSSL_SignVerify),          \
     TEST_DECL_GROUP("rsa", test_wc_RsaFlattenPublicKey),        \
-    TEST_DECL_GROUP("rsa", test_wc_RsaDecrypt_BoundsCheck)
+    TEST_DECL_GROUP("rsa", test_wc_RsaDecrypt_BoundsCheck),             \
+    TEST_DECL_GROUP("rsa", test_wc_RsaFunctionCheckIn_OversizedModulus), \
+    TEST_DECL_GROUP("rsa", test_wc_RsaKeyToDer_SizeOverflow),           \
+    TEST_DECL_GROUP("rsa", test_wc_RsaDecisionCoverage),        \
+    TEST_DECL_GROUP("rsa", test_wc_RsaFeatureCoverage),        \
+    TEST_DECL_GROUP("rsa", test_wc_CryptoCb_RsaPssVerify),         \
+    TEST_DECL_GROUP("rsa", test_wc_CryptoCb_RsaPssVerifyRecover)
 
 #endif /* WOLFCRYPT_TEST_RSA_H */
