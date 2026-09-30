@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -ex
+
+CPU=${1:-cortex-m33}
+DEBUG=${2:-no}
+
+#same as buildit-mlkem-fast, with wolfSSL's Thumb-2 assembly (cortex-m* only), installed in build/$CPU-fast-armasm
+ARMASM=yes ./buildit-mlkem-fast $CPU $DEBUG

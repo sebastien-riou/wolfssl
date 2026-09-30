@@ -5,10 +5,21 @@ set -ex
 CPU=${1:-cortex-m33}
 GOAL=${2:-fast}
 DEBUG=${3:-no}
+#ARMASM=yes selects wolfSSL's Thumb-2 assembly (cortex-m* only), installed in build/$CPU-$GOAL-armasm
+#see buildit-mlkem-small-armasm and buildit-mlkem-fast-armasm
+ARMASM=${ARMASM:-no}
 
 source ./buildit-toolchain
 
 BUILDDIR=`pwd`/build/$CPU-$GOAL
+if [ "$ARMASM" != "no" ]; then
+  if [ "$TOOLCHAIN" != "arm-none-eabi" ]; then
+    set +x
+    echo "ERROR: ARMASM=$ARMASM is for cortex-m* only, not '$CPU'"
+    exit 1
+  fi
+  BUILDDIR=$BUILDDIR-armasm
+fi
 ./autogen.sh
 ./configure \
   --enable-debug=$DEBUG \
@@ -24,6 +35,7 @@ BUILDDIR=`pwd`/build/$CPU-$GOAL
   --disable-shared --enable-cryptonly \
   --enable-mldsa=no\
   --enable-mlkem=yes\
+  --enable-armasm=$ARMASM\
   --enable-dh=no\
   --enable-ecc=no\
   --enable-aes=no --enable-aesgcm=no\

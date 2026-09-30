@@ -4491,6 +4491,30 @@ then
 
     AM_CCASFLAGS="$AM_CCASFLAGS -DWOLFSSL_ARMASM"
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ARMASM"
+    # Cortex-M selected by -mcpu in CFLAGS (--host=arm-none-eabi): Thumb-2
+    # assembly, built for that -mcpu. The armv7m host below adds
+    # -march=armv7-r, which would override it.
+    ENABLED_ARMASM_CORTEX_M=no
+    case $host_cpu in
+    arm*)
+        case " $CFLAGS " in
+        *" -mcpu=cortex-m"*)
+            ENABLED_ARMASM_CORTEX_M=yes
+            ;;
+        esac
+        ;;
+    esac
+    if test "$ENABLED_ARMASM_CORTEX_M" = "yes"; then
+        AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ARMASM_THUMB2"
+        AM_CPPFLAGS="$AM_CPPFLAGS -DWOLFSSL_ARMASM_THUMB2 -DWOLFSSL_ARMASM_NO_HW_CRYPTO -DWOLFSSL_ARM_ARCH=7"
+        # Include options.h
+        AM_CCASFLAGS="$AM_CCASFLAGS -DEXTERNAL_OPTS_OPENVPN"
+        ENABLED_ARMASM_CRYPTO=no
+        ENABLED_ARMASM_NEON=no
+        ENABLED_ARM_THUMB=yes
+        ENABLED_ARM_32=yes
+        AC_MSG_NOTICE([Cortex-M found in CFLAGS, using Thumb-2 assembly])
+    else
     #Check if mcpu and mfpu values already set if not use default
     case $CPPFLAGS in
     *mcpu* | *mfpu*)
@@ -4609,6 +4633,7 @@ then
             ;;
         esac
     esac
+    fi
 fi
 
 if test "$ENABLED_ARMASM_SHA256_SMALL" = "yes"; then
