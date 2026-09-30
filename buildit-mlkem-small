@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -ex
+
+CPU=${1:-cortex-m33}
+DEBUG=${2:-no}
+
+./buildit-mlkem $CPU small $DEBUG \
+  -DWOLFSSL_MLKEM_SMALL \
+  -DWOLFSSL_MLKEM_MAKEKEY_SMALL_MEM \
+  -DWOLFSSL_MLKEM_ENCAPSULATE_SMALL_MEM
