@@ -8,8 +8,15 @@ DEBUG=${3:-no}
 #ARMASM=yes selects wolfSSL's Thumb-2 assembly (cortex-m* only), installed in build/$CPU-$GOAL-armasm
 #see buildit-mlkem-small-armasm and buildit-mlkem-fast-armasm
 ARMASM=${ARMASM:-no}
+#DEBUG_INFO=yes adds -g: debug info only, the generated code is unchanged (same install directory)
+DEBUG_INFO=${DEBUG_INFO:-no}
 
 source ./buildit-toolchain
+
+DEBUG_INFO_FLAGS=
+if [ "$DEBUG_INFO" != "no" ]; then
+  DEBUG_INFO_FLAGS=-g
+fi
 
 BUILDDIR=`pwd`/build/$CPU-$GOAL
 if [ "$ARMASM" != "no" ]; then
@@ -29,7 +36,7 @@ fi
   STRIP=$TOOLCHAIN-strip \
   RANLIB=$TOOLCHAIN-gcc-ranlib \
   --prefix=$BUILDDIR \
-  CFLAGS="$CPU_FLAGS --specs=nosys.specs -flto -ffat-lto-objects \
+  CFLAGS="$CPU_FLAGS $DEBUG_INFO_FLAGS --specs=nosys.specs -flto -ffat-lto-objects \
       -DHAVE_PK_CALLBACKS -DWOLFSSL_USER_IO -DWOLFSSL_NO_SOCK -DWC_NO_RNG -DNO_WRITEV -DNO_WOLFSSL_DIR ${*:4}" \
   --disable-filesystem --disable-crypttests \
   --disable-shared --enable-cryptonly \
