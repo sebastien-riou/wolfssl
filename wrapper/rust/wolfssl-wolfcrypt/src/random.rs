@@ -86,7 +86,7 @@ pub(crate) enum RngHandle {
 impl RNG {
     /// Initialize a new `RNG` instance.
     ///
-    /// This function wraps the wolfssl library function `wc_InitRng`, which
+    /// This function wraps the wolfssl library function `wc_rng_new_ex`, which
     /// performs the necessary initialization for the RNG context.
     ///
     /// # Returns
@@ -99,7 +99,7 @@ impl RNG {
 
     /// Initialize a new `RNG` instance with optional heap and device ID.
     ///
-    /// This function wraps the wolfssl library function `wc_InitRng`, which
+    /// This function wraps the wolfssl library function `wc_rng_new_ex`, which
     /// performs the necessary initialization for the RNG context.
     ///
     /// # Parameters
@@ -206,8 +206,8 @@ impl RNG {
     ///
     /// * `nonce`: Optional nonce to use to initialize DRBG.
     /// * `seed_a`: Buffer containing seed data (required).
-    /// * `seed_b`: Optional buffer containing more seed data. If present, the
-    ///   DRBG will be reseeded.
+    /// * `seed_b`: Optional buffer containing more seed data. If present and
+    ///   not empty, the DRBG will be reseeded.
     /// * `output`: Output buffer.
     ///
     /// # Returns
@@ -237,8 +237,8 @@ impl RNG {
     ///
     /// * `nonce`: Optional nonce to use to initialize DRBG.
     /// * `seed_a`: Buffer containing seed data (required).
-    /// * `seed_b`: Optional buffer containing more seed data. If present, the
-    ///   DRBG will be reseeded.
+    /// * `seed_b`: Optional buffer containing more seed data. If present and
+    ///   not empty, the DRBG will be reseeded.
     /// * `output`: Output buffer.
     /// * `heap`: Optional heap hint.
     /// * `dev_id` Optional device ID to use with crypto callbacks or async hardware.

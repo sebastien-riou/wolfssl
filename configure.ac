@@ -4973,6 +4973,14 @@ then
             AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_IMX6UL_CAAM"
             ;;
 
+        linux)
+            # Drive a job ring from Linux user space. Needs a reserved
+            # physical DMA pool (boot with mem=) and the in-tree caam driver
+            # unbound; see wolfcrypt/src/port/caam/README.md.
+            AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_CAAM_LINUX -DWOLFSSL_CAAM_NO_SM"
+            ENABLED_CAAM_LINUX="yes"
+            ;;
+
         seco)
             SECO_DIR=$trylibsecodir
             AM_CPPFLAGS="$AM_CPPFLAGS -I$SECO_DIR/include"
@@ -12439,6 +12447,39 @@ then
 fi
 AC_SUBST([ENABLED_LINUXKM_LKCAPI_REGISTER])
 
+# The aarch64 ChaCha20 and Poly1305 assembly takes no vector register claim,
+# so a kernel module must not carry it.  Outside FIPS these algorithms are on
+# by default, so back them off with a warning when the user did not ask for
+# them, and only fail the build when they did.
+if test "$ENABLED_LINUXKM" = "yes" && test "$ENABLED_ARMASM" = "yes"
+then
+    case $host_cpu in
+    *aarch64*|*arm64*)
+        if test "$ENABLED_CHACHA" != "no" && test "$ENABLED_CHACHA" != "noasm" \
+           && test "$ENABLED_ASM" != "no"
+        then
+            if test "x$enable_chacha" = "x"
+            then
+                AC_MSG_WARN([ChaCha20 assembly holds no vector register claim on aarch64; building ChaCha20 without assembly for the kernel module.])
+                ENABLED_CHACHA=noasm
+            else
+                AC_MSG_ERROR([ChaCha20 assembly is unusable in a kernel module on aarch64: it holds no vector register claim.  Use --enable-chacha=noasm or --disable-chacha.])
+            fi
+        fi
+        if test "$ENABLED_POLY1305" != "no" && test "$ENABLED_ASM" != "no"
+        then
+            if test "x$enable_poly1305" = "x"
+            then
+                AC_MSG_WARN([Poly1305 assembly holds no vector register claim on aarch64 and has no assembly-free build; disabling Poly1305 for the kernel module.])
+                ENABLED_POLY1305=no
+            else
+                AC_MSG_ERROR([Poly1305 assembly is unusable in a kernel module on aarch64: it holds no vector register claim.  Use --disable-poly1305.])
+            fi
+        fi
+        ;;
+    esac
+fi
+
 # Library Suffix
 LIBSUFFIX=""
 AC_ARG_WITH([libsuffix],
@@ -14029,6 +14070,7 @@ AM_CONDITIONAL([BUILD_RC2],[test "x$ENABLED_RC2" = "xyes"])
 AM_CONDITIONAL([BUILD_CUDA],[test "x$ENABLED_CUDA" = "xyes"])
 AM_CONDITIONAL([BUILD_CAAM],[test "x$ENABLED_CAAM" != "xno"])
 AM_CONDITIONAL([BUILD_QNXCAAM],[test "x$ENABLED_CAAM_QNX" = "xyes"])
+AM_CONDITIONAL([BUILD_CAAM_LINUX],[test "x$ENABLED_CAAM_LINUX" = "xyes"])
 AM_CONDITIONAL([BUILD_IOTSAFE],[test "x$ENABLED_IOTSAFE" = "xyes"])
 AM_CONDITIONAL([BUILD_IOTSAFE_HWRNG],[test "x$ENABLED_IOTSAFE_HWRNG" = "xyes"])
 AM_CONDITIONAL([BUILD_VAULTIC],[test "x$ENABLED_VAULTIC" = "xyes"])

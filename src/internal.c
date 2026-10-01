@@ -3181,11 +3181,16 @@ void SSL_CtxResourceFree(WOLFSSL_CTX* ctx)
         defined(WOLFSSL_WPAS_SMALL)
         wolfSSL_X509_STORE_free(ctx->x509_store_pt);
     #endif
-    #ifndef WOLFSSL_NO_CA_NAMES
+    #if !defined(WOLFSSL_NO_CA_NAMES) && defined(OPENSSL_EXTRA)
         wolfSSL_sk_X509_NAME_pop_free(ctx->client_ca_names, NULL);
         ctx->client_ca_names = NULL;
         wolfSSL_sk_X509_NAME_pop_free(ctx->ca_names, NULL);
         ctx->ca_names = NULL;
+    #endif
+    #if !defined(NO_CERTS) && !defined(WOLFSSL_NO_CA_NAMES) && \
+        defined(WOLFSSL_TLS13)
+        TLSX_CertificateAuthorities_FreeAll(ctx->ws_ca_names, ctx->heap);
+        ctx->ws_ca_names = NULL;
     #endif
     #ifdef OPENSSL_EXTRA
         if (ctx->x509Chain) {
@@ -8868,7 +8873,9 @@ int InitSSL(WOLFSSL* ssl, WOLFSSL_CTX* ctx, int writeDup)
             if (!ret) {
         #endif
                 WOLFSSL_MSG("failed to set alpn protos to ssl object");
-                return ret;
+                /* Map the non-negative public API failure to a negative error
+                 * so wolfSSL_new frees the object instead of returning it. */
+                return BAD_FUNC_ARG;
             }
         }
     #endif
@@ -10126,6 +10133,13 @@ void wolfSSL_ResourceFree(WOLFSSL* ssl)
     #endif
 #endif
 
+#if !defined(NO_CERTS) && !defined(WOLFSSL_NO_CA_NAMES) && \
+    defined(WOLFSSL_TLS13)
+    TLSX_CertificateAuthorities_FreeAll(ssl->ws_ca_names, ssl->heap);
+    ssl->ws_ca_names = NULL;
+    TLSX_CertificateAuthorities_FreeAll(ssl->ws_peer_ca_names, ssl->heap);
+    ssl->ws_peer_ca_names = NULL;
+#endif
 #ifdef WOLFSSL_STATIC_MEMORY
     FreeSSL_StaticMemory(ssl);
 #endif /* WOLFSSL_STATIC_MEMORY */
@@ -10139,7 +10153,7 @@ void wolfSSL_ResourceFree(WOLFSSL* ssl)
     wolfSSL_sk_X509_pop_free(ssl->ourCertChain, NULL);
     #endif
 #endif
-#ifndef WOLFSSL_NO_CA_NAMES
+#if !defined(WOLFSSL_NO_CA_NAMES) && defined(OPENSSL_EXTRA)
     wolfSSL_sk_X509_NAME_pop_free(ssl->client_ca_names, NULL);
     ssl->client_ca_names = NULL;
     wolfSSL_sk_X509_NAME_pop_free(ssl->ca_names, NULL);
@@ -13493,13 +13507,9 @@ static int GetDtlsRecordHeader(WOLFSSL* ssl, word32* inOutIdx,
 static int GetRecordHeader(WOLFSSL* ssl, word32* inOutIdx,
                            RecordLayerHeader* rh, word16 *size)
 {
-    byte tls12minor = 0;
-
 #ifdef OPENSSL_ALL
     word32 start = *inOutIdx;
 #endif
-
-    (void)tls12minor;
 
     if (!ssl->options.dtls) {
 #ifdef HAVE_FUZZER
@@ -13543,23 +13553,13 @@ static int GetRecordHeader(WOLFSSL* ssl, word32* inOutIdx,
     }
 #endif
 
-#if defined(WOLFSSL_DTLS13) || defined(WOLFSSL_TLS13)
-    tls12minor = TLSv1_2_MINOR;
-#endif
-#ifdef WOLFSSL_DTLS13
-    if (ssl->options.dtls)
-        tls12minor = DTLSv1_2_MINOR;
-#endif /* WOLFSSL_DTLS13 */
-    /* catch version mismatch */
-#ifndef WOLFSSL_TLS13
-    if (rh->pvMajor != ssl->version.major || rh->pvMinor != ssl->version.minor)
-#else
-    if (rh->pvMajor != ssl->version.major ||
-        (rh->pvMinor != ssl->version.minor &&
-         (!IsAtLeastTLSv1_3(ssl->version) || rh->pvMinor != tls12minor)
-        ))
-#endif
-    {
+    /* Catch version mismatch.
+     * The record layer version is deprecated in (D)TLS 1.3: RFC 8446
+     * Section 5.1 and RFC 9147 Section 4 both state that
+     * legacy_record_version "MUST be ignored for all purposes". */
+    if (!IsAtLeastTLSv1_3(ssl->version) &&
+        (rh->pvMajor != ssl->version.major ||
+         rh->pvMinor != ssl->version.minor)) {
         if (ssl->options.side == WOLFSSL_SERVER_END &&
             ssl->options.acceptState < ACCEPT_FIRST_REPLY_DONE)
 
@@ -13571,15 +13571,17 @@ static int GetRecordHeader(WOLFSSL* ssl, word32* inOutIdx,
         else if (ssl->options.dtls && rh->type == handshake)
             /* Check the DTLS handshake message RH version later. */
             WOLFSSL_MSG("DTLS handshake, skip RH version number check");
-#ifdef WOLFSSL_DTLS13
-        else if (ssl->options.dtls && !ssl->options.handShakeDone) {
-            /* we may have lost the ServerHello and this is a unified record
-               before version been negotiated */
-            if (Dtls13IsUnifiedHeader(*ssl->buffers.inputBuffer.buffer)) {
-                return SEQUENCE_ERROR;
-            }
-        }
-#endif /* WOLFSSL_DTLS13 */
+#ifdef WOLFSSL_DTLS
+        /* A DTLS peer that disagrees on the version stamps its alert record
+         * with its own version, so a mismatch here is expected. Accept it
+         * while the handshake is still in progress so that the alert gets
+         * processed and its reason reported to the application instead of
+         * being replaced by a version error. */
+        else if (ssl->options.dtls && rh->type == alert &&
+                 !ssl->options.handShakeDone &&
+                 rh->pvMajor == ssl->version.major)
+            WOLFSSL_MSG("DTLS alert during handshake, skip RH version check");
+#endif
         /* Don't care about protocol version being lower than expected on alerts
          * sent back before version negotiation. */
         else if (!(ssl->options.side == WOLFSSL_CLIENT_END &&
@@ -13690,10 +13692,12 @@ int GetDtlsHandShakeHeader(WOLFSSL* ssl, const byte* input,
     idx += DTLS_HANDSHAKE_FRAG_SZ;
     c24to32(input + idx, fragSz);
 
-    if ((ssl->curRL.pvMajor != ssl->version.major) ||
-        (!IsAtLeastTLSv1_3(ssl->version) && ssl->curRL.pvMinor != ssl->version.minor) ||
-        (IsAtLeastTLSv1_3(ssl->version) && ssl->curRL.pvMinor != DTLSv1_2_MINOR)
-        ) {
+    /* The record header version check deferred by GetRecordHeader(). As above,
+     * DTLS 1.3 requires legacy_record_version to be ignored for all purposes
+     * (RFC 9147 Section 4), so only DTLS 1.2 and earlier check it here. */
+    if (!IsAtLeastTLSv1_3(ssl->version) &&
+        ((ssl->curRL.pvMajor != ssl->version.major) ||
+         (ssl->curRL.pvMinor != ssl->version.minor))) {
         if (*type != client_hello && *type != hello_verify_request && *type != server_hello) {
             WOLFSSL_ERROR(VERSION_ERROR);
             return VERSION_ERROR;
@@ -25833,6 +25837,10 @@ static int DoProcessReplyEx(WOLFSSL* ssl, int allowSocketErr)
                     /* invalid record length, RFC 8446 section 5.1 */
                     SendAlert(ssl, alert_fatal, record_overflow);
                     break;
+                case WC_NO_ERR_TRACE(UNKNOWN_RECORD_TYPE):
+                    /* undefined record type, RFC 8446/9846 section 5 */
+                    SendAlert(ssl, alert_fatal, unexpected_message);
+                    break;
                 default:
                     break;
                 }
@@ -26451,6 +26459,11 @@ static int DoProcessReplyEx(WOLFSSL* ssl, int allowSocketErr)
                 FALL_THROUGH;
 #endif /* WOLFSSL_DTLS13 */
                 default:
+                    /* undefined record type, RFC 8446/9846 section 5. DTLS
+                     * must not answer an invalid record with an alert, so it
+                     * returns the error without one. */
+                    if (!ssl->options.dtls)
+                        SendAlert(ssl, alert_fatal, unexpected_message);
                     WOLFSSL_ERROR(UNKNOWN_RECORD_TYPE);
                     return UNKNOWN_RECORD_TYPE;
             }
@@ -28638,7 +28651,7 @@ int SendCertificateRequest(WOLFSSL* ssl)
     int    sendSz;
     word32 i = RECORD_HEADER_SZ + HANDSHAKE_HEADER_SZ;
     word32 dnLen = 0;
-#ifndef WOLFSSL_NO_CA_NAMES
+#if !defined(WOLFSSL_NO_CA_NAMES) && defined(OPENSSL_EXTRA)
     WOLF_STACK_OF(WOLFSSL_X509_NAME)* names;
 #endif
     byte   certTypes[MAX_CERT_REQ_CERT_TYPE_CNT];
@@ -28660,7 +28673,7 @@ int SendCertificateRequest(WOLFSSL* ssl)
     if (IsAtLeastTLSv1_2(ssl))
         reqSz += LENGTH_SZ + localHashSigAlgoSz;
 
-#ifndef WOLFSSL_NO_CA_NAMES
+#if !defined(WOLFSSL_NO_CA_NAMES) && defined(OPENSSL_EXTRA)
     /* Certificate Authorities */
     names = SSL_PRIORITY_CA_NAMES(ssl);
     while (names != NULL) {
@@ -28726,7 +28739,7 @@ int SendCertificateRequest(WOLFSSL* ssl)
     /* Certificate Authorities */
     c16toa((word16)dnLen, &output[i]);  /* auth's */
     i += REQ_HEADER_SZ;
-#ifndef WOLFSSL_NO_CA_NAMES
+#if !defined(WOLFSSL_NO_CA_NAMES) && defined(OPENSSL_EXTRA)
     names = SSL_PRIORITY_CA_NAMES(ssl);
     while (names != NULL) {
         byte seq[MAX_SEQ_SZ];
@@ -43263,7 +43276,7 @@ static int AddPSKtoPreMasterSecret(WOLFSSL* ssl)
             alpn = (ALPN*)extension->data;
             if (alpn != NULL && alpn->negotiated == 1 &&
                     alpn->protocol_name != NULL) {
-                word32 protoLen = (word32)XSTRLEN(alpn->protocol_name);
+                word32 protoLen = (word32)alpn->protocol_nameSz;
                 if (protoLen > 0) {
                     return wc_Hash(TICKET_BINDING_HASH_TYPE,
                                    (const byte*)alpn->protocol_name,
